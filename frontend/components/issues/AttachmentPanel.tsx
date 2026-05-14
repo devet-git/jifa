@@ -1,0 +1,196 @@
+"use client";
+
+import { useRef, useState } from "react";
+import api from "@/lib/api";
+import {
+  useAttachments,
+  useUploadAttachment,
+  useDeleteAttachment,
+} from "@/hooks/useAttachments";
+import { Avatar } from "@/components/ui/Avatar";
+
+interface Props {
+  issueId: number;
+}
+
+const MAX_BYTES = 25 * 1024 * 1024;
+
+export function AttachmentPanel({ issueId }: Props) {
+  const { data: atts = [] } = useAttachments(issueId);
+  const upload = useUploadAttachment(issueId);
+  const remove = useDeleteAttachment(issueId);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [dragOver, setDragOver] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function uploadAll(files: FileList | File[]) {
+    setError(null);
+    for (const f of Array.from(files)) {
+      if (f.size > MAX_BYTES) {
+        setError(`${f.name} is larger than 25 MB`);
+        continue;
+      }
+      try {
+        await upload.mutateAsync(f);
+      } catch (err: any) {
+        setError(err.response?.data?.error ?? `Failed to upload ${f.name}`);
+      }
+    }
+  }
+
+  function handleDrop(e: React.DragEvent<HTMLDivElement>) {
+    e.preventDefault();
+    setDragOver(false);
+    if (e.dataTransfer.files.length) uploadAll(e.dataTransfer.files);
+  }
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-2">
+        <p className="text-xs text-gray-400 uppercase tracking-wide">
+          Attachments {atts.length > 0 && `(${atts.length})`}
+        </p>
+        <button
+          onClick={() => inputRef.current?.click()}
+          className="text-xs text-blue-500 hover:underline"
+          disabled={upload.isPending}
+        >
+          {upload.isPending ? "Uploading…" : "+ Upload"}
+        </button>
+      </div>
+
+      <input
+        ref={inputRef}
+        type="file"
+        multiple
+        className="hidden"
+        onChange={(e) => {
+          if (e.target.files) uploadAll(e.target.files);
+          e.target.value = "";
+        }}
+      />
+
+      <div
+        onDragOver={(e) => {
+          e.preventDefault();
+          setDragOver(true);
+        }}
+        onDragLeave={() => setDragOver(false)}
+        onDrop={handleDrop}
+        className={`border-2 border-dashed rounded-lg p-3 mb-2 text-center text-xs transition ${
+          dragOver
+            ? "border-blue-400 bg-blue-50"
+            : "border-gray-200 text-gray-400"
+        }`}
+      >
+        Drop files here or click Upload (max 25 MB each)
+      </div>
+
+      {error && <p className="text-xs text-red-600 mb-2">{error}</p>}
+
+      {atts.length > 0 && (
+        <ul className="grid grid-cols-2 gap-2">
+          {atts.map((a) => (
+            <AttachmentTile
+              key={a.id}
+              att={a}
+              issueId={issueId}
+              onDelete={() => {
+                if (confirm(`Delete ${a.original_filename}?`))
+                  remove.mutate(a.id);
+              }}
+            />
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
+function AttachmentTile({
+  att,
+  issueId,
+  onDelete,
+}: {
+  att: import("@/types").Attachment;
+  issueId: number;
+  onDelete: () => void;
+}) {
+  const isImage = att.mime_type?.startsWith("image/");
+  const [blobUrl, setBlobUrl] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  // Fetch the bytes through the authed axios instance, then expose them as
+  // an object URL. Direct <img src> would fail because the API requires a
+  // Bearer token.
+  async function ensureUrl() {
+    if (blobUrl || loading) return blobUrl;
+    setLoading(true);
+    try {
+      const res = await api.get(
+        `/issues/${issueId}/attachments/${att.id}`,
+        { responseType: "blob" },
+      );
+      const url = URL.createObjectURL(res.data);
+      setBlobUrl(url);
+      return url;
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  // Trigger eager fetch for image previews when they enter the panel.
+  if (isImage && !blobUrl && !loading) {
+    void ensureUrl();
+  }
+
+  async function handleClick() {
+    const url = (await ensureUrl()) ?? blobUrl;
+    if (url) window.open(url, "_blank");
+  }
+
+  return (
+    <li className="bg-white border rounded-lg overflow-hidden group relative">
+      <button
+        onClick={handleClick}
+        className="block w-full text-left"
+        title={att.original_filename}
+      >
+        {isImage && blobUrl ? (
+          <div className="h-24 bg-gray-50 overflow-hidden">
+            <img
+              src={blobUrl}
+              alt={att.original_filename}
+              className="w-full h-full object-cover"
+            />
+          </div>
+        ) : (
+          <div className="h-24 bg-gray-50 flex items-center justify-center text-2xl text-gray-400">
+            📎
+          </div>
+        )}
+        <div className="px-2 py-1.5">
+          <p className="text-xs truncate font-medium">
+            {att.original_filename}
+          </p>
+          <div className="flex items-center gap-1.5 mt-0.5 text-[10px] text-gray-400">
+            <Avatar name={att.uploader?.name} size="sm" />
+            <span>{humanSize(att.size)}</span>
+          </div>
+        </div>
+      </button>
+      <button
+        onClick={onDelete}
+        className="absolute top-1 right-1 bg-white/80 backdrop-blur rounded text-xs px-1 opacity-0 group-hover:opacity-100 transition text-red-600"
+      >
+        ×
+      </button>
+    </li>
+  );
+}
+
+function humanSize(bytes: number) {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}

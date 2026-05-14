@@ -1,0 +1,52 @@
+import { useSortable } from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+import { IssueCard } from "@/components/issues/IssueCard";
+import type { Issue } from "@/types";
+
+interface Props {
+  issue: Issue;
+  onClick: () => void;
+  selectMode?: boolean;
+  selected?: boolean;
+  onToggleSelect?: (id: number) => void;
+}
+
+export function SortableIssueCard({ issue, onClick, selectMode, selected, onToggleSelect }: Props) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: issue.id,
+  });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  };
+
+  if (selectMode) {
+    return (
+      <div
+        ref={setNodeRef}
+        style={style}
+        {...attributes}
+        className="flex items-start gap-2 cursor-pointer"
+        onClick={() => onToggleSelect?.(issue.id)}
+      >
+        <input
+          type="checkbox"
+          checked={!!selected}
+          onChange={() => onToggleSelect?.(issue.id)}
+          className="mt-2.5 w-3.5 h-3.5 accent-[var(--brand)] shrink-0"
+          onClick={(e) => e.stopPropagation()}
+        />
+        <div className="flex-1 pointer-events-none">
+          <IssueCard issue={issue} onClick={() => {}} dragging={false} />
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
+      <IssueCard issue={issue} onClick={onClick} dragging={isDragging} />
+    </div>
+  );
+}
