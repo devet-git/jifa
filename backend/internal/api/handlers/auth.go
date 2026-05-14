@@ -6,6 +6,7 @@ import (
 
 	"jifa/backend/config"
 	"jifa/backend/internal/models"
+	"jifa/backend/internal/pkg/totp"
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
@@ -31,6 +32,7 @@ type registerRequest struct {
 type loginRequest struct {
 	Email    string `json:"email" binding:"required,email"`
 	Password string `json:"password" binding:"required"`
+	TotpCode string `json:"totp_code"`
 }
 
 func (h *AuthHandler) Register(c *gin.Context) {
@@ -77,6 +79,17 @@ func (h *AuthHandler) Login(c *gin.Context) {
 	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(req.Password)); err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid credentials"})
 		return
+	}
+
+	if user.TotpEnabled {
+		if req.TotpCode == "" {
+			c.JSON(http.StatusAccepted, gin.H{"totp_required": true})
+			return
+		}
+		if user.TotpSecret == nil || !totp.Validate(*user.TotpSecret, req.TotpCode) {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid authenticator code"})
+			return
+		}
 	}
 
 	token, err := h.generateToken(user.ID)

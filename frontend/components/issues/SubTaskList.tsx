@@ -54,7 +54,7 @@ export function SubTaskList({ issue }: Props) {
           onClick={() => setAdding(true)}
           className="text-xs text-blue-500 hover:underline"
         >
-          + Thêm sub-task
+          + Add sub-task
         </button>
       </div>
 
@@ -93,20 +93,20 @@ export function SubTaskList({ issue }: Props) {
               if (e.key === "Enter") createSubTask();
               if (e.key === "Escape") setAdding(false);
             }}
-            placeholder="Tên sub-task..."
+            placeholder="Sub-task title..."
             className="flex-1 text-sm border rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
           <button
             onClick={createSubTask}
             className="text-xs bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700"
           >
-            Thêm
+            Add
           </button>
           <button
             onClick={() => setAdding(false)}
             className="text-xs text-gray-500 hover:text-gray-700"
           >
-            Hủy
+            Cancel
           </button>
         </div>
       )}

@@ -59,7 +59,7 @@ export default function EpicsPage({
             </div>
             <p className="font-medium mb-1">No epics yet</p>
             <p className="text-sm text-muted">
-              Tạo issue với loại <span className="font-mono text-foreground">epic</span> để theo dõi sáng kiến lớn.
+              Create an issue of type <span className="font-mono text-foreground">epic</span> to track large initiatives.
             </p>
           </div>
         ) : (

@@ -18,6 +18,7 @@ import { IssueCard } from "@/components/issues/IssueCard";
 import { IssueDetail } from "@/components/issues/IssueDetail";
 import {
   useIssues,
+  useCreateIssue,
   useRankIssue,
   useUpdateIssueStatus,
 } from "@/hooks/useIssues";
@@ -38,6 +39,7 @@ export default function BoardPage({
   const { data: issues = [] } = useIssues({ sprint_id: id });
   const updateStatus = useUpdateIssueStatus();
   const rank = useRankIssue();
+  const createIssue = useCreateIssue();
 
   // Project id is derived from the issues so we can fetch this sprint's
   // workflow without an extra round-trip.
@@ -170,6 +172,10 @@ export default function BoardPage({
                 selectMode={selectMode}
                 selectedIds={selectedIds}
                 onToggleSelect={toggleSelect}
+                onQuickAdd={(statusKey, title) => {
+                  if (!projectId) return;
+                  createIssue.mutate({ title, status: statusKey as import("@/types").IssueStatus, project_id: projectId, sprint_id: Number(id) });
+                }}
               />
             ))}
             {statuses.length === 0 && (

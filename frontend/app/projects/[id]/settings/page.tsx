@@ -30,6 +30,7 @@ import {
   useCreateComponent,
   useUpdateComponent,
   useDeleteComponent,
+  useReorderComponents,
 } from "@/hooks/useComponents";
 import {
   useWebhooks,
@@ -478,8 +479,39 @@ function EmptyState({
 
 function AuditTab({ projectId }: { projectId: string }) {
   const { data: entries = [] } = useAudit(projectId);
+
+  function exportCSV() {
+    const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
+    const base = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080/api/v1";
+    fetch(`${base}/projects/${projectId}/audit/export`, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    })
+      .then((r) => r.blob())
+      .then((blob) => {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `audit-log-${projectId}.csv`;
+        a.click();
+        URL.revokeObjectURL(url);
+      });
+  }
+
   return (
-    <div className="max-w-2xl animate-fade-in">
+    <div className="max-w-2xl animate-fade-in space-y-4">
+      <div className="flex justify-end">
+        <button
+          onClick={exportCSV}
+          className="inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg border border-border bg-surface hover:bg-surface-2 transition text-foreground"
+        >
+          <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+            <polyline points="7 10 12 15 17 10" />
+            <line x1="12" y1="15" x2="12" y2="3" />
+          </svg>
+          Export CSV
+        </button>
+      </div>
       <div className="surface-card overflow-hidden">
         {entries.length === 0 ? (
           <EmptyState
@@ -1417,11 +1449,27 @@ function ComponentsTab({
   const create = useCreateComponent(projectId);
   const update = useUpdateComponent(projectId);
   const remove = useDeleteComponent(projectId);
+  const reorder = useReorderComponents(projectId);
 
   const [draft, setDraft] = useState<{ name: string; lead_id: string }>({
     name: "",
     lead_id: "",
   });
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
+  );
+
+  function handleDragEnd(e: DragEndEvent) {
+    if (!e.over || e.active.id === e.over.id) return;
+    const from = components.findIndex((c) => c.id === Number(e.active.id));
+    const to = components.findIndex((c) => c.id === Number(e.over!.id));
+    if (from < 0 || to < 0) return;
+    const next = [...components];
+    const [moved] = next.splice(from, 1);
+    next.splice(to, 0, moved);
+    reorder.mutate(next.map((c) => c.id));
+  }
 
   async function handleAdd(e: React.FormEvent) {
     e.preventDefault();
@@ -1480,24 +1528,35 @@ function ComponentsTab({
             message="No components yet."
           />
         ) : (
-          <ul className="divide-y divide-border">
-            {components.map((c) => (
-              <ComponentRow
-                key={c.id}
-                c={c}
-                users={users}
-                isAdmin={isAdmin}
-                onRename={(name) => update.mutate({ id: c.id, name })}
-                onLead={(leadId) =>
-                  update.mutate({ id: c.id, name: c.name, lead_id: leadId })
-                }
-                onDelete={() => {
-                  if (confirm(`Delete component "${c.name}"?`))
-                    remove.mutate(c.id);
-                }}
-              />
-            ))}
-          </ul>
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragEnd={handleDragEnd}
+          >
+            <SortableContext
+              items={components.map((c) => c.id)}
+              strategy={verticalListSortingStrategy}
+            >
+              <ul className="divide-y divide-border">
+                {components.map((c) => (
+                  <ComponentRow
+                    key={c.id}
+                    c={c}
+                    users={users}
+                    isAdmin={isAdmin}
+                    onRename={(name) => update.mutate({ id: c.id, name })}
+                    onLead={(leadId) =>
+                      update.mutate({ id: c.id, name: c.name, lead_id: leadId })
+                    }
+                    onDelete={() => {
+                      if (confirm(`Delete component "${c.name}"?`))
+                        remove.mutate(c.id);
+                    }}
+                  />
+                ))}
+              </ul>
+            </SortableContext>
+          </DndContext>
         )}
       </div>
     </div>
@@ -1519,6 +1578,8 @@ function ComponentRow({
   onLead: (leadId: number | undefined) => void;
   onDelete: () => void;
 }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
+    useSortable({ id: c.id });
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState(c.name);
 
@@ -1530,7 +1591,24 @@ function ComponentRow({
   const lead = users.find((u) => u.id === c.lead_id);
 
   return (
-    <li className="px-5 py-3.5 flex items-center gap-3">
+    <li
+      ref={setNodeRef}
+      style={{ transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.4 : 1 }}
+      className="px-5 py-3.5 flex items-center gap-3 bg-surface"
+    >
+      {isAdmin && (
+        <button
+          {...attributes}
+          {...listeners}
+          aria-label="Drag to reorder"
+          className="text-muted hover:text-foreground cursor-grab active:cursor-grabbing select-none transition-colors"
+          title="Drag to reorder"
+        >
+          <svg className="w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
+            <path d="M7 2a2 2 0 1 0 .001 4.001A2 2 0 0 0 7 2zm0 6a2 2 0 1 0 .001 4.001A2 2 0 0 0 7 8zm0 6a2 2 0 1 0 .001 4.001A2 2 0 0 0 7 14zm6-8a2 2 0 1 0-.001-4.001A2 2 0 0 0 13 6zm0 2a2 2 0 1 0 .001 4.001A2 2 0 0 0 13 8zm0 6a2 2 0 1 0 .001 4.001A2 2 0 0 0 13 14z" />
+          </svg>
+        </button>
+      )}
       <div className="flex-1 min-w-0">
         {editing ? (
           <input

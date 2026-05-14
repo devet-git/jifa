@@ -19,6 +19,7 @@ type Version struct {
 	Status      VersionStatus `gorm:"not null;default:'unreleased'" json:"status"`
 	ReleaseDate *time.Time    `json:"release_date"` // planned date
 	ReleasedAt  *time.Time    `json:"released_at"`  // actual date
+	Rank        int           `gorm:"default:0" json:"rank"`
 }
 
 func ValidVersionStatus(s VersionStatus) bool {

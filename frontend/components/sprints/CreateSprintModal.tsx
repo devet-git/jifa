@@ -36,11 +36,11 @@ export function CreateSprintModal({ open, onClose, projectId }: Props) {
   }
 
   return (
-    <Modal open={open} onClose={onClose} title="Tạo sprint mới">
+    <Modal open={open} onClose={onClose} title="New sprint">
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
           <label className="block text-xs font-medium mb-1.5 text-muted">
-            Tên sprint
+            Sprint name
           </label>
           <input
             required
@@ -57,7 +57,7 @@ export function CreateSprintModal({ open, onClose, projectId }: Props) {
           </label>
           <input
             className="input"
-            placeholder="Mục tiêu của sprint này…"
+            placeholder="What is this sprint trying to achieve?"
             value={form.goal}
             onChange={(e) => setForm((f) => ({ ...f, goal: e.target.value }))}
           />
@@ -65,7 +65,7 @@ export function CreateSprintModal({ open, onClose, projectId }: Props) {
         <div className="grid grid-cols-2 gap-4">
           <div>
             <label className="block text-xs font-medium mb-1.5 text-muted">
-              Ngày bắt đầu
+              Start date
             </label>
             <input
               type="date"
@@ -78,7 +78,7 @@ export function CreateSprintModal({ open, onClose, projectId }: Props) {
           </div>
           <div>
             <label className="block text-xs font-medium mb-1.5 text-muted">
-              Ngày kết thúc
+              End date
             </label>
             <input
               type="date"
@@ -92,10 +92,10 @@ export function CreateSprintModal({ open, onClose, projectId }: Props) {
         </div>
         <div className="flex justify-end gap-2 pt-2 border-t border-border -mx-6 px-6 -mb-6 pb-6 mt-6">
           <Button type="button" variant="secondary" onClick={onClose}>
-            Hủy
+            Cancel
           </Button>
           <Button type="submit" variant="gradient" disabled={isPending}>
-            {isPending ? "Đang tạo…" : "Tạo sprint"}
+            {isPending ? "Creating…" : "Create sprint"}
           </Button>
         </div>
       </form>

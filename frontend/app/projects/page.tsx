@@ -30,7 +30,7 @@ export default function ProjectsPage() {
           <h1 className="text-2xl font-bold tracking-tight">Projects</h1>
           <p className="text-sm text-muted mt-1">
             <span className="font-medium text-foreground">{projects.length}</span>{" "}
-            project{projects.length === 1 ? "" : "s"} bạn có quyền truy cập.
+            project{projects.length === 1 ? "" : "s"} you have access to.
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -49,7 +49,7 @@ export default function ProjectsPage() {
             </svg>
             <input
               type="text"
-              placeholder="Tìm project…"
+              placeholder="Search projects…"
               className="flex-1 min-w-0 bg-transparent text-sm px-2 py-2 outline-none placeholder:text-[var(--muted-2)]"
               value={q}
               onChange={(e) => setQ(e.target.value)}
@@ -95,17 +95,17 @@ export default function ProjectsPage() {
           </div>
           {q ? (
             <>
-              <p className="font-semibold text-base mb-1">Không tìm thấy</p>
+              <p className="font-semibold text-base mb-1">No results found</p>
               <p className="text-sm text-muted">
-                Không có project nào khớp với &ldquo;
+                No projects match &ldquo;
                 <span className="text-foreground">{q}</span>&rdquo;.
               </p>
             </>
           ) : (
             <>
-              <p className="font-semibold text-base mb-1">Chưa có project</p>
+              <p className="font-semibold text-base mb-1">No projects yet</p>
               <p className="text-sm text-muted mb-5">
-                Tạo dự án đầu tiên để bắt đầu theo dõi issue & sprint.
+                Create your first project to start tracking issues &amp; sprints.
               </p>
               <Button variant="gradient" onClick={() => setShowCreate(true)}>
                 Create your first project

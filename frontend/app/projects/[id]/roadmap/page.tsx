@@ -1,9 +1,9 @@
 "use client";
 
-import { use, useMemo, useState } from "react";
+import { use, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useProject } from "@/hooks/useProject";
-import { useIssues } from "@/hooks/useIssues";
+import { useIssues, useUpdateIssue } from "@/hooks/useIssues";
 import { IssueDetail } from "@/components/issues/IssueDetail";
 import type { Issue } from "@/types";
 
@@ -11,6 +11,14 @@ const DAY_PX = 20;
 const ROW_H = 32;
 const HEADER_H = 40;
 const LABEL_W = 220;
+const HANDLE_W = 8;
+
+type DragState = {
+  id: number;
+  origX2: number;
+  startClientX: number;
+  currentX2: number;
+};
 
 export default function RoadmapPage({
   params,
@@ -21,13 +29,16 @@ export default function RoadmapPage({
   const { data: project } = useProject(id);
   const { data: issues = [] } = useIssues({ project_id: id });
   const [selected, setSelected] = useState<Issue | null>(null);
+  const updateIssue = useUpdateIssue();
+  const [drag, setDrag] = useState<DragState | null>(null);
+  const dragRef = useRef<DragState | null>(null);
+  dragRef.current = drag;
 
   const epics = useMemo(
     () => issues.filter((i) => i.type === "epic"),
     [issues],
   );
 
-  // Each epic carries its children with it.
   const rows = useMemo(() => {
     return epics.map((epic) => {
       const children = issues.filter((i) => i.parent_id === epic.id);
@@ -35,9 +46,7 @@ export default function RoadmapPage({
     });
   }, [issues, epics]);
 
-  // Date range to cover. Default: today - 7 to today + 60. Expand to cover
-  // any epic or child that pokes outside.
-  const { rangeStart, rangeEnd, days } = useMemo(() => {
+  const { rangeStart, days } = useMemo(() => {
     const today = startOfDay(new Date());
     let start = addDays(today, -7);
     let end = addDays(today, 60);
@@ -55,10 +64,7 @@ export default function RoadmapPage({
   }, [rows]);
 
   const totalW = days.length * DAY_PX;
-  const totalRows = rows.reduce(
-    (n, r) => n + 1 + r.children.length,
-    0,
-  );
+  const totalRows = rows.reduce((n, r) => n + 1 + r.children.length, 0);
   const totalH = HEADER_H + totalRows * ROW_H;
 
   function xForDate(d?: string | Date | null) {
@@ -70,7 +76,6 @@ export default function RoadmapPage({
     return diff * DAY_PX;
   }
 
-  // Month markers across the header.
   const monthMarkers = useMemo(() => {
     const out: { x: number; label: string }[] = [];
     let lastMonth = -1;
@@ -79,10 +84,7 @@ export default function RoadmapPage({
         lastMonth = d.getMonth();
         out.push({
           x: i * DAY_PX,
-          label: d.toLocaleDateString("en-US", {
-            month: "short",
-            year: "2-digit",
-          }),
+          label: d.toLocaleDateString("en-US", { month: "short", year: "2-digit" }),
         });
       }
     });
@@ -90,6 +92,40 @@ export default function RoadmapPage({
   }, [days]);
 
   const todayX = xForDate(new Date());
+
+  const handleResizeStart = useCallback(
+    (issueId: number, origX2: number, clientX: number) => {
+      setDrag({ id: issueId, origX2, startClientX: clientX, currentX2: origX2 });
+    },
+    [],
+  );
+
+  useEffect(() => {
+    if (!drag) return;
+    function onMove(e: MouseEvent) {
+      const d = dragRef.current;
+      if (!d) return;
+      const delta = e.clientX - d.startClientX;
+      const rawX2 = d.origX2 + delta;
+      const snapped = Math.round(rawX2 / DAY_PX) * DAY_PX;
+      setDrag((prev) => prev ? { ...prev, currentX2: snapped } : null);
+    }
+    function onUp() {
+      const d = dragRef.current;
+      if (!d) return;
+      const days = Math.round(d.currentX2 / DAY_PX);
+      const newDueDate = addDays(rangeStart, days);
+      const iso = fmtDate(newDueDate);
+      updateIssue.mutate({ id: d.id, due_date: iso } as { id: number; due_date: string });
+      setDrag(null);
+    }
+    window.addEventListener("mousemove", onMove);
+    window.addEventListener("mouseup", onUp);
+    return () => {
+      window.removeEventListener("mousemove", onMove);
+      window.removeEventListener("mouseup", onUp);
+    };
+  }, [drag, rangeStart, updateIssue]);
 
   return (
     <div className="flex flex-col h-full">
@@ -105,12 +141,13 @@ export default function RoadmapPage({
         </Link>
         <h1 className="text-2xl font-bold tracking-tight">Roadmap</h1>
         <p className="text-xs text-muted mt-1">
-          Set <b className="text-foreground">start date</b> và{" "}
-          <b className="text-foreground">due date</b> trên epic để hiển thị tại đây.
+          Set a <b className="text-foreground">start date</b> and{" "}
+          <b className="text-foreground">due date</b> on epics to display them here.
+          Drag the right edge of a bar to change its due date.
         </p>
       </div>
 
-      <div className="flex-1 overflow-auto">
+      <div className="flex-1 overflow-auto" style={drag ? { userSelect: "none", cursor: "ew-resize" } : undefined}>
         {epics.length === 0 ? (
           <div className="surface-card p-12 text-center max-w-xl mx-auto mt-12">
             <div className="mx-auto w-12 h-12 rounded-xl bg-violet-50 dark:bg-violet-500/15 flex items-center justify-center mb-3">
@@ -119,7 +156,7 @@ export default function RoadmapPage({
               </svg>
             </div>
             <p className="font-medium mb-1">No epics yet</p>
-            <p className="text-sm text-muted">Tạo một epic để bắt đầu roadmap.</p>
+            <p className="text-sm text-muted">Create an epic to start your roadmap.</p>
           </div>
         ) : (
           <div className="flex">
@@ -146,9 +183,7 @@ export default function RoadmapPage({
                     <span className="text-[11px] font-mono text-muted shrink-0">
                       {epic.key ?? `#${epic.id}`}
                     </span>
-                    <span className="text-sm font-medium truncate">
-                      {epic.title}
-                    </span>
+                    <span className="text-sm font-medium truncate">{epic.title}</span>
                   </button>
                   {children.map((ch) => (
                     <button
@@ -160,9 +195,7 @@ export default function RoadmapPage({
                       <span className="text-[11px] font-mono text-muted shrink-0">
                         {ch.key ?? `#${ch.id}`}
                       </span>
-                      <span className="text-xs truncate text-foreground">
-                        {ch.title}
-                      </span>
+                      <span className="text-xs truncate text-foreground">{ch.title}</span>
                     </button>
                   ))}
                 </div>
@@ -170,54 +203,26 @@ export default function RoadmapPage({
             </div>
 
             {/* Timeline */}
-            <div className="relative">
-              <svg
-                width={totalW}
-                height={totalH}
-                style={{ display: "block" }}
-              >
+            <div className="relative overflow-x-auto">
+              <svg width={totalW} height={totalH} style={{ display: "block" }}>
                 {/* Header */}
-                <rect
-                  x={0}
-                  y={0}
-                  width={totalW}
-                  height={HEADER_H}
-                  fill="#f9fafb"
-                />
+                <rect x={0} y={0} width={totalW} height={HEADER_H} fill="#f9fafb" />
                 {monthMarkers.map((m) => (
                   <g key={m.x}>
-                    <line
-                      x1={m.x}
-                      x2={m.x}
-                      y1={0}
-                      y2={totalH}
-                      stroke="#e5e7eb"
-                    />
-                    <text
-                      x={m.x + 6}
-                      y={24}
-                      fontSize={11}
-                      fill="#4b5563"
-                    >
+                    <line x1={m.x} x2={m.x} y1={0} y2={totalH} stroke="#e5e7eb" />
+                    <text x={m.x + 6} y={24} fontSize={11} fill="#4b5563">
                       {m.label}
                     </text>
                   </g>
                 ))}
 
-                {/* Today line */}
                 {todayX !== null && (
                   <line
-                    x1={todayX}
-                    x2={todayX}
-                    y1={0}
-                    y2={totalH}
-                    stroke="#3b82f6"
-                    strokeWidth={1.5}
-                    strokeDasharray="3 3"
+                    x1={todayX} x2={todayX} y1={0} y2={totalH}
+                    stroke="#3b82f6" strokeWidth={1.5} strokeDasharray="3 3"
                   />
                 )}
 
-                {/* Row backgrounds + bars */}
                 {(() => {
                   let row = 0;
                   const nodes: React.ReactNode[] = [];
@@ -231,6 +236,8 @@ export default function RoadmapPage({
                         xForDate={xForDate}
                         totalW={totalW}
                         isEpic
+                        dragX2={drag?.id === epic.id ? drag.currentX2 : undefined}
+                        onResizeStart={handleResizeStart}
                       />,
                     );
                     row++;
@@ -243,6 +250,8 @@ export default function RoadmapPage({
                           y={cy}
                           xForDate={xForDate}
                           totalW={totalW}
+                          dragX2={drag?.id === ch.id ? drag.currentX2 : undefined}
+                          onResizeStart={handleResizeStart}
                         />,
                       );
                       row++;
@@ -269,28 +278,23 @@ function BarRow({
   xForDate,
   totalW,
   isEpic,
+  dragX2,
+  onResizeStart,
 }: {
   issue: Issue;
   y: number;
   xForDate: (d?: string | Date | null) => number | null;
   totalW: number;
   isEpic?: boolean;
+  dragX2?: number;
+  onResizeStart: (id: number, origX2: number, clientX: number) => void;
 }) {
   const sx = xForDate(issue.start_date);
   const ex = xForDate(issue.due_date);
-  const fill = isEpic
-    ? issue.color || "#94a3b8"
-    : statusColor(issue.status);
+  const fill = isEpic ? issue.color || "#94a3b8" : statusColor(issue.status);
 
-  // Row separator
   const sep = (
-    <line
-      x1={0}
-      x2={totalW}
-      y1={y + ROW_H}
-      y2={y + ROW_H}
-      stroke="#f3f4f6"
-    />
+    <line x1={0} x2={totalW} y1={y + ROW_H} y2={y + ROW_H} stroke="#f3f4f6" />
   );
 
   if (sx === null && ex === null) return sep;
@@ -298,7 +302,9 @@ function BarRow({
   let x1 = sx ?? ex!;
   let x2 = ex ?? (sx! + 14 * DAY_PX);
   if (x2 < x1) [x1, x2] = [x2, x1];
-  const width = Math.max(8, x2 - x1 + DAY_PX);
+
+  const barX2 = dragX2 !== undefined ? Math.max(x1 + DAY_PX, dragX2) : x2 + DAY_PX;
+  const width = Math.max(8, barX2 - x1);
 
   return (
     <g>
@@ -313,12 +319,47 @@ function BarRow({
         opacity={isEpic ? 0.85 : 0.7}
       >
         <title>
-          {issue.title}{" "}
+          {issue.title}
           {issue.start_date ? ` (${issue.start_date.slice(0, 10)}` : ""}
           {issue.start_date && issue.due_date ? " → " : ""}
           {issue.due_date ? `${issue.due_date.slice(0, 10)})` : ""}
         </title>
       </rect>
+      {/* Resize handle — right edge */}
+      <rect
+        x={x1 + width - HANDLE_W}
+        y={y + 4}
+        width={HANDLE_W}
+        height={ROW_H - 8}
+        rx={2}
+        fill="transparent"
+        style={{ cursor: "ew-resize" }}
+        onMouseDown={(e) => {
+          e.stopPropagation();
+          onResizeStart(issue.id, x2 + DAY_PX, e.clientX);
+        }}
+      />
+      {/* Resize grip dots */}
+      <line
+        x1={x1 + width - 3}
+        x2={x1 + width - 3}
+        y1={y + ROW_H / 2 - 4}
+        y2={y + ROW_H / 2 + 4}
+        stroke="white"
+        strokeWidth={1.5}
+        strokeOpacity={0.7}
+        style={{ pointerEvents: "none" }}
+      />
+      <line
+        x1={x1 + width - 6}
+        x2={x1 + width - 6}
+        y1={y + ROW_H / 2 - 4}
+        y2={y + ROW_H / 2 + 4}
+        stroke="white"
+        strokeWidth={1.5}
+        strokeOpacity={0.5}
+        style={{ pointerEvents: "none" }}
+      />
     </g>
   );
 }
@@ -344,4 +385,7 @@ function startOfDay(d: Date) {
 }
 function addDays(d: Date, n: number) {
   return new Date(d.getFullYear(), d.getMonth(), d.getDate() + n);
+}
+function fmtDate(d: Date) {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }

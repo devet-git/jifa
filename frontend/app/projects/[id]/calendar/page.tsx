@@ -1,0 +1,168 @@
+"use client";
+
+import { use, useState } from "react";
+import Link from "next/link";
+import { useProject } from "@/hooks/useProject";
+import { useIssues } from "@/hooks/useIssues";
+import { IssueDetail } from "@/components/issues/IssueDetail";
+import type { Issue } from "@/types";
+
+const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+
+const PRIORITY_COLORS: Record<string, string> = {
+  urgent: "bg-red-500",
+  high: "bg-orange-400",
+  medium: "bg-blue-500",
+  low: "bg-slate-400",
+};
+
+export default function CalendarPage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  const { id } = use(params);
+  const today = new Date();
+  const [year, setYear] = useState(today.getFullYear());
+  const [month, setMonth] = useState(today.getMonth());
+  const [selectedIssue, setSelectedIssue] = useState<Issue | null>(null);
+
+  const { data: project } = useProject(id);
+
+  const firstDay = new Date(year, month, 1);
+  const lastDay = new Date(year, month + 1, 0);
+  const pad = (d: Date) => d.toISOString().split("T")[0];
+
+  const { data: issues = [] } = useIssues({
+    project_id: id,
+    due_date_from: pad(firstDay),
+    due_date_to: pad(lastDay),
+  });
+
+  const byDay: Record<number, Issue[]> = {};
+  for (const issue of issues) {
+    if (!issue.due_date) continue;
+    const d = new Date(issue.due_date).getDate();
+    if (!byDay[d]) byDay[d] = [];
+    byDay[d].push(issue);
+  }
+
+  function prevMonth() {
+    if (month === 0) { setYear(y => y - 1); setMonth(11); }
+    else setMonth(m => m - 1);
+  }
+  function nextMonth() {
+    if (month === 11) { setYear(y => y + 1); setMonth(0); }
+    else setMonth(m => m + 1);
+  }
+
+  // Build grid cells: leading blanks + days of month
+  const startDow = (firstDay.getDay() + 6) % 7; // Mon=0
+  const daysInMonth = lastDay.getDate();
+  const cells: (number | null)[] = [
+    ...Array(startDow).fill(null),
+    ...Array.from({ length: daysInMonth }, (_, i) => i + 1),
+  ];
+  // Pad to full weeks
+  while (cells.length % 7 !== 0) cells.push(null);
+
+  const monthLabel = firstDay.toLocaleDateString(undefined, { month: "long", year: "numeric" });
+
+  return (
+    <div className="flex flex-col h-full">
+      <div className="px-8 pt-7 pb-4 border-b border-border bg-surface flex items-center gap-4">
+        <Link
+          href={`/projects/${id}`}
+          className="inline-flex items-center gap-1 text-xs text-muted hover:text-brand transition"
+        >
+          <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <path d="m15 18-6-6 6-6" />
+          </svg>
+          {project?.name}
+        </Link>
+        <h1 className="text-2xl font-bold tracking-tight flex-1">Calendar</h1>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={prevMonth}
+            className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-surface-2 transition text-muted hover:text-foreground"
+          >
+            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="m15 18-6-6 6-6" />
+            </svg>
+          </button>
+          <span className="text-sm font-semibold min-w-[140px] text-center">{monthLabel}</span>
+          <button
+            onClick={nextMonth}
+            className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-surface-2 transition text-muted hover:text-foreground"
+          >
+            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="m9 18 6-6-6-6" />
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <div className="flex-1 p-6 overflow-auto">
+        {/* Day-of-week header */}
+        <div className="grid grid-cols-7 gap-1 mb-1">
+          {DAYS.map((d) => (
+            <div key={d} className="text-center text-xs font-semibold text-muted py-1">
+              {d}
+            </div>
+          ))}
+        </div>
+
+        {/* Calendar grid */}
+        <div className="grid grid-cols-7 gap-1">
+          {cells.map((day, i) => {
+            if (day === null) {
+              return <div key={`blank-${i}`} className="min-h-[90px] rounded-lg" />;
+            }
+            const isToday =
+              day === today.getDate() &&
+              month === today.getMonth() &&
+              year === today.getFullYear();
+            const dayIssues = byDay[day] ?? [];
+
+            return (
+              <div
+                key={day}
+                className={`min-h-[90px] rounded-lg border p-1.5 ${
+                  isToday
+                    ? "border-brand bg-brand/5"
+                    : "border-border bg-surface hover:bg-surface-2"
+                } transition`}
+              >
+                <p className={`text-xs font-semibold mb-1 ${isToday ? "text-brand" : "text-muted"}`}>
+                  {day}
+                </p>
+                <div className="space-y-0.5">
+                  {dayIssues.slice(0, 3).map((issue) => (
+                    <button
+                      key={issue.id}
+                      onClick={() => setSelectedIssue(issue)}
+                      className="w-full flex items-center gap-1 text-left hover:opacity-80 transition"
+                    >
+                      <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${PRIORITY_COLORS[issue.priority] ?? "bg-slate-400"}`} />
+                      <span className="text-[10px] text-foreground truncate">{issue.title}</span>
+                    </button>
+                  ))}
+                  {dayIssues.length > 3 && (
+                    <p className="text-[10px] text-muted pl-2.5">+{dayIssues.length - 3} more</p>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {selectedIssue && (
+        <IssueDetail
+          issue={selectedIssue}
+          onClose={() => setSelectedIssue(null)}
+        />
+      )}
+    </div>
+  );
+}

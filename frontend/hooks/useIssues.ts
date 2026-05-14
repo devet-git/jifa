@@ -10,6 +10,8 @@ interface IssueFilters {
   type?: string;
   priority?: string;
   assignee_id?: number | string;
+  due_date_from?: string;
+  due_date_to?: string;
 }
 
 export function useIssues(filters: IssueFilters) {
@@ -24,11 +26,13 @@ export function useIssues(filters: IssueFilters) {
   if (filters.type) params.set("type", filters.type);
   if (filters.priority) params.set("priority", filters.priority);
   if (filters.assignee_id) params.set("assignee_id", String(filters.assignee_id));
+  if (filters.due_date_from) params.set("due_date_from", filters.due_date_from);
+  if (filters.due_date_to) params.set("due_date_to", filters.due_date_to);
 
   return useQuery<Issue[]>({
     queryKey: ["issues", filters],
     queryFn: () => api.get(`/issues?${params}`).then((r) => r.data),
-    enabled: !!filters.project_id || !!filters.sprint_id,
+    enabled: !!filters.project_id || !!filters.sprint_id || !!filters.due_date_from,
   });
 }
 
@@ -74,6 +78,15 @@ export function useRankIssue() {
       qc.invalidateQueries({ queryKey: ["issues"] });
       qc.invalidateQueries({ queryKey: ["sprints"] });
     },
+  });
+}
+
+export function useUpdateIssue() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, ...body }: Partial<Issue> & { id: number }) =>
+      api.put(`/issues/${id}`, body).then((r) => r.data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["issues"] }),
   });
 }
 

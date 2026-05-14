@@ -38,21 +38,20 @@ export function AuthShell({ title, subtitle, children }: AuthShellProps) {
             Project Management
           </p>
           <h2 className="text-4xl font-bold leading-tight mb-4">
-            Theo dõi dự án.
+            Track your projects.
             <br />
-            Nhịp nhàng. Trực quan.
+            Smooth. Intuitive.
           </h2>
           <p className="text-white/80 text-base leading-relaxed mb-10">
-            Backlog, sprint board, roadmap, báo cáo velocity — tất cả trong một
-            workspace gọn gàng. Lấy cảm hứng từ Jira, được tinh chỉnh cho team
-            của bạn.
+            Backlog, sprint board, roadmap, velocity reports — all in one clean
+            workspace. Inspired by Jira, refined for your team.
           </p>
 
           <ul className="space-y-3 text-sm">
             {[
-              "Kanban + Backlog kéo–thả mượt mà",
-              "Báo cáo velocity, burndown, cycle-time",
-              "Tìm kiếm JQL, thông báo theo thời gian thực",
+              "Kanban + Backlog with smooth drag & drop",
+              "Velocity, burndown, and cycle-time reports",
+              "JQL search and real-time notifications",
             ].map((line) => (
               <li key={line} className="flex items-center gap-2.5">
                 <span className="w-5 h-5 rounded-full bg-white/15 flex items-center justify-center shrink-0">

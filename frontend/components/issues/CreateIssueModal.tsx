@@ -115,7 +115,7 @@ export function CreateIssueModal({
         <div className="grid grid-cols-2 gap-4">
           <div>
             <label className="block text-xs font-medium mb-1.5 text-muted">
-              Loại
+              Type
             </label>
             <select
               className="input"
@@ -201,7 +201,7 @@ export function CreateIssueModal({
               setForm((f) => ({ ...f, assignee_id: e.target.value }))
             }
           >
-            <option value="">Chưa gán</option>
+            <option value="">Unassigned</option>
             {users.map((u) => (
               <option key={u.id} value={u.id}>
                 {u.name}
@@ -211,11 +211,11 @@ export function CreateIssueModal({
         </div>
         <div>
           <label className="block text-xs font-medium mb-1.5 text-muted">
-            Mô tả
+            Description
           </label>
           <textarea
             rows={4}
-            placeholder="Mô tả chi tiết (tùy chọn)"
+            placeholder="Detailed description (optional)"
             className="input resize-none"
             value={form.description}
             onChange={(e) =>
@@ -225,10 +225,10 @@ export function CreateIssueModal({
         </div>
         <div className="flex justify-end gap-2 pt-2 border-t border-border -mx-6 px-6 -mb-6 pb-6 mt-6">
           <Button type="button" variant="secondary" onClick={onClose}>
-            Hủy
+            Cancel
           </Button>
           <Button type="submit" variant="gradient" disabled={isPending}>
-            {isPending ? "Đang tạo…" : "Tạo issue"}
+            {isPending ? "Creating…" : "Create issue"}
           </Button>
         </div>
       </form>

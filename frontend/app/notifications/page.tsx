@@ -30,7 +30,7 @@ export default function NotificationsPage() {
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Notifications</h1>
           <p className="text-sm text-muted mt-1">
-            Hoạt động được gửi đến bạn từ các dự án.
+            Activity sent to you from your projects.
           </p>
         </div>
         <Button size="sm" variant="secondary" onClick={() => markAll.mutate()}>
@@ -72,7 +72,7 @@ export default function NotificationsPage() {
             </div>
             <p className="font-medium">All caught up</p>
             <p className="text-sm text-muted mt-1">
-              Bạn không có thông báo nào{unreadOnly ? " chưa đọc" : ""}.
+              You have no {unreadOnly ? "unread " : ""}notifications.
             </p>
           </div>
         ) : (

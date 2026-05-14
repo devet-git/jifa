@@ -112,6 +112,12 @@ func (h *IssueHandler) List(c *gin.Context) {
 	if aid := c.Query("assignee_id"); aid != "" {
 		q = q.Where("issues.assignee_id = ?", aid)
 	}
+	if from := c.Query("due_date_from"); from != "" {
+		q = q.Where("issues.due_date >= ?", from)
+	}
+	if to := c.Query("due_date_to"); to != "" {
+		q = q.Where("issues.due_date <= ?", to)
+	}
 	q.Order("issues.rank ASC, issues.id ASC").Find(&issues)
 	for i := range issues {
 		setIssueKey(&issues[i])
@@ -806,6 +812,44 @@ func (h *IssueHandler) UpdateComment(c *gin.Context) {
 }
 
 // DeleteComment lets the comment author (or project admin) delete a comment.
+func (h *IssueHandler) Convert(c *gin.Context) {
+	userID, _ := c.Get("userID")
+	var issue models.Issue
+	if err := h.db.First(&issue, c.Param("id")).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "issue not found"})
+		return
+	}
+	role := middleware.LookupRole(h.db, userID.(uint), issue.ProjectID)
+	if !middleware.CanAccess(role, models.RoleMember) {
+		c.JSON(http.StatusForbidden, gin.H{"error": "insufficient role"})
+		return
+	}
+	var req struct {
+		Type models.IssueType `json:"type" binding:"required"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	if issue.Type == models.IssueTypeEpic {
+		var childCount int64
+		h.db.Model(&models.Issue{}).Where("parent_id = ?", issue.ID).Count(&childCount)
+		if childCount > 0 {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "cannot convert epic with child issues"})
+			return
+		}
+	}
+	oldType := string(issue.Type)
+	if err := h.db.Model(&issue).Update("type", req.Type).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	logActivity(h.db, issue.ID, userID.(uint), "type", oldType, string(req.Type))
+	h.db.Preload("Assignee").Preload("Reporter").Preload("Project").First(&issue, issue.ID)
+	setIssueKey(&issue)
+	c.JSON(http.StatusOK, issue)
+}
+
 func (h *IssueHandler) DeleteComment(c *gin.Context) {
 	userID, _ := c.Get("userID")
 	var comment models.Comment

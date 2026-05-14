@@ -27,3 +27,23 @@ export function useSprintAction() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ["sprints"] }),
   });
 }
+
+export interface SprintRetro {
+  sprint: Sprint;
+  committed_points: number;
+  delivered_points: number;
+  committed_issues: number;
+  delivered_issues: number;
+  completed: import("@/types").Issue[];
+  not_completed: import("@/types").Issue[];
+  scope_added: import("@/types").Issue[];
+}
+
+export function useSprintRetro(sprintId: number | null | undefined) {
+  return useQuery<SprintRetro>({
+    queryKey: ["sprint-retro", sprintId],
+    queryFn: () =>
+      api.get(`/sprints/${sprintId}/retrospective`).then((r) => r.data),
+    enabled: !!sprintId,
+  });
+}

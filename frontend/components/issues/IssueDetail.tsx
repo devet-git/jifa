@@ -18,6 +18,7 @@ import { useAuthStore } from "@/store/auth";
 import { Badge } from "@/components/ui/Badge";
 import { Avatar } from "@/components/ui/Avatar";
 import { Button } from "@/components/ui/Button";
+import { MarkdownEditor, MarkdownBody } from "@/components/ui/MarkdownEditor";
 import { SubTaskList } from "@/components/issues/SubTaskList";
 import { LinksPanel } from "@/components/issues/LinksPanel";
 import { ActivityFeed } from "@/components/issues/ActivityFeed";
@@ -487,11 +488,11 @@ export function IssueDetail({ issue: initialIssue, onClose }: Props) {
             </div>
             {editingDesc ? (
               <div className="space-y-2">
-                <textarea
-                  rows={4}
-                  className="input resize-none"
+                <MarkdownEditor
                   value={descDraft}
-                  onChange={(e) => setDescDraft(e.target.value)}
+                  onChange={setDescDraft}
+                  rows={6}
+                  placeholder="Describe this issue… (Markdown supported)"
                   autoFocus
                 />
                 <div className="flex gap-2">
@@ -510,10 +511,12 @@ export function IssueDetail({ issue: initialIssue, onClose }: Props) {
             ) : (
               <div
                 onClick={startEditDesc}
-                className="text-sm whitespace-pre-wrap min-h-12 p-3 rounded-lg bg-surface-2/50 hover:bg-surface-2 cursor-text transition"
+                className="min-h-12 p-3 rounded-lg bg-surface-2/50 hover:bg-surface-2 cursor-text transition"
               >
-                {issue.description || (
-                  <span className="text-muted italic">No description — click to add</span>
+                {issue.description ? (
+                  <MarkdownBody content={issue.description} />
+                ) : (
+                  <span className="text-sm text-muted italic">No description — click to add</span>
                 )}
               </div>
             )}

@@ -11,6 +11,7 @@ import {
   useWorkload,
   useCFD,
   useTimeInStatus,
+  useControlChart,
 } from "@/hooks/useReports";
 import { VelocityChart } from "@/components/reports/VelocityChart";
 import { BurndownChart } from "@/components/reports/BurndownChart";
@@ -18,6 +19,7 @@ import { CycleTimeChart } from "@/components/reports/CycleTimeChart";
 import { WorkloadChart } from "@/components/reports/WorkloadChart";
 import { CFDChart } from "@/components/reports/CFDChart";
 import { TimeInStatusChart } from "@/components/reports/TimeInStatusChart";
+import { ControlChart } from "@/components/reports/ControlChart";
 
 export default function ReportsPage({
   params,
@@ -42,6 +44,7 @@ export default function ReportsPage({
   const { data: workload = [] } = useWorkload(id);
   const { data: cfd = [] } = useCFD(id);
   const { data: timeInStatus = [] } = useTimeInStatus(id);
+  const { data: controlChart = [] } = useControlChart(id);
 
   // If a sprint is selected from sprints data only after first render,
   // honour it so charts populate.
@@ -148,6 +151,16 @@ export default function ReportsPage({
             </p>
           </div>
           <TimeInStatusChart data={timeInStatus} />
+        </section>
+
+        <section className="surface-card p-6">
+          <div className="mb-4">
+            <h2 className="font-semibold">Control Chart</h2>
+            <p className="text-xs text-muted mt-0.5">
+              Cycle time variation per issue — spots outliers and process instability.
+            </p>
+          </div>
+          <ControlChart data={controlChart} />
         </section>
       </div>
     </div>

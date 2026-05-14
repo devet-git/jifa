@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"encoding/csv"
 	"net/http"
 	"strconv"
 
@@ -44,4 +45,39 @@ func LogAudit(db *gorm.DB, projectID, actorID uint, action, targetType string, t
 		TargetID:   targetID,
 		Details:    details,
 	}).Error
+}
+
+func (h *AuditHandler) ExportCSV(c *gin.Context) {
+	var entries []models.AuditLog
+	q := h.db.Preload("Actor").
+		Where("project_id = ?", c.Param("projectId")).
+		Order("created_at DESC")
+	if from := c.Query("from"); from != "" {
+		q = q.Where("created_at >= ?", from)
+	}
+	if to := c.Query("to"); to != "" {
+		q = q.Where("created_at <= ?", to)
+	}
+	q.Limit(10000).Find(&entries)
+
+	c.Header("Content-Type", "text/csv")
+	c.Header("Content-Disposition", `attachment; filename="audit-log.csv"`)
+
+	w := csv.NewWriter(c.Writer)
+	_ = w.Write([]string{"Timestamp", "Actor", "Action", "TargetType", "TargetID", "Details"})
+	for _, e := range entries {
+		actor := ""
+		if e.Actor != nil {
+			actor = e.Actor.Name
+		}
+		_ = w.Write([]string{
+			e.CreatedAt.UTC().Format("2006-01-02T15:04:05Z"),
+			actor,
+			e.Action,
+			e.TargetType,
+			strconv.FormatUint(uint64(e.TargetID), 10),
+			e.Details,
+		})
+	}
+	w.Flush()
 }
