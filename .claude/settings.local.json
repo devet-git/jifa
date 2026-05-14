@@ -11,7 +11,16 @@
       "mcp__gitnexus__context",
       "Bash(git -C \"D:/Projects/jifa\" log --oneline -20)",
       "Bash(git -C \"D:/Projects/jifa\" status --short)",
-      "Bash(go vet *)"
+      "Bash(go vet *)",
+      "Bash(Get-ChildItem *)",
+      "Bash(xargs grep -l \"devlink\\\\|DevLink\\\\|IssueDevLink\")",
+      "Bash(Select-Object -ExpandProperty FullName)",
+      "Bash(Sort-Object)",
+      "Bash(node_modules/.bin/tsc --noEmit)",
+      "Bash(D:/Projects/jifa/frontend/node_modules/.bin/tsc --noEmit)",
+      "Bash(Select-Object -First 20)",
+      "Bash(git -C \"D:\\\\Projects\\\\jifa\\\\.claude\\\\worktrees\\\\remaining-features\" diff --stat HEAD)",
+      "Bash(xargs grep -l \"wiki\\\\|Wiki\\\\|page\\\\|Page\")"
     ]
   },
   "outputStyle": "default"

@@ -29,10 +29,21 @@ func NewRouter(db *gorm.DB, cfg *config.Config) *gin.Engine {
 		auth.POST("/refresh", authHandler.Refresh)
 	}
 
+	// Password reset (public — no auth token required)
+	pwResetHandler := handlers.NewPasswordResetHandler(db, cfg)
+	api.POST("/auth/forgot-password", pwResetHandler.ForgotPassword)
+	api.POST("/auth/reset-password", pwResetHandler.ResetPassword)
+
 	// Protected routes
 	protected := api.Group("")
-	protected.Use(middleware.Auth(cfg.JWTSecret))
+	protected.Use(middleware.Auth(cfg.JWTSecret), middleware.RateLimit())
 	{
+		// TOTP / 2FA
+		totpHandler := handlers.NewTotpHandler(db)
+		protected.GET("/auth/totp/setup", totpHandler.Setup)
+		protected.POST("/auth/totp/enable", totpHandler.Enable)
+		protected.POST("/auth/totp/disable", totpHandler.Disable)
+
 		// User (self)
 		userHandler := handlers.NewUserHandler(db)
 		protected.GET("/users", userHandler.List)
@@ -82,7 +93,9 @@ func NewRouter(db *gorm.DB, cfg *config.Config) *gin.Engine {
 		viewer.GET("/reports/workload", reportHandler.Workload)
 		viewer.GET("/reports/cfd", reportHandler.CFD)
 		viewer.GET("/reports/time-in-status", reportHandler.TimeInStatus)
+		viewer.GET("/reports/control-chart", reportHandler.ControlChart)
 		viewer.GET("/sprints/:sprintId/burndown", reportHandler.Burndown)
+		viewer.GET("/sprints/:sprintId/retrospective", sprintHandler.Retrospective)
 
 		// CSV import / export
 		csvHandler := handlers.NewCSVHandler(db)
@@ -107,6 +120,7 @@ func NewRouter(db *gorm.DB, cfg *config.Config) *gin.Engine {
 		// Audit log
 		auditHandler := handlers.NewAuditHandler(db)
 		admin.GET("/audit", auditHandler.List)
+		admin.GET("/audit/export", auditHandler.ExportCSV)
 
 		// Issue templates
 		templateHandler := handlers.NewTemplateHandler(db)
@@ -129,6 +143,7 @@ func NewRouter(db *gorm.DB, cfg *config.Config) *gin.Engine {
 		viewer.GET("/components", componentHandler.List)
 		member.POST("/components", componentHandler.Create)
 		member.PUT("/components/:componentId", componentHandler.Update)
+		member.PUT("/components/reorder", componentHandler.Reorder)
 		admin.DELETE("/components/:componentId", componentHandler.Delete)
 
 		// Versions (releases)
@@ -136,6 +151,7 @@ func NewRouter(db *gorm.DB, cfg *config.Config) *gin.Engine {
 		viewer.GET("/versions", versionHandler.List)
 		member.POST("/versions", versionHandler.Create)
 		member.PUT("/versions/:versionId", versionHandler.Update)
+		member.PUT("/versions/reorder", versionHandler.Reorder)
 		member.POST("/versions/:versionId/release", versionHandler.Release)
 		member.POST("/versions/:versionId/unrelease", versionHandler.Unrelease)
 		admin.DELETE("/versions/:versionId", versionHandler.Delete)
@@ -156,6 +172,7 @@ func NewRouter(db *gorm.DB, cfg *config.Config) *gin.Engine {
 		issues.PUT("/:id", middleware.RequireIssueRole(db, "id", models.RoleMember), issueHandler.Update)
 		issues.DELETE("/:id", middleware.RequireIssueRole(db, "id", models.RoleMember), issueHandler.Delete)
 		issues.POST("/:id/clone", middleware.RequireIssueRole(db, "id", models.RoleMember), issueHandler.Clone)
+		issues.POST("/:id/convert", middleware.RequireIssueRole(db, "id", models.RoleMember), issueHandler.Convert)
 		issues.PUT("/:id/status", middleware.RequireIssueRole(db, "id", models.RoleMember), issueHandler.UpdateStatus)
 		issues.PUT("/:id/rank", middleware.RequireIssueRole(db, "id", models.RoleMember), issueHandler.Rank)
 		issues.POST("/:id/comments", middleware.RequireIssueRole(db, "id", models.RoleMember), issueHandler.AddComment)
@@ -209,6 +226,14 @@ func NewRouter(db *gorm.DB, cfg *config.Config) *gin.Engine {
 		// Recently viewed
 		recentHandler := handlers.NewRecentHandler(db)
 		protected.GET("/me/recent", recentHandler.List)
+
+		// Wiki pages (project-scoped)
+		wikiHandler := handlers.NewWikiHandler(db)
+		viewer.GET("/wiki", wikiHandler.List)
+		member.POST("/wiki", wikiHandler.Create)
+		viewer.GET("/wiki/:pageId", wikiHandler.Get)
+		member.PUT("/wiki/:pageId", wikiHandler.Update)
+		member.DELETE("/wiki/:pageId", wikiHandler.Delete)
 
 		// Saved filters
 		filterHandler := handlers.NewFilterHandler(db)

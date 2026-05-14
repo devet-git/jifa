@@ -35,7 +35,7 @@ export default function AdvancedSearchPage() {
       <div className="mb-6">
         <h1 className="text-2xl font-bold tracking-tight">Advanced search</h1>
         <p className="text-sm text-muted mt-1">
-          Truy vấn JQL-like trên các issue bạn có quyền truy cập.
+          JQL-like queries across all issues you have access to.
         </p>
       </div>
 
@@ -114,7 +114,7 @@ export default function AdvancedSearchPage() {
         </div>
         {!submitted ? (
           <p className="px-4 py-12 text-center text-sm text-muted italic">
-            Nhập query và nhấn Search.
+            Enter a query and press Search.
           </p>
         ) : results.length === 0 && !isFetching ? (
           <p className="px-4 py-12 text-center text-sm text-muted italic">
@@ -169,11 +169,11 @@ export default function AdvancedSearchPage() {
           </p>
           <p>
             <b className="text-foreground">Special:</b>{" "}
-            <code className="font-mono text-xs">= me</code> cho current user,{" "}
-            <code className="font-mono text-xs">= null</code> cho unassigned
+            <code className="font-mono text-xs">= me</code> for the current user,{" "}
+            <code className="font-mono text-xs">= null</code> for unassigned
           </p>
           <p>
-            <b className="text-foreground">Strings:</b> dấu ngoặc kép cho giá trị có khoảng trắng.
+            <b className="text-foreground">Strings:</b> use double quotes for values with spaces.
           </p>
         </div>
       </details>

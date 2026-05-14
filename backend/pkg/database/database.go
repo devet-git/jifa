@@ -40,6 +40,8 @@ func Migrate(db *gorm.DB) error {
 		&models.RecentView{},
 		&models.ProjectStar{},
 		&models.IssueTemplate{},
+		&models.PasswordResetToken{},
+		&models.WikiPage{},
 	)
 }
 

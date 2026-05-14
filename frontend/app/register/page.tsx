@@ -24,7 +24,7 @@ export default function RegisterPage() {
       setAuth(data.user, data.token);
       router.push("/dashboard");
     } catch {
-      setError("Email đã được sử dụng hoặc thông tin không hợp lệ");
+      setError("Email already in use or invalid information.");
     } finally {
       setLoading(false);
     }
@@ -32,8 +32,8 @@ export default function RegisterPage() {
 
   return (
     <AuthShell
-      title="Tạo tài khoản Jifa"
-      subtitle="Bắt đầu quản lý dự án trong vài giây."
+      title="Create your Jifa account"
+      subtitle="Start managing projects in seconds."
     >
       {error && (
         <div className="mb-4 flex items-start gap-2 p-3 rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm dark:bg-red-500/10 dark:border-red-500/30 dark:text-red-300">
@@ -48,12 +48,12 @@ export default function RegisterPage() {
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
           <label className="block text-xs font-medium mb-1.5 text-muted">
-            Họ tên
+            Full name
           </label>
           <input
             type="text"
             required
-            placeholder="Nguyễn Văn A"
+            placeholder="Jane Smith"
             className="input"
             value={form.name}
             onChange={(e) => setForm({ ...form, name: e.target.value })}
@@ -74,25 +74,25 @@ export default function RegisterPage() {
         </div>
         <div>
           <div className="flex items-center justify-between mb-1.5">
-            <label className="text-xs font-medium text-muted">Mật khẩu</label>
+            <label className="text-xs font-medium text-muted">Password</label>
             <button
               type="button"
               onClick={() => setShowPwd((s) => !s)}
               className="text-xs text-brand hover:underline font-medium"
             >
-              {showPwd ? "Ẩn" : "Hiện"}
+              {showPwd ? "Hide" : "Show"}
             </button>
           </div>
           <input
             type={showPwd ? "text" : "password"}
             required
             minLength={8}
-            placeholder="Ít nhất 8 ký tự"
+            placeholder="At least 8 characters"
             className="input"
             value={form.password}
             onChange={(e) => setForm({ ...form, password: e.target.value })}
           />
-          <p className="text-[11px] text-muted mt-1.5">Tối thiểu 8 ký tự</p>
+          <p className="text-[11px] text-muted mt-1.5">Minimum 8 characters</p>
         </div>
 
         <button
@@ -106,14 +106,14 @@ export default function RegisterPage() {
               <path d="M4 12a8 8 0 0 1 8-8" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
             </svg>
           )}
-          {loading ? "Đang tạo tài khoản…" : "Đăng ký"}
+          {loading ? "Creating account…" : "Sign up"}
         </button>
       </form>
 
       <p className="mt-6 text-center text-sm text-muted">
-        Đã có tài khoản?{" "}
+        Already have an account?{" "}
         <Link href="/login" className="text-brand font-medium hover:underline">
-          Đăng nhập
+          Sign in
         </Link>
       </p>
     </AuthShell>

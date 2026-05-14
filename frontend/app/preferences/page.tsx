@@ -6,6 +6,7 @@ import {
   useUpdateNotificationPrefs,
 } from "@/hooks/useNotifications";
 import { useMe, useUpdateProfile } from "@/hooks/useUsers";
+import { useTotpSetup, useTotpEnable, useTotpDisable } from "@/hooks/useTotp";
 import { Avatar } from "@/components/ui/Avatar";
 import type { NotificationPrefs } from "@/types";
 
@@ -19,31 +20,31 @@ type Row = {
 const ROWS: Row[] = [
   {
     label: "Comments",
-    description: "Có người comment vào issue bạn đang theo dõi.",
+    description: "Someone comments on an issue you are watching.",
     inApp: "in_app_comment",
     email: "email_comment",
   },
   {
     label: "Mentions",
-    description: "Có người @-mention bạn trong comment.",
+    description: "Someone @-mentions you in a comment.",
     inApp: "in_app_mention",
     email: "email_mention",
   },
   {
     label: "Assigned to you",
-    description: "Một issue được giao cho bạn.",
+    description: "An issue is assigned to you.",
     inApp: "in_app_assigned",
     email: "email_assigned",
   },
   {
     label: "Status changes",
-    description: "Issue bạn watch chuyển trạng thái.",
+    description: "An issue you are watching changes status.",
     inApp: "in_app_status_change",
     email: "email_status_change",
   },
   {
     label: "Issue links",
-    description: "Có người thêm liên kết blocks / relates / duplicates.",
+    description: "Someone adds a blocks / relates / duplicates link.",
     inApp: "in_app_link_added",
     email: "email_link_added",
   },
@@ -57,6 +58,16 @@ export default function PreferencesPage() {
   const fileRef = useRef<HTMLInputElement>(null);
   const [name, setName] = useState("");
 
+  // TOTP state
+  const totpSetup = useTotpSetup();
+  const totpEnable = useTotpEnable();
+  const totpDisable = useTotpDisable();
+  const [totpStep, setTotpStep] = useState<"idle" | "setup" | "disabling">("idle");
+  const [totpData, setTotpData] = useState<{ secret: string; otpauth_url: string } | null>(null);
+  const [totpCode, setTotpCode] = useState("");
+  const [totpPassword, setTotpPassword] = useState("");
+  const [totpError, setTotpError] = useState("");
+
   function set(key: keyof NotificationPrefs, value: boolean) {
     update.mutate({ [key]: value } as Partial<NotificationPrefs>);
   }
@@ -69,6 +80,39 @@ export default function PreferencesPage() {
       updateProfile.mutate({ avatar: reader.result as string });
     };
     reader.readAsDataURL(file);
+  }
+
+  async function startTotpSetup() {
+    setTotpError("");
+    const data = await totpSetup.mutateAsync();
+    setTotpData(data);
+    setTotpStep("setup");
+    setTotpCode("");
+  }
+
+  async function confirmTotpEnable(e: React.FormEvent) {
+    e.preventDefault();
+    setTotpError("");
+    try {
+      await totpEnable.mutateAsync(totpCode);
+      setTotpStep("idle");
+      setTotpData(null);
+      setTotpCode("");
+    } catch {
+      setTotpError("Invalid code — please check your authenticator app.");
+    }
+  }
+
+  async function confirmTotpDisable(e: React.FormEvent) {
+    e.preventDefault();
+    setTotpError("");
+    try {
+      await totpDisable.mutateAsync(totpPassword);
+      setTotpStep("idle");
+      setTotpPassword("");
+    } catch {
+      setTotpError("Incorrect password.");
+    }
   }
 
   const displayName = name || me?.name || "";
@@ -122,6 +166,142 @@ export default function PreferencesPage() {
             <p className="text-xs text-muted">{me?.email}</p>
           </div>
         </div>
+      </div>
+
+      {/* Two-Factor Authentication */}
+      <div className="surface-card p-5 mb-6">
+        <div className="flex items-start justify-between gap-4 mb-1">
+          <div>
+            <h2 className="text-sm font-semibold">Two-Factor Authentication</h2>
+            <p className="text-xs text-muted mt-0.5">
+              {me?.totp_enabled
+                ? "2FA is active. Your account requires an authenticator code on login."
+                : "Add an extra layer of security with a TOTP authenticator app."}
+            </p>
+          </div>
+          {me?.totp_enabled ? (
+            <span className="shrink-0 text-xs font-medium text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-500/15 border border-emerald-200 dark:border-emerald-500/25 px-2 py-0.5 rounded-full">
+              Enabled
+            </span>
+          ) : (
+            <span className="shrink-0 text-xs font-medium text-muted bg-surface-2 border border-border px-2 py-0.5 rounded-full">
+              Disabled
+            </span>
+          )}
+        </div>
+
+        {totpError && (
+          <p className="text-xs text-red-500 mb-3">{totpError}</p>
+        )}
+
+        {/* Not enabled — idle */}
+        {!me?.totp_enabled && totpStep === "idle" && (
+          <button
+            onClick={startTotpSetup}
+            disabled={totpSetup.isPending}
+            className="mt-3 text-sm px-3 py-1.5 rounded-lg ring-1 ring-border bg-surface hover:bg-surface-2 transition font-medium text-foreground disabled:opacity-60"
+          >
+            Set up 2FA
+          </button>
+        )}
+
+        {/* Setup step — show secret and code input */}
+        {totpStep === "setup" && totpData && (
+          <div className="mt-4 space-y-4">
+            <div className="p-4 bg-surface-2 rounded-xl space-y-3">
+              <p className="text-xs text-muted font-medium">
+                1. Open your authenticator app (Google Authenticator, Authy, etc.) and scan or enter:
+              </p>
+              <div className="flex items-center gap-2 flex-wrap">
+                <a
+                  href={totpData.otpauth_url}
+                  className="text-xs text-brand underline break-all hover:opacity-80"
+                >
+                  Open in authenticator app
+                </a>
+              </div>
+              <div>
+                <p className="text-xs text-muted mb-1">Or enter this secret key manually:</p>
+                <code className="text-xs font-mono bg-surface border border-border px-3 py-1.5 rounded-lg block tracking-widest select-all">
+                  {totpData.secret}
+                </code>
+              </div>
+            </div>
+            <form onSubmit={confirmTotpEnable} className="flex items-end gap-2">
+              <div className="flex-1">
+                <label className="text-xs text-muted block mb-1">2. Enter the 6-digit code to verify:</label>
+                <input
+                  required
+                  type="text"
+                  inputMode="numeric"
+                  pattern="[0-9]{6}"
+                  maxLength={6}
+                  placeholder="000000"
+                  className="input font-mono tracking-widest text-center !text-base !py-2"
+                  value={totpCode}
+                  onChange={(e) => setTotpCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                  autoFocus
+                />
+              </div>
+              <button
+                type="submit"
+                disabled={totpEnable.isPending || totpCode.length !== 6}
+                className="gradient-brand text-white text-sm px-4 py-2 rounded-lg font-semibold disabled:opacity-60 transition"
+              >
+                Verify & Enable
+              </button>
+              <button
+                type="button"
+                onClick={() => { setTotpStep("idle"); setTotpData(null); setTotpError(""); }}
+                className="text-sm px-3 py-2 rounded-lg ring-1 ring-border text-muted hover:text-foreground hover:bg-surface-2 transition"
+              >
+                Cancel
+              </button>
+            </form>
+          </div>
+        )}
+
+        {/* Enabled — show disable option */}
+        {me?.totp_enabled && totpStep === "idle" && (
+          <button
+            onClick={() => { setTotpStep("disabling"); setTotpError(""); }}
+            className="mt-3 text-sm px-3 py-1.5 rounded-lg ring-1 ring-red-300 dark:ring-red-800 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 transition font-medium"
+          >
+            Disable 2FA
+          </button>
+        )}
+
+        {/* Disable confirmation */}
+        {totpStep === "disabling" && (
+          <form onSubmit={confirmTotpDisable} className="mt-4 flex items-end gap-2">
+            <div className="flex-1">
+              <label className="text-xs text-muted block mb-1">Confirm your current password to disable 2FA:</label>
+              <input
+                required
+                type="password"
+                placeholder="••••••••"
+                className="input"
+                value={totpPassword}
+                onChange={(e) => setTotpPassword(e.target.value)}
+                autoFocus
+              />
+            </div>
+            <button
+              type="submit"
+              disabled={totpDisable.isPending}
+              className="text-sm px-3 py-2 rounded-lg bg-red-600 text-white font-semibold hover:bg-red-700 transition disabled:opacity-60"
+            >
+              Disable
+            </button>
+            <button
+              type="button"
+              onClick={() => { setTotpStep("idle"); setTotpError(""); }}
+              className="text-sm px-3 py-2 rounded-lg ring-1 ring-border text-muted hover:text-foreground hover:bg-surface-2 transition"
+            >
+              Cancel
+            </button>
+          </form>
+        )}
       </div>
 
       <div className="surface-card overflow-hidden mb-6">

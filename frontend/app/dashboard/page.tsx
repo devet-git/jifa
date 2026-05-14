@@ -61,7 +61,7 @@ export default function DashboardPage() {
               {greeting()}, {user?.name?.split(" ")[0] ?? "there"} 👋
             </h1>
             <p className="text-white/85 mt-1.5 text-sm">
-              Đây là những việc đang chờ bạn hôm nay.
+              Here is what is waiting for you today.
             </p>
           </div>
           <Button
@@ -132,7 +132,7 @@ export default function DashboardPage() {
             <EmptyState
               icon="🎉"
               title="All caught up"
-              description="Bạn không còn issue nào đang mở."
+              description="You have no open issues."
             />
           ) : (
             <ul className="divide-y divide-border">
@@ -171,7 +171,7 @@ export default function DashboardPage() {
             <EmptyState
               icon="🛎️"
               title="Nothing yet"
-              description="Hoạt động sẽ xuất hiện ở đây."
+              description="Activity will appear here."
             />
           ) : (
             <ul className="divide-y divide-border">
@@ -255,9 +255,9 @@ export default function DashboardPage() {
                 <path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7z" />
               </svg>
             </div>
-            <p className="font-medium mb-1">Chưa có dự án nào</p>
+            <p className="font-medium mb-1">No projects yet</p>
             <p className="text-sm text-muted mb-4">
-              Tạo dự án đầu tiên của bạn để bắt đầu.
+              Create your first project to get started.
             </p>
             <Button variant="gradient" onClick={() => setShowCreate(true)}>
               Create your first project
@@ -292,8 +292,8 @@ export default function DashboardPage() {
 
       {doneIssues.length > 0 && (
         <p className="text-xs text-muted text-center pt-2">
-          🎯 Bạn đã đóng <span className="font-medium text-foreground">{doneIssues.length}</span> issue
-          {doneIssues.length === 1 ? "" : "s"} — tuyệt vời!
+          🎯 You closed <span className="font-medium text-foreground">{doneIssues.length}</span> issue
+          {doneIssues.length === 1 ? "" : "s"} — great work!
         </p>
       )}
 

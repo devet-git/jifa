@@ -9,6 +9,7 @@ export interface User {
   name: string;
   email: string;
   avatar?: string;
+  totp_enabled?: boolean;
   created_at: string;
 }
 
@@ -297,3 +298,15 @@ export interface ActivityLog {
   new_value: string;
   created_at: string;
 }
+
+export interface WikiPage {
+  id: number;
+  project_id: number;
+  title: string;
+  content?: string;
+  author?: User;
+  author_id: number;
+  created_at: string;
+  updated_at: string;
+}
+

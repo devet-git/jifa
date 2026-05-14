@@ -80,3 +80,74 @@ func (h *SprintHandler) Complete(c *gin.Context) {
 	}
 	c.JSON(http.StatusOK, gin.H{"status": "completed"})
 }
+
+type sprintRetroResponse struct {
+	Sprint          models.Sprint  `json:"sprint"`
+	CommittedPoints int            `json:"committed_points"`
+	DeliveredPoints int            `json:"delivered_points"`
+	CommittedIssues int            `json:"committed_issues"`
+	DeliveredIssues int            `json:"delivered_issues"`
+	Completed       []models.Issue `json:"completed"`
+	NotCompleted    []models.Issue `json:"not_completed"`
+	ScopeAdded      []models.Issue `json:"scope_added"`
+}
+
+func (h *SprintHandler) Retrospective(c *gin.Context) {
+	var sprint models.Sprint
+	if err := h.db.First(&sprint, c.Param("sprintId")).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "sprint not found"})
+		return
+	}
+
+	var issues []models.Issue
+	h.db.Preload("Assignee").
+		Where("sprint_id = ?", sprint.ID).
+		Find(&issues)
+
+	// Resolve done-category keys.
+	var doneKeys []string
+	h.db.Model(&models.StatusDefinition{}).
+		Where("project_id = ? AND category = ?", sprint.ProjectID, models.CategoryDone).
+		Pluck("key", &doneKeys)
+	if len(doneKeys) == 0 {
+		doneKeys = []string{string(models.StatusDone)}
+	}
+	doneSet := map[string]bool{}
+	for _, k := range doneKeys {
+		doneSet[k] = true
+	}
+
+	resp := sprintRetroResponse{Sprint: sprint}
+	for _, issue := range issues {
+		pts := 0
+		if issue.StoryPoints != nil {
+			pts = *issue.StoryPoints
+		}
+		scopeAdded := sprint.StartDate != nil && issue.CreatedAt.After(*sprint.StartDate)
+		if scopeAdded {
+			resp.ScopeAdded = append(resp.ScopeAdded, issue)
+		} else {
+			resp.CommittedIssues++
+			resp.CommittedPoints += pts
+		}
+		if doneSet[string(issue.Status)] {
+			resp.Completed = append(resp.Completed, issue)
+			if !scopeAdded {
+				resp.DeliveredIssues++
+				resp.DeliveredPoints += pts
+			}
+		} else {
+			resp.NotCompleted = append(resp.NotCompleted, issue)
+		}
+	}
+	if resp.Completed == nil {
+		resp.Completed = []models.Issue{}
+	}
+	if resp.NotCompleted == nil {
+		resp.NotCompleted = []models.Issue{}
+	}
+	if resp.ScopeAdded == nil {
+		resp.ScopeAdded = []models.Issue{}
+	}
+	c.JSON(http.StatusOK, resp)
+}

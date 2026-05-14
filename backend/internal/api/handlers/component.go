@@ -78,6 +78,23 @@ func (h *ComponentHandler) Delete(c *gin.Context) {
 	c.Status(http.StatusNoContent)
 }
 
+func (h *ComponentHandler) Reorder(c *gin.Context) {
+	var req struct {
+		IDs []uint `json:"ids" binding:"required"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	pid := c.Param("projectId")
+	for rank, id := range req.IDs {
+		h.db.Model(&models.Component{}).
+			Where("id = ? AND project_id = ?", id, pid).
+			Update("rank", rank)
+	}
+	c.Status(http.StatusNoContent)
+}
+
 // SetIssueComponents replaces the components on an issue.
 func (h *ComponentHandler) SetIssueComponents(c *gin.Context) {
 	var issue models.Issue

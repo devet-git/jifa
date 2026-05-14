@@ -110,3 +110,22 @@ export function useTimeInStatus(projectId: number | string) {
     enabled: !!projectId,
   });
 }
+
+export interface ControlChartPoint {
+  issue_id: number;
+  key: string;
+  title: string;
+  completed_date: string;
+  cycle_days: number;
+}
+
+export function useControlChart(projectId: number | string) {
+  return useQuery<ControlChartPoint[]>({
+    queryKey: ["control-chart", projectId],
+    queryFn: () =>
+      api
+        .get(`/projects/${projectId}/reports/control-chart`)
+        .then((r) => r.data),
+    enabled: !!projectId,
+  });
+}

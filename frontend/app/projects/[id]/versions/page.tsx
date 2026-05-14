@@ -2,6 +2,20 @@
 
 import { use, useState } from "react";
 import Link from "next/link";
+import {
+  DndContext,
+  DragEndEvent,
+  PointerSensor,
+  closestCenter,
+  useSensor,
+  useSensors,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  useSortable,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import { useProject } from "@/hooks/useProject";
 import {
   useVersions,
@@ -9,6 +23,7 @@ import {
   useUpdateVersion,
   useVersionAction,
   useDeleteVersion,
+  useReorderVersions,
 } from "@/hooks/useVersions";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
@@ -26,6 +41,22 @@ export default function VersionsPage({
   const action = useVersionAction(id);
   const update = useUpdateVersion(id);
   const remove = useDeleteVersion(id);
+  const reorder = useReorderVersions(id);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
+  );
+
+  function handleDragEnd(e: DragEndEvent) {
+    if (!e.over || e.active.id === e.over.id) return;
+    const from = versions.findIndex((v) => v.id === Number(e.active.id));
+    const to = versions.findIndex((v) => v.id === Number(e.over!.id));
+    if (from < 0 || to < 0) return;
+    const next = [...versions];
+    const [moved] = next.splice(from, 1);
+    next.splice(to, 0, moved);
+    reorder.mutate(next.map((v) => v.id));
+  }
 
   const [showAdd, setShowAdd] = useState(false);
   const [draft, setDraft] = useState<{
@@ -129,30 +160,41 @@ export default function VersionsPage({
             </div>
             <p className="font-medium mb-1">No versions yet</p>
             <p className="text-sm text-muted">
-              Tạo version đầu tiên để theo dõi release của dự án.
+              Create your first version to track project releases.
             </p>
           </div>
         ) : (
-          <ul className="space-y-3">
-            {versions.map((v) => (
-              <VersionRow
-                key={v.id}
-                version={v}
-                onRelease={() =>
-                  action.mutate({
-                    id: v.id,
-                    action:
-                      v.status === "released" ? "unrelease" : "release",
-                  })
-                }
-                onRename={(name) => update.mutate({ id: v.id, name })}
-                onDelete={() => {
-                  if (confirm(`Delete version "${v.name}"?`))
-                    remove.mutate(v.id);
-                }}
-              />
-            ))}
-          </ul>
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragEnd={handleDragEnd}
+          >
+            <SortableContext
+              items={versions.map((v) => v.id)}
+              strategy={verticalListSortingStrategy}
+            >
+              <ul className="space-y-3">
+                {versions.map((v) => (
+                  <VersionRow
+                    key={v.id}
+                    version={v}
+                    onRelease={() =>
+                      action.mutate({
+                        id: v.id,
+                        action:
+                          v.status === "released" ? "unrelease" : "release",
+                      })
+                    }
+                    onRename={(name) => update.mutate({ id: v.id, name })}
+                    onDelete={() => {
+                      if (confirm(`Delete version "${v.name}"?`))
+                        remove.mutate(v.id);
+                    }}
+                  />
+                ))}
+              </ul>
+            </SortableContext>
+          </DndContext>
         )}
       </div>
     </div>
@@ -170,6 +212,8 @@ function VersionRow({
   onRename: (name: string) => void;
   onDelete: () => void;
 }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
+    useSortable({ id: version.id });
   const total = version.issue_count ?? 0;
   const done = version.completed_count ?? 0;
   const pct = total ? (done / total) * 100 : 0;
@@ -182,8 +226,23 @@ function VersionRow({
   }
 
   return (
-    <li className="surface-card p-4">
+    <li
+      ref={setNodeRef}
+      style={{ transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.4 : 1 }}
+      className="surface-card p-4"
+    >
       <div className="flex items-center gap-3 mb-2">
+        <button
+          {...attributes}
+          {...listeners}
+          aria-label="Drag to reorder"
+          className="text-muted hover:text-foreground cursor-grab active:cursor-grabbing select-none transition-colors shrink-0"
+          title="Drag to reorder"
+        >
+          <svg className="w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
+            <path d="M7 2a2 2 0 1 0 .001 4.001A2 2 0 0 0 7 2zm0 6a2 2 0 1 0 .001 4.001A2 2 0 0 0 7 8zm0 6a2 2 0 1 0 .001 4.001A2 2 0 0 0 7 14zm6-8a2 2 0 1 0-.001-4.001A2 2 0 0 0 13 6zm0 2a2 2 0 1 0 .001 4.001A2 2 0 0 0 13 8zm0 6a2 2 0 1 0 .001 4.001A2 2 0 0 0 13 14z" />
+          </svg>
+        </button>
         {editing ? (
           <input
             autoFocus

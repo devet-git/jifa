@@ -568,3 +568,77 @@ func (h *ReportHandler) TimeInStatus(c *gin.Context) {
 	sort.Slice(out, func(i, j int) bool { return out[i].AvgHours > out[j].AvgHours })
 	c.JSON(http.StatusOK, out)
 }
+
+type controlChartPoint struct {
+	IssueID       uint    `json:"issue_id"`
+	Key           string  `json:"key"`
+	Title         string  `json:"title"`
+	CompletedDate string  `json:"completed_date"`
+	CycleDays     float64 `json:"cycle_days"`
+}
+
+// ControlChart returns one point per completed issue showing cycle-time
+// variation over time — useful for spotting process instability.
+func (h *ReportHandler) ControlChart(c *gin.Context) {
+	pid := c.Param("projectId")
+	var project models.Project
+	if err := h.db.First(&project, pid).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "project not found"})
+		return
+	}
+
+	var doneKeys, progressKeys []string
+	h.db.Model(&models.StatusDefinition{}).
+		Where("project_id = ? AND category = ?", project.ID, models.CategoryDone).
+		Pluck("key", &doneKeys)
+	h.db.Model(&models.StatusDefinition{}).
+		Where("project_id = ? AND category = ?", project.ID, models.CategoryInProgress).
+		Pluck("key", &progressKeys)
+	if len(doneKeys) == 0 {
+		doneKeys = []string{string(models.StatusDone)}
+	}
+	if len(progressKeys) == 0 {
+		progressKeys = []string{string(models.StatusInProgress), string(models.StatusInReview)}
+	}
+
+	since := time.Now().Add(-180 * 24 * time.Hour)
+	q := h.db.Where("project_id = ? AND status IN ? AND updated_at >= ?", project.ID, doneKeys, since).
+		Order("updated_at ASC").Limit(500)
+	if from := c.Query("from"); from != "" {
+		q = q.Where("updated_at >= ?", from)
+	}
+	if to := c.Query("to"); to != "" {
+		q = q.Where("updated_at <= ?", to)
+	}
+	var issues []models.Issue
+	q.Find(&issues)
+
+	out := make([]controlChartPoint, 0, len(issues))
+	for _, i := range issues {
+		var startAct models.IssueActivity
+		if err := h.db.Where(
+			"issue_id = ? AND field = 'status' AND new_value IN ?", i.ID, progressKeys,
+		).Order("created_at ASC").First(&startAct).Error; err != nil {
+			continue
+		}
+		var doneAct models.IssueActivity
+		if err := h.db.Where(
+			"issue_id = ? AND field = 'status' AND new_value IN ? AND created_at >= ?",
+			i.ID, doneKeys, startAct.CreatedAt,
+		).Order("created_at ASC").First(&doneAct).Error; err != nil {
+			continue
+		}
+		days := doneAct.CreatedAt.Sub(startAct.CreatedAt).Hours() / 24
+		if days < 0 {
+			continue
+		}
+		out = append(out, controlChartPoint{
+			IssueID:       i.ID,
+			Key:           fmt.Sprintf("%s-%d", project.Key, i.Number),
+			Title:         i.Title,
+			CompletedDate: doneAct.CreatedAt.UTC().Format("2006-01-02"),
+			CycleDays:     days,
+		})
+	}
+	c.JSON(http.StatusOK, out)
+}

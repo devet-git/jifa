@@ -45,6 +45,18 @@ export function useDeleteComponent(projectId: number | string) {
   });
 }
 
+export function useReorderComponents(projectId: number | string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (ids: number[]) =>
+      api
+        .put(`/projects/${projectId}/components/reorder`, { ids })
+        .then((r) => r.data),
+    onSuccess: () =>
+      qc.invalidateQueries({ queryKey: ["components", String(projectId)] }),
+  });
+}
+
 export function useSetIssueComponents() {
   const qc = useQueryClient();
   return useMutation({

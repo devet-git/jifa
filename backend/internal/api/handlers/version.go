@@ -143,6 +143,23 @@ func (h *VersionHandler) Unrelease(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"status": "unreleased"})
 }
 
+func (h *VersionHandler) Reorder(c *gin.Context) {
+	var req struct {
+		IDs []uint `json:"ids" binding:"required"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	pid := c.Param("projectId")
+	for rank, id := range req.IDs {
+		h.db.Model(&models.Version{}).
+			Where("id = ? AND project_id = ?", id, pid).
+			Update("rank", rank)
+	}
+	c.Status(http.StatusNoContent)
+}
+
 func (h *VersionHandler) Delete(c *gin.Context) {
 	// Clear fix-version pointer on any issue still tied to this version.
 	h.db.Model(&models.Issue{}).

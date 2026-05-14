@@ -9,6 +9,7 @@ import { useSprints, useSprintAction } from "@/hooks/useSprints";
 import { BacklogView } from "@/components/backlog/BacklogView";
 import { CreateIssueModal } from "@/components/issues/CreateIssueModal";
 import { CreateSprintModal } from "@/components/sprints/CreateSprintModal";
+import { SprintRetroModal } from "@/components/sprints/SprintRetroModal";
 import { IssueDetail } from "@/components/issues/IssueDetail";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
@@ -21,7 +22,10 @@ type Tab =
   | "epics"
   | "roadmap"
   | "reports"
-  | "versions";
+  | "versions"
+  | "calendar"
+  | "planning"
+  | "wiki";
 
 export default function ProjectPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -29,6 +33,7 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
   const [selectedIssue, setSelectedIssue] = useState<Issue | null>(null);
   const [showCreateIssue, setShowCreateIssue] = useState(false);
   const [showCreateSprint, setShowCreateSprint] = useState(false);
+  const [retroSprintId, setRetroSprintId] = useState<number | null>(null);
 
   const { data: project } = useProject(id);
   const { data: backlog = [] } = useIssues({ project_id: id, sprint_id: null });
@@ -45,6 +50,9 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
     { key: "roadmap", label: "Roadmap", href: `/projects/${id}/roadmap` },
     { key: "reports", label: "Reports", href: `/projects/${id}/reports` },
     { key: "versions", label: "Releases", href: `/projects/${id}/versions` },
+    { key: "calendar", label: "Calendar", href: `/projects/${id}/calendar` },
+    { key: "planning", label: "Planning", href: `/projects/${id}/planning` },
+    { key: "wiki", label: "Wiki", href: `/projects/${id}/wiki` },
   ];
 
   return (
@@ -118,16 +126,16 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
             </div>
             {activeSprint ? (
               <>
-                <p className="font-medium mb-1">Active sprint sẵn sàng</p>
+                <p className="font-medium mb-1">Active sprint is running</p>
                 <p className="text-sm text-muted mb-4">{activeSprint.name}</p>
                 <Link href={`/board/${activeSprint.id}`}>
-                  <Button variant="gradient">Mở Board</Button>
+                  <Button variant="gradient">Open Board</Button>
                 </Link>
               </>
             ) : (
               <>
-                <p className="font-medium mb-1">Chưa có sprint nào đang chạy</p>
-                <p className="text-sm text-muted">Tạo và start một sprint trong tab Sprints.</p>
+                <p className="font-medium mb-1">No sprint is currently active</p>
+                <p className="text-sm text-muted">Create and start a sprint in the Sprints tab.</p>
               </>
             )}
           </div>
@@ -142,7 +150,7 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
                 <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M12 5v14M5 12h14" />
                 </svg>
-                Tạo sprint
+                New sprint
               </Button>
             </div>
             <div className="space-y-3">
@@ -170,7 +178,7 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
                     {sprint.status === "active" && (
                       <>
                         <Link href={`/board/${sprint.id}`}>
-                          <Button size="sm" variant="secondary">Mở Board</Button>
+                          <Button size="sm" variant="secondary">Open Board</Button>
                         </Link>
                         <Button
                           size="sm"
@@ -181,12 +189,21 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
                         </Button>
                       </>
                     )}
+                    {sprint.status === "completed" && (
+                      <Button
+                        size="sm"
+                        variant="secondary"
+                        onClick={() => setRetroSprintId(sprint.id)}
+                      >
+                        Retrospective
+                      </Button>
+                    )}
                   </div>
                 </div>
               ))}
               {sprints.length === 0 && (
                 <div className="surface-card p-10 text-center">
-                  <p className="text-sm text-muted">Chưa có sprint nào — tạo sprint đầu tiên của bạn.</p>
+                  <p className="text-sm text-muted">No sprints yet — create your first sprint above.</p>
                 </div>
               )}
             </div>
@@ -209,6 +226,11 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
       {selectedIssue && (
         <IssueDetail issue={selectedIssue} onClose={() => setSelectedIssue(null)} />
       )}
+      <SprintRetroModal
+        open={retroSprintId !== null}
+        onClose={() => setRetroSprintId(null)}
+        sprintId={retroSprintId}
+      />
     </div>
   );
 }

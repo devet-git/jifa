@@ -36,11 +36,11 @@ export function CreateProjectModal({ open, onClose }: Props) {
   }
 
   return (
-    <Modal open={open} onClose={onClose} title="Tạo project mới">
+    <Modal open={open} onClose={onClose} title="New project">
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
           <label className="block text-xs font-medium mb-1.5 text-muted">
-            Tên project
+            Project name
           </label>
           <input
             required
@@ -54,7 +54,7 @@ export function CreateProjectModal({ open, onClose }: Props) {
         <div>
           <label className="block text-xs font-medium mb-1.5 text-muted">
             Key{" "}
-            <span className="text-muted/70 font-normal">(tối đa 6 ký tự)</span>
+            <span className="text-muted/70 font-normal">(max 6 characters)</span>
           </label>
           <div className="relative">
             <input
@@ -69,18 +69,18 @@ export function CreateProjectModal({ open, onClose }: Props) {
             />
           </div>
           <p className="text-[11px] text-muted mt-1">
-            Sẽ xuất hiện trong issue key, ví dụ{" "}
+            Used in issue keys, e.g.{" "}
             <span className="font-mono">{form.key || "MAP"}-123</span>
           </p>
         </div>
         <div>
           <label className="block text-xs font-medium mb-1.5 text-muted">
-            Mô tả
+            Description
           </label>
           <textarea
             rows={3}
             className="input resize-none"
-            placeholder="Tùy chọn — vài dòng giới thiệu dự án"
+            placeholder="Optional — a short description of the project"
             value={form.description}
             onChange={(e) =>
               setForm((f) => ({ ...f, description: e.target.value }))
@@ -89,10 +89,10 @@ export function CreateProjectModal({ open, onClose }: Props) {
         </div>
         <div className="flex justify-end gap-2 pt-2 border-t border-border -mx-6 px-6 -mb-6 pb-6 mt-6">
           <Button type="button" variant="secondary" onClick={onClose}>
-            Hủy
+            Cancel
           </Button>
           <Button type="submit" variant="gradient" disabled={isPending}>
-            {isPending ? "Đang tạo…" : "Tạo project"}
+            {isPending ? "Creating…" : "Create project"}
           </Button>
         </div>
       </form>

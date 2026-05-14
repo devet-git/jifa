@@ -9,6 +9,7 @@ type Component struct {
 	Description string `json:"description"`
 	LeadID      *uint  `json:"lead_id"`
 	Lead        *User  `gorm:"foreignKey:LeadID" json:"lead,omitempty"`
+	Rank        int    `gorm:"default:0" json:"rank"`
 
 	Issues []Issue `gorm:"many2many:issue_components" json:"-"`
 }

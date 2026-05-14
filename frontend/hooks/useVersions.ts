@@ -51,6 +51,18 @@ export function useVersionAction(projectId: number | string) {
   });
 }
 
+export function useReorderVersions(projectId: number | string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (ids: number[]) =>
+      api
+        .put(`/projects/${projectId}/versions/reorder`, { ids })
+        .then((r) => r.data),
+    onSuccess: () =>
+      qc.invalidateQueries({ queryKey: ["versions", String(projectId)] }),
+  });
+}
+
 export function useDeleteVersion(projectId: number | string) {
   const qc = useQueryClient();
   return useMutation({
