@@ -11,6 +11,7 @@ type Config struct {
 	Env         string
 	UploadDir   string
 	AppURL      string // base URL for links in emails
+	BasePath    string // URL prefix for reverse proxy (e.g. "/jifa")
 
 	SMTPHost string
 	SMTPPort string
@@ -27,6 +28,7 @@ func Load() *Config {
 		Env:         getEnv("APP_ENV", "development"),
 		UploadDir:   getEnv("UPLOAD_DIR", "uploads"),
 		AppURL:      getEnv("APP_URL", "http://localhost:3000"),
+		BasePath:    getEnv("BASE_PATH", ""),
 
 		SMTPHost: getEnv("SMTP_HOST", ""),
 		SMTPPort: getEnv("SMTP_PORT", "587"),

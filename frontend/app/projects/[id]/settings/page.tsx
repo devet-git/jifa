@@ -740,7 +740,7 @@ function BoardFilterEditor({
   const TYPES: IssueType[] = ["task", "bug", "story", "epic"];
   const PRIORITIES: IssuePriority[] = ["low", "medium", "high", "urgent"];
 
-  function toggle<T extends string>(arr: T[] | undefined, item: T): T[] {
+  function toggle<T extends string>(arr: readonly T[] | undefined, item: T): T[] {
     const set = new Set(arr ?? []);
     set.has(item) ? set.delete(item) : set.add(item);
     return Array.from(set);
@@ -779,16 +779,16 @@ function BoardFilterEditor({
   );
 }
 
-function FilterChipRow({
+function FilterChipRow<T extends string>({
   label,
   items,
   active,
   onToggle,
 }: {
   label: string;
-  items: string[];
-  active: string[];
-  onToggle: (item: string) => void;
+  items: readonly T[];
+  active: readonly T[];
+  onToggle: (item: T) => void;
 }) {
   return (
     <div className="flex items-center gap-2 flex-wrap">

@@ -1,3 +1,5 @@
+const basePath = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
+
 import axios from "axios";
 
 const api = axios.create({
@@ -19,7 +21,7 @@ api.interceptors.response.use(
       !window.location.pathname.startsWith("/login")
     ) {
       localStorage.removeItem("token");
-      window.location.href = "/login";
+      window.location.href = `${basePath}/login`;
     }
     return Promise.reject(err);
   }

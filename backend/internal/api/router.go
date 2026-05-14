@@ -18,7 +18,14 @@ func NewRouter(db *gorm.DB, cfg *config.Config) *gin.Engine {
 	r := gin.Default()
 	r.Use(middleware.CORS())
 
-	api := r.Group("/api/v1")
+	// Redirect BasePath root (e.g. "/jifa") to the app
+	if cfg.BasePath != "" {
+		r.GET(cfg.BasePath, func(c *gin.Context) {
+			c.Redirect(301, cfg.BasePath+"/")
+		})
+	}
+
+	api := r.Group(cfg.BasePath + "/api/v1")
 
 	// Auth (public)
 	authHandler := handlers.NewAuthHandler(db, cfg)

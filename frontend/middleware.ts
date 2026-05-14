@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
+const basePath = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
 const publicPaths = ["/login", "/register", "/forgot-password", "/reset-password"];
 
 export function middleware(request: NextRequest) {
@@ -13,10 +14,10 @@ export function middleware(request: NextRequest) {
   const hasToken = !!token;
 
   if (!isPublic && !hasToken) {
-    return NextResponse.redirect(new URL("/login", request.url));
+    return NextResponse.redirect(new URL(`${basePath}/login`, request.url));
   }
   if (isPublic && hasToken) {
-    return NextResponse.redirect(new URL("/dashboard", request.url));
+    return NextResponse.redirect(new URL(`${basePath}/dashboard`, request.url));
   }
   return NextResponse.next();
 }
