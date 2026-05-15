@@ -11,6 +11,11 @@ import {
   useMarkAllRead,
 } from "@/hooks/useNotifications";
 import { Avatar } from "@/components/ui/Avatar";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/Popover";
 import type { Notification } from "@/types";
 
 export function TopBar() {
@@ -151,91 +156,98 @@ function SearchBox() {
 
 function BellMenu() {
   const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
   const { data: count } = useUnreadCount();
   const { data: notifs = [] } = useNotifications();
   const markRead = useMarkRead();
   const markAll = useMarkAllRead();
 
-  useEffect(() => {
-    function onClick(e: MouseEvent) {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
-    }
-    document.addEventListener("mousedown", onClick);
-    return () => document.removeEventListener("mousedown", onClick);
-  }, []);
-
   const unread = count?.count ?? 0;
 
   return (
-    <div ref={ref} className="relative">
-      <button
-        onClick={() => setOpen((v) => !v)}
-        title="Notifications"
-        aria-label="Notifications"
-        className="relative w-9 h-9 rounded-lg flex items-center justify-center text-muted hover:text-foreground hover:bg-surface-2 transition"
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <button
+          title="Notifications"
+          aria-label="Notifications"
+          className="relative w-9 h-9 rounded-lg flex items-center justify-center text-muted hover:text-foreground hover:bg-surface-2 transition outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
+        >
+          <svg
+            className="w-[18px] h-[18px]"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.8"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="M6 8a6 6 0 1 1 12 0c0 5 2 6 2 6H4s2-1 2-6" />
+            <path d="M10 19a2 2 0 0 0 4 0" />
+          </svg>
+          {unread > 0 && (
+            <span className="absolute top-1 right-1 min-w-[16px] h-[16px] px-1 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center ring-2 ring-background">
+              {unread > 99 ? "99+" : unread}
+            </span>
+          )}
+        </button>
+      </PopoverTrigger>
+      <PopoverContent
+        align="end"
+        className="!p-0 w-96 max-h-[480px] overflow-hidden flex flex-col"
       >
-        <svg className="w-[18px] h-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M6 8a6 6 0 1 1 12 0c0 5 2 6 2 6H4s2-1 2-6" />
-          <path d="M10 19a2 2 0 0 0 4 0" />
-        </svg>
-        {unread > 0 && (
-          <span className="absolute top-1 right-1 min-w-[16px] h-[16px] px-1 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center ring-2 ring-background">
-            {unread > 99 ? "99+" : unread}
-          </span>
-        )}
-      </button>
-      {open && (
-        <div className="absolute right-0 mt-2 w-96 max-h-[480px] surface-elevated overflow-hidden z-40 flex flex-col animate-slide-down">
-          <div className="flex items-center justify-between px-4 py-3 border-b border-border">
-            <div>
-              <p className="text-sm font-semibold">Notifications</p>
-              {unread > 0 && (
-                <p className="text-[11px] text-muted mt-0.5">
-                  {unread} unread
-                </p>
-              )}
-            </div>
-            <button
-              onClick={() => markAll.mutate()}
-              className="text-xs text-brand hover:underline disabled:opacity-40 disabled:no-underline font-medium"
-              disabled={!unread}
-            >
-              Mark all read
-            </button>
-          </div>
-          <div className="flex-1 overflow-y-auto">
-            {notifs.length === 0 ? (
-              <div className="px-4 py-10 text-center">
-                <div className="mx-auto w-10 h-10 rounded-full bg-surface-2 flex items-center justify-center mb-2">
-                  <svg className="w-5 h-5 text-muted" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M6 8a6 6 0 1 1 12 0c0 5 2 6 2 6H4s2-1 2-6" />
-                    <path d="M10 19a2 2 0 0 0 4 0" />
-                  </svg>
-                </div>
-                <p className="text-xs text-muted">No notifications yet</p>
-              </div>
-            ) : (
-              notifs.map((n) => (
-                <NotificationRow
-                  key={n.id}
-                  n={n}
-                  onMarkRead={() => markRead.mutate(n.id)}
-                  onClose={() => setOpen(false)}
-                />
-              ))
+        <div className="flex items-center justify-between px-4 py-3 border-b border-border">
+          <div>
+            <p className="text-sm font-semibold">Notifications</p>
+            {unread > 0 && (
+              <p className="text-[11px] text-muted mt-0.5">{unread} unread</p>
             )}
           </div>
-          <Link
-            href="/notifications"
-            onClick={() => setOpen(false)}
-            className="block px-4 py-2.5 text-center text-xs font-medium text-brand border-t border-border hover:bg-surface-2 transition"
+          <button
+            onClick={() => markAll.mutate()}
+            className="text-xs text-brand hover:underline disabled:opacity-40 disabled:no-underline font-medium"
+            disabled={!unread}
           >
-            See all notifications
-          </Link>
+            Mark all read
+          </button>
         </div>
-      )}
-    </div>
+        <div className="flex-1 overflow-y-auto">
+          {notifs.length === 0 ? (
+            <div className="px-4 py-10 text-center">
+              <div className="mx-auto w-10 h-10 rounded-full bg-surface-2 flex items-center justify-center mb-2">
+                <svg
+                  className="w-5 h-5 text-muted"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.8"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M6 8a6 6 0 1 1 12 0c0 5 2 6 2 6H4s2-1 2-6" />
+                  <path d="M10 19a2 2 0 0 0 4 0" />
+                </svg>
+              </div>
+              <p className="text-xs text-muted">No notifications yet</p>
+            </div>
+          ) : (
+            notifs.map((n) => (
+              <NotificationRow
+                key={n.id}
+                n={n}
+                onMarkRead={() => markRead.mutate(n.id)}
+                onClose={() => setOpen(false)}
+              />
+            ))
+          )}
+        </div>
+        <Link
+          href="/notifications"
+          onClick={() => setOpen(false)}
+          className="block px-4 py-2.5 text-center text-xs font-medium text-brand border-t border-border hover:bg-surface-2 transition"
+        >
+          See all notifications
+        </Link>
+      </PopoverContent>
+    </Popover>
   );
 }
 

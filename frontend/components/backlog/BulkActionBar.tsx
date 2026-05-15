@@ -1,9 +1,15 @@
 "use client";
 
-import { useState } from "react";
 import { showConfirm } from "@/store/confirm";
 import { useUsers } from "@/hooks/useUsers";
 import { useBulkIssue, type BulkPatch } from "@/hooks/useBulkIssue";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/DropdownMenu";
+import { ChevronDown } from "lucide-react";
 import type {
   IssuePriority,
   IssueStatus,
@@ -30,7 +36,10 @@ export function BulkActionBar({ selectedIds, sprints, onClear }: Props) {
   }
   async function handleDelete() {
     if (
-      !(await showConfirm({ message: `Delete ${selectedIds.length} issue(s)? This cannot be undone.`, variant: "danger" }))
+      !(await showConfirm({
+        message: `Delete ${selectedIds.length} issue(s)? This cannot be undone.`,
+        variant: "danger",
+      }))
     )
       return;
     await bulk.mutateAsync({ issue_ids: selectedIds, delete: true });
@@ -39,27 +48,25 @@ export function BulkActionBar({ selectedIds, sprints, onClear }: Props) {
 
   return (
     <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-40 bg-gray-900 text-white shadow-2xl rounded-xl px-4 py-3 flex items-center gap-3">
-      <span className="text-sm font-medium">
-        {selectedIds.length} selected
-      </span>
+      <span className="text-sm font-medium">{selectedIds.length} selected</span>
       <span className="w-px h-5 bg-gray-700" />
 
-      <PickerSelect
+      <PickerMenu
         label="Status"
         options={STATUSES.map((s) => ({ value: s, label: s }))}
         onPick={(v) => applyPatch({ status: v as IssueStatus })}
       />
-      <PickerSelect
+      <PickerMenu
         label="Priority"
         options={PRIORITIES.map((p) => ({ value: p, label: p }))}
         onPick={(v) => applyPatch({ priority: v as IssuePriority })}
       />
-      <PickerSelect
+      <PickerMenu
         label="Type"
         options={TYPES.map((t) => ({ value: t, label: t }))}
         onPick={(v) => applyPatch({ type: v as IssueType })}
       />
-      <PickerSelect
+      <PickerMenu
         label="Assignee"
         options={[
           { value: "_clear", label: "Unassigned" },
@@ -71,7 +78,7 @@ export function BulkActionBar({ selectedIds, sprints, onClear }: Props) {
           )
         }
       />
-      <PickerSelect
+      <PickerMenu
         label="Sprint"
         options={[
           { value: "_clear", label: "Backlog" },
@@ -103,7 +110,7 @@ export function BulkActionBar({ selectedIds, sprints, onClear }: Props) {
   );
 }
 
-function PickerSelect({
+function PickerMenu({
   label,
   options,
   onPick,
@@ -112,34 +119,27 @@ function PickerSelect({
   options: { value: string; label: string }[];
   onPick: (value: string) => void;
 }) {
-  const [open, setOpen] = useState(false);
   return (
-    <div className="relative">
-      <button
-        onClick={() => setOpen((v) => !v)}
-        className="text-sm text-gray-200 hover:text-white"
+    <DropdownMenu>
+      <DropdownMenuTrigger className="inline-flex items-center gap-1 text-sm text-gray-200 hover:text-white outline-none">
+        {label}
+        <ChevronDown className="h-3.5 w-3.5" />
+      </DropdownMenuTrigger>
+      <DropdownMenuContent
+        side="top"
+        align="start"
+        className="max-h-64 overflow-y-auto"
       >
-        {label} ▾
-      </button>
-      {open && (
-        <>
-          <div className="fixed inset-0" onClick={() => setOpen(false)} />
-          <div className="absolute bottom-full mb-2 left-0 bg-white text-gray-900 rounded-lg shadow-lg w-48 max-h-64 overflow-auto z-50">
-            {options.map((o) => (
-              <button
-                key={o.value}
-                onClick={() => {
-                  onPick(o.value);
-                  setOpen(false);
-                }}
-                className="block w-full text-left px-3 py-1.5 text-sm hover:bg-blue-50"
-              >
-                {o.label}
-              </button>
-            ))}
-          </div>
-        </>
-      )}
-    </div>
+        {options.map((o) => (
+          <DropdownMenuItem
+            key={o.value}
+            onSelect={() => onPick(o.value)}
+            className="capitalize"
+          >
+            {o.label}
+          </DropdownMenuItem>
+        ))}
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }
