@@ -12,6 +12,7 @@ import { CreateProjectModal } from "@/components/projects/CreateProjectModal";
 import { Button } from "@/components/ui/Button";
 import { Avatar } from "@/components/ui/Avatar";
 import { UserHoverCard } from "@/components/ui/UserHoverCard";
+import { IssueHoverCard } from "@/components/ui/IssueHoverCard";
 import { Badge } from "@/components/ui/Badge";
 import type { Issue } from "@/types";
 
@@ -190,9 +191,11 @@ export default function DashboardPage() {
                     </p>
                     {n.issue && (
                       <p className="text-xs text-muted truncate mt-0.5">
-                        <span className="font-mono">
-                          {n.issue.key ?? `#${n.issue.id}`}
-                        </span>
+                        <IssueHoverCard issue={n.issue} side="right" align="start">
+                          <span className="font-mono cursor-default">
+                            {n.issue.key ?? `#${n.issue.id}`}
+                          </span>
+                        </IssueHoverCard>
                         {n.body ? ` — ${n.body}` : ""}
                       </p>
                     )}
