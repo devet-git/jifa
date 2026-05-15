@@ -2,8 +2,18 @@ import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import api from "@/lib/api";
 import { usePermissionsStore } from "@/store/permissions";
+import { toast } from "@/store/toast";
 import { Avatar } from "@/components/ui/Avatar";
 import { UserHoverCard } from "@/components/ui/UserHoverCard";
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuLabel,
+  ContextMenuSeparator,
+  ContextMenuTrigger,
+} from "@/components/ui/ContextMenu";
+import { Copy, ExternalLink, Hash, Type as TypeIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Issue, IssueType, IssuePriority } from "@/types";
 
@@ -131,7 +141,23 @@ export function IssueCard({ issue, onClick, className, dragging }: Props) {
     }
   }
 
+  function copy(text: string, label: string) {
+    if (typeof navigator !== "undefined" && navigator.clipboard) {
+      navigator.clipboard.writeText(text).then(
+        () => toast(`${label} copied`, "success"),
+        () => toast(`Couldn't copy ${label.toLowerCase()}`, "error"),
+      );
+    }
+  }
+
+  const issueLink =
+    typeof window !== "undefined"
+      ? `${window.location.origin}/projects/${issue.project_id}#issue-${issue.id}`
+      : "";
+
   return (
+    <ContextMenu>
+      <ContextMenuTrigger asChild>
     <div
       onClick={onClick}
       className={cn(
@@ -236,5 +262,31 @@ export function IssueCard({ issue, onClick, className, dragging }: Props) {
         )}
       </div>
     </div>
+      </ContextMenuTrigger>
+      <ContextMenuContent>
+        <ContextMenuLabel>{issue.key ?? `#${issue.id}`}</ContextMenuLabel>
+        {onClick && (
+          <ContextMenuItem onSelect={onClick}>
+            <ExternalLink />
+            Open issue
+          </ContextMenuItem>
+        )}
+        <ContextMenuSeparator />
+        {issue.key && (
+          <ContextMenuItem onSelect={() => copy(issue.key!, "Issue key")}>
+            <Hash />
+            Copy issue key
+          </ContextMenuItem>
+        )}
+        <ContextMenuItem onSelect={() => copy(issue.title, "Title")}>
+          <TypeIcon />
+          Copy title
+        </ContextMenuItem>
+        <ContextMenuItem onSelect={() => copy(issueLink, "Link")}>
+          <Copy />
+          Copy link
+        </ContextMenuItem>
+      </ContextMenuContent>
+    </ContextMenu>
   );
 }
