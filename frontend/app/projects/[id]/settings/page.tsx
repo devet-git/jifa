@@ -69,6 +69,13 @@ import {
 } from "@/hooks/useRoles";
 import { Avatar } from "@/components/ui/Avatar";
 import { Button } from "@/components/ui/Button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/Select";
 import type {
   BacklogFilterState,
   Board,
@@ -347,23 +354,24 @@ export default function ProjectSettingsPage({
                       setForm((f) => ({ ...f, email: e.target.value }))
                     }
                   />
-                  <select
-                    className="input w-auto"
-                    value={form.role_id}
-                    onChange={(e) =>
-                      setForm((f) => ({
-                        ...f,
-                        role_id: Number(e.target.value),
-                      }))
+                  <Select
+                    value={String(form.role_id)}
+                    onValueChange={(v) =>
+                      setForm((f) => ({ ...f, role_id: Number(v) }))
                     }
                   >
-                    <option value={0}>Default (Member)</option>
-                    {roles.map((r) => (
-                      <option key={r.id} value={r.id}>
-                        {r.name}
-                      </option>
-                    ))}
-                  </select>
+                    <SelectTrigger className="w-auto min-w-[180px]">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="0">Default (Member)</SelectItem>
+                      {roles.map((r) => (
+                        <SelectItem key={r.id} value={String(r.id)}>
+                          {r.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                   <Button type="submit" size="sm" disabled={addMember.isPending}>
                     {addMember.isPending ? "Adding…" : "Add"}
                   </Button>
@@ -416,22 +424,26 @@ export default function ProjectSettingsPage({
                           </p>
                         </div>
                         {canManageMembers && !isOwner ? (
-                          <select
-                            className="input w-auto text-xs py-1"
-                            value={m.role_id}
-                            onChange={(e) =>
+                          <Select
+                            value={String(m.role_id)}
+                            onValueChange={(v) =>
                               updateRole.mutate({
                                 memberId: m.id,
-                                role_id: Number(e.target.value),
+                                role_id: Number(v),
                               })
                             }
                           >
-                            {roles.map((r) => (
-                              <option key={r.id} value={r.id}>
-                                {r.name}
-                              </option>
-                            ))}
-                          </select>
+                            <SelectTrigger className="w-auto !text-xs !py-1 min-w-[140px]">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {roles.map((r) => (
+                                <SelectItem key={r.id} value={String(r.id)}>
+                                  {r.name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
                         ) : (
                           <RoleBadge role={m.role} />
                         )}
@@ -975,20 +987,21 @@ function WorkflowTab({
                   setDraft((d) => ({ ...d, name: e.target.value }))
                 }
               />
-              <select
-                className="input w-auto"
+              <Select
                 value={draft.category}
-                onChange={(e) =>
-                  setDraft((d) => ({
-                    ...d,
-                    category: e.target.value as StatusCategory,
-                  }))
+                onValueChange={(v) =>
+                  setDraft((d) => ({ ...d, category: v as StatusCategory }))
                 }
               >
-                <option value="todo">To Do</option>
-                <option value="in_progress">In Progress</option>
-                <option value="done">Done</option>
-              </select>
+                <SelectTrigger className="w-auto min-w-[140px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todo">To Do</SelectItem>
+                  <SelectItem value="in_progress">In Progress</SelectItem>
+                  <SelectItem value="done">Done</SelectItem>
+                </SelectContent>
+              </Select>
               <ColorPicker
                 value={draft.color}
                 onChange={(c) => setDraft((d) => ({ ...d, color: c }))}
@@ -1158,15 +1171,19 @@ function StatusRow({
       {can("workflow.edit") ? (
         <div className="flex items-center gap-2">
           <ColorPicker value={s.color ?? "#94a3b8"} onChange={onColor} />
-          <select
-            className="input w-auto text-xs py-1"
+          <Select
             value={s.category}
-            onChange={(e) => onCategory(e.target.value as StatusCategory)}
+            onValueChange={(v) => onCategory(v as StatusCategory)}
           >
-            <option value="todo">To Do</option>
-            <option value="in_progress">In Progress</option>
-            <option value="done">Done</option>
-          </select>
+            <SelectTrigger className="w-auto !text-xs !py-1 min-w-[120px]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todo">To Do</SelectItem>
+              <SelectItem value="in_progress">In Progress</SelectItem>
+              <SelectItem value="done">Done</SelectItem>
+            </SelectContent>
+          </Select>
           <button
             onClick={onDelete}
             className="text-xs text-[var(--danger)] hover:opacity-70 transition-opacity"
@@ -1423,17 +1440,21 @@ function DateFormatSection({
           <label className="text-xs text-muted font-medium block mb-1.5">
             Date format
           </label>
-          <select
-            className="input"
+          <Select
             value={project?.date_format ?? "MMM DD, YYYY"}
-            onChange={(e) => setFmt("date_format", e.target.value)}
+            onValueChange={(v) => setFmt("date_format", v)}
           >
-            {DATE_FORMATS.map((f) => (
-              <option key={f.value} value={f.value}>
-                {f.label}
-              </option>
-            ))}
-          </select>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {DATE_FORMATS.map((f) => (
+                <SelectItem key={f.value} value={f.value}>
+                  {f.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
           <p className="text-xs text-muted mt-1.5">
             Preview:{" "}
             <span className="text-foreground font-medium">
@@ -1445,17 +1466,21 @@ function DateFormatSection({
           <label className="text-xs text-muted font-medium block mb-1.5">
             Time format
           </label>
-          <select
-            className="input"
+          <Select
             value={project?.time_format ?? "h:mm A"}
-            onChange={(e) => setFmt("time_format", e.target.value)}
+            onValueChange={(v) => setFmt("time_format", v)}
           >
-            {TIME_FORMATS.map((f) => (
-              <option key={f.value} value={f.value}>
-                {f.label}
-              </option>
-            ))}
-          </select>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {TIME_FORMATS.map((f) => (
+                <SelectItem key={f.value} value={f.value}>
+                  {f.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
           <p className="text-xs text-muted mt-1.5">
             Preview:{" "}
             <span className="text-foreground font-medium">
@@ -1650,20 +1675,24 @@ function ComponentsTab({
               setDraft((d) => ({ ...d, name: e.target.value }))
             }
           />
-          <select
-            className="input w-auto"
-            value={draft.lead_id}
-            onChange={(e) =>
-              setDraft((d) => ({ ...d, lead_id: e.target.value }))
+          <Select
+            value={draft.lead_id || "__none__"}
+            onValueChange={(v) =>
+              setDraft((d) => ({ ...d, lead_id: v === "__none__" ? "" : v }))
             }
           >
-            <option value="">No lead</option>
-            {users.map((u) => (
-              <option key={u.id} value={u.id}>
-                {u.name}
-              </option>
-            ))}
-          </select>
+            <SelectTrigger className="w-auto min-w-[160px]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="__none__">No lead</SelectItem>
+              {users.map((u) => (
+                <SelectItem key={u.id} value={String(u.id)}>
+                  {u.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
           <Button type="submit" size="sm" disabled={create.isPending}>
             Add
           </Button>
@@ -1794,20 +1823,22 @@ function ComponentRow({
         )}
       </div>
       {canEdit && (
-        <select
-          className="input w-auto text-xs py-1"
-          value={c.lead_id ?? ""}
-          onChange={(e) =>
-            onLead(e.target.value ? Number(e.target.value) : undefined)
-          }
+        <Select
+          value={c.lead_id != null ? String(c.lead_id) : "__none__"}
+          onValueChange={(v) => onLead(v === "__none__" ? undefined : Number(v))}
         >
-          <option value="">No lead</option>
-          {users.map((u) => (
-            <option key={u.id} value={u.id}>
-              {u.name}
-            </option>
-          ))}
-        </select>
+          <SelectTrigger className="w-auto !text-xs !py-1 min-w-[140px]">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="__none__">No lead</SelectItem>
+            {users.map((u) => (
+              <SelectItem key={u.id} value={String(u.id)}>
+                {u.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       )}
       {canDelete && (
         <button
