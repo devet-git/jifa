@@ -218,23 +218,20 @@ func emailBody(t models.NotificationType, actor, body, key, title, link string) 
 	if actor == "" {
 		actor = "Someone"
 	}
-	var btn string
-	if link != "" {
-		btn = fmt.Sprintf(
-			`<p><a href="%s" style="display:inline-block;padding:8px 16px;background:#2563eb;color:#fff;border-radius:6px;text-decoration:none">View issue</a></p>`,
-			link,
-		)
-	}
-	return fmt.Sprintf(
-		`<div style="font-family:system-ui,sans-serif;font-size:14px;color:#111">
-			<p><b>%s</b> %s <b>%s</b>.</p>
-			<p style="color:#444"><i>%s</i></p>
-			<blockquote style="border-left:3px solid #e5e7eb;padding-left:10px;color:#555">%s</blockquote>
-			%s
-		</div>`,
-		html.EscapeString(actor), verb, html.EscapeString(key+" "+title),
-		"", body, btn,
-	)
+	issueRef := html.EscapeString(key + " " + title)
+	inner := fmt.Sprintf(`
+<p style="margin:0 0 16px;font-size:15px;line-height:1.7;color:#1f2937;">
+  <strong>%s</strong> %s <strong>%s</strong>.
+</p>
+<table role="presentation" width="100%%" cellpadding="0" cellspacing="0" style="margin:0 0 20px;">
+  <tr>
+    <td style="border-left:3px solid #e5e7eb;padding:12px 16px;background-color:#f9fafb;font-size:14px;line-height:1.6;color:#4b5563;">
+      %s
+    </td>
+  </tr>
+</table>
+%s`, html.EscapeString(actor), verb, issueRef, body, mailer.RenderButton(link, "View issue"))
+	return mailer.RenderBody("Jifa notification: "+issueRef, inner)
 }
 
 // dispatchToWatchers notifies every watcher of the issue except the actor.

@@ -9,6 +9,7 @@ import {
 } from "@/hooks/useNotifications";
 import { Avatar } from "@/components/ui/Avatar";
 import { Button } from "@/components/ui/Button";
+import { SkeletonRow } from "@/components/ui/Skeleton";
 
 const verb = {
   comment: "commented on",
@@ -20,7 +21,7 @@ const verb = {
 
 export default function NotificationsPage() {
   const [unreadOnly, setUnreadOnly] = useState(false);
-  const { data: notifs = [] } = useNotifications({ unreadOnly });
+  const { data: notifs = [], isLoading } = useNotifications({ unreadOnly });
   const markRead = useMarkRead();
   const markAll = useMarkAllRead();
 
@@ -62,7 +63,15 @@ export default function NotificationsPage() {
       </div>
 
       <div className="surface-card overflow-hidden">
-        {notifs.length === 0 ? (
+        {isLoading ? (
+          <div>
+            {Array.from({ length: 5 }).map((_, i) => (
+              <div key={i} className="border-b border-border">
+                <SkeletonRow />
+              </div>
+            ))}
+          </div>
+        ) : notifs.length === 0 ? (
           <div className="p-12 text-center">
             <div className="mx-auto w-12 h-12 rounded-xl bg-surface-2 flex items-center justify-center mb-3">
               <svg className="w-6 h-6 text-muted" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">

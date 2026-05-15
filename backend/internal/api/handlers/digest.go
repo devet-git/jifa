@@ -66,27 +66,66 @@ func sendDigestForUser(db *gorm.DB, userID uint) {
 
 func buildDigestBody(items []models.Notification) string {
 	var sb strings.Builder
-	sb.WriteString(`<div style="font-family:system-ui,sans-serif;font-size:14px;color:#111">`)
-	sb.WriteString(fmt.Sprintf("<p><b>%d new notification(s) since your last digest:</b></p><ul>", len(items)))
-	for _, n := range items {
+	sb.WriteString(fmt.Sprintf(`
+<p style="margin:0 0 20px;font-size:15px;line-height:1.7;color:#1f2937;">
+  You have <strong style="color:#4f46e5;">%d unread notification(s)</strong> since your last digest:
+</p>
+<table role="presentation" width="100%%" cellpadding="0" cellspacing="0" style="margin:0;">`, len(items)))
+
+	for i, n := range items {
 		actor := "Someone"
 		if n.Actor != nil {
 			actor = html.EscapeString(n.Actor.Name)
 		}
-		var issueRef string
+		var issueKey string
 		if n.Issue != nil {
-			key := fmt.Sprintf("%s-%d", n.Issue.Project.Key, n.Issue.Number)
-			issueRef = " on " + html.EscapeString(key)
+			issueKey = fmt.Sprintf("%s-%d", n.Issue.Project.Key, n.Issue.Number)
+			issueKey = html.EscapeString(issueKey)
 		}
 		verb := map[models.NotificationType]string{
 			models.NotifComment:      "commented",
 			models.NotifMention:      "mentioned you",
 			models.NotifAssigned:     "assigned you",
-			models.NotifStatusChange: "changed status",
+			models.NotifStatusChange: "changed status on",
 			models.NotifLinkAdded:    "linked an issue",
 		}[n.Type]
-		sb.WriteString(fmt.Sprintf("<li><b>%s</b> %s%s</li>", actor, verb, issueRef))
+
+		bg := "#ffffff"
+		if i%2 == 1 {
+			bg = "#f9fafb"
+		}
+		bodyText := html.EscapeString(n.Body)
+		if len(bodyText) > 120 {
+			bodyText = bodyText[:120] + "…"
+		}
+
+		sb.WriteString(fmt.Sprintf(`
+<tr>
+  <td style="padding:14px 16px;background-color:%s;border-bottom:1px solid #f3f4f6;">
+    <table role="presentation" width="100%%" cellpadding="0" cellspacing="0">
+      <tr>
+        <td style="font-size:14px;line-height:1.5;color:#1f2937;">
+          <strong>%s</strong> %s%s
+        </td>
+      </tr>
+      <tr>
+        <td style="font-size:13px;line-height:1.4;color:#6b7280;padding-top:4px;">
+          %s
+        </td>
+      </tr>
+    </table>
+  </td>
+</tr>`, bg, actor, verb, " "+issueKey, bodyText))
 	}
-	sb.WriteString("</ul></div>")
-	return sb.String()
+
+	sb.WriteString(fmt.Sprintf(`
+</table>
+<p style="margin:24px 0 0;font-size:13px;line-height:1.5;color:#6b7280;">
+  <a href="%s" style="color:#4f46e5;text-decoration:underline;">View all notifications</a>
+</p>`, mailer.NotificationsURL()))
+
+	return mailer.RenderBody(
+		fmt.Sprintf("%d unread notifications", len(items)),
+		sb.String(),
+	)
 }

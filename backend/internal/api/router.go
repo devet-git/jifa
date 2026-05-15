@@ -4,6 +4,7 @@ import (
 	"jifa/backend/config"
 	"jifa/backend/internal/api/handlers"
 	"jifa/backend/internal/api/middleware"
+	"jifa/backend/internal/mcp"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -226,6 +227,22 @@ func NewRouter(db *gorm.DB, cfg *config.Config) *gin.Engine {
 
 	recentHandler := handlers.NewRecentHandler(db)
 	protected.GET("/me/recent", recentHandler.List)
+
+	// Personal Access Tokens
+	tokenHandler := handlers.NewTokenHandler(db)
+	protected.GET("/tokens", tokenHandler.List)
+	protected.POST("/tokens", tokenHandler.Create)
+	protected.DELETE("/tokens/:id", tokenHandler.Delete)
+
+	// MCP (Model Context Protocol) — SSE-based, dual auth (JWT or PAT)
+	if cfg.MCPEnabled {
+		mcpBasePath := cfg.BasePath + "/api/v1" + cfg.MCPPath
+		sseServer := mcp.NewSSEServer(db, mcpBasePath)
+		mcpGroup := api.Group(cfg.MCPPath)
+		mcpGroup.Use(middleware.MCPAuth(db, cfg))
+		mcpGroup.Any("", mcp.GinHandler(sseServer))
+		mcpGroup.Any("/*path", mcp.GinHandler(sseServer))
+	}
 
 	filterHandler := handlers.NewFilterHandler(db)
 	protected.GET("/filters", filterHandler.List)

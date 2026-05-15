@@ -17,7 +17,11 @@ type Config struct {
 	SMTPPort string
 	SMTPUser string
 	SMTPPass string
-	SMTPFrom string
+	SMTPFrom     string
+	SMTPFromName string
+
+	MCPEnabled bool   // enable MCP endpoint
+	MCPPath    string // URL sub-path under /api/v1 (default: /mcp → full path /api/v1/mcp)
 }
 
 func Load() *Config {
@@ -34,7 +38,11 @@ func Load() *Config {
 		SMTPPort: getEnv("SMTP_PORT", "587"),
 		SMTPUser: getEnv("SMTP_USER", ""),
 		SMTPPass: getEnv("SMTP_PASS", ""),
-		SMTPFrom: getEnv("SMTP_FROM", "jifa@localhost"),
+		SMTPFrom:     getEnv("SMTP_FROM", "jifa@localhost"),
+		SMTPFromName: getEnv("SMTP_FROM_NAME", ""),
+
+		MCPEnabled: getEnv("MCP_ENABLED", "false") == "true",
+		MCPPath:    getEnv("MCP_PATH", "/mcp"),
 	}
 }
 

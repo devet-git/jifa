@@ -2,7 +2,9 @@
 
 import { use, useState } from "react";
 import { useIssues } from "@/hooks/useIssues";
+import { usePermissionsStore } from "@/store/permissions";
 import { IssueDetail } from "@/components/issues/IssueDetail";
+import { Skeleton } from "@/components/ui/Skeleton";
 import type { Issue } from "@/types";
 
 const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
@@ -20,6 +22,7 @@ export default function CalendarPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = use(params);
+  const can = usePermissionsStore((s) => s.can);
   const today = new Date();
   const [year, setYear] = useState(today.getFullYear());
   const [month, setMonth] = useState(today.getMonth());
@@ -29,7 +32,7 @@ export default function CalendarPage({
   const lastDay = new Date(year, month + 1, 0);
   const pad = (d: Date) => d.toISOString().split("T")[0];
 
-  const { data: issues = [] } = useIssues({
+  const { data: issues = [], isLoading } = useIssues({
     project_id: id,
     due_date_from: pad(firstDay),
     due_date_to: pad(lastDay),
@@ -64,6 +67,25 @@ export default function CalendarPage({
 
   const monthLabel = firstDay.toLocaleDateString(undefined, { month: "long", year: "numeric" });
 
+  if (!can("issue.view")) {
+    return (
+      <div className="h-full p-8 overflow-auto flex items-center justify-center">
+        <div className="text-center max-w-sm">
+          <div className="mx-auto w-14 h-14 rounded-2xl bg-surface-2 flex items-center justify-center mb-4">
+            <svg className="w-7 h-7 text-muted" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="3" y="11" width="18" height="10" rx="2" />
+              <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+            </svg>
+          </div>
+          <p className="font-semibold text-foreground mb-1">No access</p>
+          <p className="text-sm text-muted leading-relaxed">
+            You don't have permission to view issues in this project.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col h-full">
       <div className="px-8 pt-4 pb-4 border-b border-border bg-surface shrink-0">
@@ -89,6 +111,14 @@ export default function CalendarPage({
       </div>
 
       <div className="flex-1 p-6 overflow-auto">
+        {isLoading ? (
+          <div className="grid grid-cols-7 gap-1">
+            {Array.from({ length: 35 }).map((_, i) => (
+              <Skeleton key={i} className="h-[90px]" />
+            ))}
+          </div>
+        ) : (
+        <>
         {/* Day-of-week header */}
         <div className="grid grid-cols-7 gap-1 mb-1">
           {DAYS.map((d) => (
@@ -141,6 +171,8 @@ export default function CalendarPage({
             );
           })}
         </div>
+        </>
+        )}
       </div>
 
       {selectedIssue && (

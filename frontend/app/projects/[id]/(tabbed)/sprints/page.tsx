@@ -10,6 +10,7 @@ import { usePermissionsStore } from "@/store/permissions";
 import { PermissionGate } from "@/components/ui/PermissionGate";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
+import { SkeletonRow } from "@/components/ui/Skeleton";
 
 export default function SprintsPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -17,7 +18,7 @@ export default function SprintsPage({ params }: { params: Promise<{ id: string }
   const [showCreateSprint, setShowCreateSprint] = useState(false);
   const [retroSprintId, setRetroSprintId] = useState<number | null>(null);
 
-  const { data: sprints = [] } = useSprints(id);
+  const { data: sprints = [], isLoading } = useSprints(id);
   const sprintAction = useSprintAction();
 
   return (
@@ -34,63 +35,66 @@ export default function SprintsPage({ params }: { params: Promise<{ id: string }
         </PermissionGate>
       </div>
       <div className="space-y-3">
-        {sprints.map((sprint) => (
-          <div key={sprint.id} className="surface-card p-4 flex items-center justify-between gap-4">
-            <div className="min-w-0">
-              <div className="flex items-center gap-2 mb-1">
-                <span className="font-medium truncate">{sprint.name}</span>
-                <Badge type="sprint" value={sprint.status} />
-              </div>
-              {sprint.goal && <p className="text-sm text-muted truncate">{sprint.goal}</p>}
-              <p className="text-xs text-muted mt-1">
-                {sprint.issues?.length ?? 0} issues
-              </p>
-            </div>
-            <div className="flex gap-2 shrink-0">
-              {sprint.status === "planned" && (
-                <PermissionGate perm="sprint.manage" message="Bạn không có quyền quản lý sprint">
-                  <Button
-                    size="sm"
-                    onClick={() => sprintAction.mutate({ projectId: id, sprintId: sprint.id, action: "start" })}
-                    disabled={!can("sprint.manage")}
-                  >
-                    Start
-                  </Button>
-                </PermissionGate>
-              )}
-              {sprint.status === "active" && (
-                <>
-                  <Link href={`/board/${sprint.id}`}>
-                    <Button size="sm" variant="secondary">Open Board</Button>
-                  </Link>
-                  <PermissionGate perm="sprint.manage" message="Bạn không có quyền quản lý sprint">
-                    <Button
-                      size="sm"
-                      variant="danger"
-                      onClick={() => sprintAction.mutate({ projectId: id, sprintId: sprint.id, action: "complete" })}
-                      disabled={!can("sprint.manage")}
-                    >
-                      Complete
-                    </Button>
-                  </PermissionGate>
-                </>
-              )}
-              {sprint.status === "completed" && (
-                <Button
-                  size="sm"
-                  variant="secondary"
-                  onClick={() => setRetroSprintId(sprint.id)}
-                >
-                  Retrospective
-                </Button>
-              )}
-            </div>
-          </div>
-        ))}
-        {sprints.length === 0 && (
+        {isLoading ? (
+          Array.from({ length: 3 }).map((_, i) => <SkeletonRow key={i} />)
+        ) : sprints.length === 0 ? (
           <div className="surface-card p-10 text-center">
             <p className="text-sm text-muted">No sprints yet — create your first sprint above.</p>
           </div>
+        ) : (
+          sprints.map((sprint) => (
+            <div key={sprint.id} className="surface-card p-4 flex items-center justify-between gap-4">
+              <div className="min-w-0">
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="font-medium truncate">{sprint.name}</span>
+                  <Badge type="sprint" value={sprint.status} />
+                </div>
+                {sprint.goal && <p className="text-sm text-muted truncate">{sprint.goal}</p>}
+                <p className="text-xs text-muted mt-1">
+                  {sprint.issues?.length ?? 0} issues
+                </p>
+              </div>
+              <div className="flex gap-2 shrink-0">
+                {sprint.status === "planned" && (
+                  <PermissionGate perm="sprint.manage" message="Bạn không có quyền quản lý sprint">
+                    <Button
+                      size="sm"
+                      onClick={() => sprintAction.mutate({ projectId: id, sprintId: sprint.id, action: "start" })}
+                      disabled={!can("sprint.manage")}
+                    >
+                      Start
+                    </Button>
+                  </PermissionGate>
+                )}
+                {sprint.status === "active" && (
+                  <>
+                    <Link href={`/board/${sprint.id}`}>
+                      <Button size="sm" variant="secondary">Open Board</Button>
+                    </Link>
+                    <PermissionGate perm="sprint.manage" message="Bạn không có quyền quản lý sprint">
+                      <Button
+                        size="sm"
+                        variant="danger"
+                        onClick={() => sprintAction.mutate({ projectId: id, sprintId: sprint.id, action: "complete" })}
+                        disabled={!can("sprint.manage")}
+                      >
+                        Complete
+                      </Button>
+                    </PermissionGate>
+                  </>
+                )}
+                {sprint.status === "completed" && (
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    onClick={() => setRetroSprintId(sprint.id)}
+                  >
+                    Retrospective
+                  </Button>
+                )}
+              </div>
+            </div>
+          ))
         )}
       </div>
       <CreateSprintModal

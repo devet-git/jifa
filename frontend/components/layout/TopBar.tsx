@@ -99,7 +99,7 @@ function SearchBox() {
             <>
               {issues.length > 0 && (
                 <div className="py-1">
-                  <p className="px-3 pt-2 pb-1 text-[10px] uppercase tracking-wider text-muted">
+                  <p className="px-3 pt-2 pb-1 text-xs uppercase tracking-wider text-muted">
                     Issues
                   </p>
                   {issues.map((i) => (
@@ -111,7 +111,7 @@ function SearchBox() {
                       }}
                       className="w-full text-left px-3 py-2 hover:bg-surface-2 flex items-center gap-3 text-sm transition"
                     >
-                      <span className="font-mono text-[11px] text-muted bg-surface-2 px-1.5 py-0.5 rounded shrink-0">
+                      <span className="font-mono text-xs text-muted bg-surface-2 px-1.5 py-0.5 rounded shrink-0">
                         {i.key ?? `#${i.id}`}
                       </span>
                       <span className="truncate">{i.title}</span>
@@ -121,7 +121,7 @@ function SearchBox() {
               )}
               {projects.length > 0 && (
                 <div className="py-1 border-t border-border">
-                  <p className="px-3 pt-2 pb-1 text-[10px] uppercase tracking-wider text-muted">
+                  <p className="px-3 pt-2 pb-1 text-xs uppercase tracking-wider text-muted">
                     Projects
                   </p>
                   {projects.map((p) => (
@@ -133,7 +133,7 @@ function SearchBox() {
                       }}
                       className="w-full text-left px-3 py-2 hover:bg-surface-2 flex items-center gap-3 text-sm transition"
                     >
-                      <span className="font-mono text-[11px] bg-brand-soft text-brand-strong rounded px-1.5 py-0.5 shrink-0">
+                      <span className="font-mono text-xs bg-brand-soft text-brand-strong rounded px-1.5 py-0.5 shrink-0">
                         {p.key}
                       </span>
                       <span className="truncate">{p.name}</span>
@@ -180,7 +180,7 @@ function BellMenu() {
           <path d="M10 19a2 2 0 0 0 4 0" />
         </svg>
         {unread > 0 && (
-          <span className="absolute top-1 right-1 min-w-[16px] h-[16px] px-1 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center ring-2 ring-background">
+          <span className="absolute top-1 right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-red-500 text-white text-[11px] font-bold flex items-center justify-center ring-2 ring-background">
             {unread > 99 ? "99+" : unread}
           </span>
         )}
@@ -191,7 +191,7 @@ function BellMenu() {
             <div>
               <p className="text-sm font-semibold">Notifications</p>
               {unread > 0 && (
-                <p className="text-[11px] text-muted mt-0.5">
+                <p className="text-xs text-muted mt-0.5">
                   {unread} unread
                 </p>
               )}
@@ -278,7 +278,7 @@ function NotificationRow({
         {n.body && (
           <p className="text-xs text-muted truncate mt-0.5">{n.body}</p>
         )}
-        <p className="text-[11px] text-muted mt-1">
+        <p className="text-xs text-muted mt-1">
           {new Date(n.created_at).toLocaleString()}
         </p>
       </div>

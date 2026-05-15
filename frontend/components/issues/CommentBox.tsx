@@ -30,9 +30,7 @@ export function CommentBox({
 
   const { data: users = [] } = useUsers();
   const candidates = users
-    .filter((u) =>
-      u.name.toLowerCase().includes(pickerQuery.toLowerCase()),
-    )
+    .filter((u) => u.name.toLowerCase().includes(pickerQuery.toLowerCase()))
     .slice(0, 6);
 
   useEffect(() => {
@@ -66,7 +64,9 @@ export function CommentBox({
     const newBody = replaced + after;
     setBody(newBody);
     setMentions((prev) =>
-      prev.some((m) => m.id === u.id) ? prev : [...prev, { id: u.id, name: u.name }],
+      prev.some((m) => m.id === u.id)
+        ? prev
+        : [...prev, { id: u.id, name: u.name }],
     );
     setPickerOpen(false);
     setPickerQuery("");
@@ -118,9 +118,7 @@ export function CommentBox({
           onChange={handleChange}
           onKeyDown={handleKeyDown}
         />
-        <p className="text-[10px] text-muted mt-1">
-          Gõ <span className="kbd">@</span> để mention người dùng
-        </p>
+
         {pickerOpen && candidates.length > 0 && (
           <div className="absolute left-0 bottom-full mb-2 surface-elevated w-64 max-h-48 overflow-auto z-50 animate-slide-down">
             {candidates.map((u, i) => (
@@ -145,14 +143,25 @@ export function CommentBox({
           </div>
         )}
       </div>
-      <div className="flex justify-end mt-2">
+      <div className="flex justify-between">
+        <p className="text-[10px] text-muted">
+          Type <span className="kbd">@</span> to mention members.
+        </p>
         <Button
           type="submit"
           size="sm"
           variant="gradient"
           disabled={submitting || !body.trim()}
         >
-          <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <svg
+            className="w-3.5 h-3.5"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
             <path d="m22 2-7 20-4-9-9-4Z" />
             <path d="M22 2 11 13" />
           </svg>

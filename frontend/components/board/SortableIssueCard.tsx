@@ -46,7 +46,7 @@ export function SortableIssueCard({ issue, onClick, selectMode, selected, onTogg
   }
 
   return (
-    <div ref={setNodeRef} style={style} {...attributes} {...listeners} className={isDragging ? "opacity-0" : ""}>
+    <div ref={setNodeRef} style={style} {...attributes} {...listeners} className={`${isDragging ? "opacity-0" : ""} cursor-grab active:cursor-grabbing`}>
       <IssueCard issue={issue} onClick={onClick} dragging={isDragging} />
     </div>
   );

@@ -123,7 +123,26 @@ func (h *IssueHandler) List(c *gin.Context) {
 		Distinct("issues.*")
 
 	if pid := c.Query("project_id"); pid != "" {
+		pidNum, err := strconv.ParseUint(pid, 10, 64)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid project_id"})
+			return
+		}
+		perms := loadPermissionsForProject(h.db, userID.(uint), uint(pidNum))
+		if perms == nil || !perms["issue.view"] {
+			c.JSON(http.StatusOK, []models.Issue{})
+			return
+		}
 		q = q.Where("issues.project_id = ?", pid)
+	} else if sid := c.Query("sprint_id"); sid != "" && sid != "none" {
+		var sprint models.Sprint
+		if err := h.db.Select("id, project_id").First(&sprint, sid).Error; err == nil {
+			perms := loadPermissionsForProject(h.db, userID.(uint), sprint.ProjectID)
+			if perms == nil || !perms["issue.view"] {
+				c.JSON(http.StatusOK, []models.Issue{})
+				return
+			}
+		}
 	}
 	if sid := c.Query("sprint_id"); sid != "" {
 		if sid == "none" {

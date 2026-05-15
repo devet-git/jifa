@@ -52,16 +52,20 @@ func Send(to []string, subject, html string) {
 		if cfg.SMTPUser != "" {
 			auth = smtp.PlainAuth("", cfg.SMTPUser, cfg.SMTPPass, cfg.SMTPHost)
 		}
-		msg := buildMessage(cfg.SMTPFrom, rcpt, subj, body)
+		msg := buildMessage(cfg.SMTPFromName, cfg.SMTPFrom, rcpt, subj, body)
 		if err := smtp.SendMail(addr, auth, cfg.SMTPFrom, rcpt, msg); err != nil {
 			log.Printf("mailer: send failed: %v", err)
 		}
 	}(instance.cfg, recipients, subject, html)
 }
 
-func buildMessage(from string, to []string, subject, htmlBody string) []byte {
+func buildMessage(fromName, fromEmail string, to []string, subject, htmlBody string) []byte {
+	fromHeader := fromEmail
+	if fromName != "" {
+		fromHeader = fromName + " <" + fromEmail + ">"
+	}
 	headers := []string{
-		"From: " + from,
+		"From: " + fromHeader,
 		"To: " + strings.Join(to, ", "),
 		"Subject: " + subject,
 		"MIME-Version: 1.0",
@@ -70,11 +74,29 @@ func buildMessage(from string, to []string, subject, htmlBody string) []byte {
 	return []byte(strings.Join(headers, "\r\n") + "\r\n\r\n" + htmlBody)
 }
 
-// IssueURL returns the canonical URL to an issue within the configured app
-// host. Used to build links in email bodies.
-func IssueURL(projectID, issueID uint) string {
+// BaseURL returns the root URL of the application (from config.AppURL).
+func BaseURL() string {
 	if instance == nil {
 		return ""
 	}
-	return fmt.Sprintf("%s/projects/%d?issue=%d", instance.cfg.AppURL, projectID, issueID)
+	return instance.cfg.AppURL
+}
+
+// IssueURL returns the canonical URL to an issue within the configured app
+// host. Used to build links in email bodies.
+func IssueURL(projectID, issueID uint) string {
+	base := BaseURL()
+	if base == "" {
+		return ""
+	}
+	return fmt.Sprintf("%s/projects/%d?issue=%d", base, projectID, issueID)
+}
+
+// NotificationsURL returns the URL to the user's notifications page.
+func NotificationsURL() string {
+	base := BaseURL()
+	if base == "" {
+		return ""
+	}
+	return base + "/notifications"
 }

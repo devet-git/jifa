@@ -28,6 +28,7 @@ import { ActivityFeed } from "@/components/issues/ActivityFeed";
 import { CommentBox } from "@/components/issues/CommentBox";
 import { AttachmentPanel } from "@/components/issues/AttachmentPanel";
 import { TimeTrackingPanel } from "@/components/issues/TimeTrackingPanel";
+import { DatePicker } from "@/components/ui/DatePicker";
 import { formatDate } from "@/lib/formatDate";
 import { useProjectFormat } from "@/lib/projectFormat";
 import api from "@/lib/api";
@@ -260,7 +261,7 @@ export function IssueDetail({ issue: initialIssue, onClose }: Props) {
               </div>
             ) : (
               <h2
-                className={`text-lg font-bold ${can("issue.edit") ? "cursor-text hover:bg-surface-2" : ""} rounded-md px-2 -mx-2 py-1 -my-1 transition`}
+                className={`text-lg font-bold ${can("issue.edit") ? "cursor-pointer hover:bg-surface-2" : ""} rounded-md px-2 -mx-2 py-1 -my-1 transition`}
                 onClick={can("issue.edit") ? startEditTitle : undefined}
                 title={can("issue.edit") ? "Click to edit" : undefined}
               >
@@ -411,13 +412,10 @@ export function IssueDetail({ issue: initialIssue, onClose }: Props) {
                 Start Date
               </p>
               {can("issue.edit") ? (
-                <input
-                  type="date"
-                  className="input !py-1.5 !text-xs"
+                <DatePicker
+                  dateFormat={dateFormat}
                   value={issue.start_date ? issue.start_date.slice(0, 10) : ""}
-                  onChange={(e) =>
-                    updateField("start_date", e.target.value || null)
-                  }
+                  onChange={(v) => updateField("start_date", v || null)}
                 />
               ) : (
                 <p className="text-sm">{issue.start_date ? issue.start_date.slice(0, 10) : "—"}</p>
@@ -428,11 +426,10 @@ export function IssueDetail({ issue: initialIssue, onClose }: Props) {
                 Due Date
               </p>
               {can("issue.edit") ? (
-                <input
-                  type="date"
-                  className="input !py-1.5 !text-xs"
+                <DatePicker
+                  dateFormat={dateFormat}
                   value={issue.due_date ? issue.due_date.slice(0, 10) : ""}
-                  onChange={(e) => updateField("due_date", e.target.value || null)}
+                  onChange={(v) => updateField("due_date", v || null)}
                 />
               ) : (
                 <p className="text-sm">{issue.due_date ? issue.due_date.slice(0, 10) : "—"}</p>
@@ -592,7 +589,7 @@ export function IssueDetail({ issue: initialIssue, onClose }: Props) {
             ) : (
               <div
                 onClick={can("issue.edit") ? startEditDesc : undefined}
-                className={`min-h-12 p-3 rounded-lg bg-surface-2/50 ${can("issue.edit") ? "hover:bg-surface-2 cursor-text" : ""} transition`}
+                className={`min-h-12 p-3 rounded-lg bg-surface-2/50 ${can("issue.edit") ? "hover:bg-surface-2 cursor-pointer" : ""} transition`}
               >
                 {issue.description ? (
                   <MarkdownBody content={issue.description} />

@@ -29,6 +29,7 @@ import {
 import { PermissionGate } from "@/components/ui/PermissionGate";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
+import { Skeleton } from "@/components/ui/Skeleton";
 import type { Version } from "@/types";
 
 export default function VersionsPage({
@@ -38,7 +39,7 @@ export default function VersionsPage({
 }) {
   const { id } = use(params);
   const can = usePermissionsStore((s) => s.can);
-  const { data: versions = [] } = useVersions(id);
+  const { data: versions = [], isLoading } = useVersions(id);
   const createVersion = useCreateVersion(id);
   const action = useVersionAction(id);
   const update = useUpdateVersion(id);
@@ -141,7 +142,17 @@ export default function VersionsPage({
           </form>
         )}
 
-        {versions.length === 0 ? (
+        {isLoading ? (
+          <div className="space-y-3">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="surface-card p-4 space-y-2">
+                <Skeleton className="h-4 w-48" />
+                <Skeleton className="h-3 w-32" />
+                <Skeleton className="h-2 w-full" />
+              </div>
+            ))}
+          </div>
+        ) : versions.length === 0 ? (
           <div className="surface-card p-12 text-center">
             <div className="mx-auto w-12 h-12 rounded-xl bg-emerald-50 dark:bg-emerald-500/15 flex items-center justify-center mb-3">
               <svg className="w-6 h-6 text-emerald-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">

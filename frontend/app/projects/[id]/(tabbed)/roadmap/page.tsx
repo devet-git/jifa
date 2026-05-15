@@ -5,6 +5,7 @@ import { use, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useIssues, useUpdateIssue } from "@/hooks/useIssues";
 import { usePermissionsStore } from "@/store/permissions";
 import { IssueDetail } from "@/components/issues/IssueDetail";
+import { SkeletonCard } from "@/components/ui/Skeleton";
 import type { Issue } from "@/types";
 
 const DAY_PX = 20;
@@ -27,7 +28,7 @@ export default function RoadmapPage({
 }) {
   const { id } = use(params);
   const can = usePermissionsStore((s) => s.can);
-  const { data: issues = [] } = useIssues({ project_id: id });
+  const { data: issues = [], isLoading } = useIssues({ project_id: id });
   const [selected, setSelected] = useState<Issue | null>(null);
   const updateIssue = useUpdateIssue();
   const [drag, setDrag] = useState<DragState | null>(null);
@@ -127,6 +128,33 @@ export default function RoadmapPage({
       window.removeEventListener("mouseup", onUp);
     };
   }, [drag, rangeStart, updateIssue]);
+
+  if (!can("issue.view")) {
+    return (
+      <div className="h-full p-8 overflow-auto flex items-center justify-center">
+        <div className="text-center max-w-sm">
+          <div className="mx-auto w-14 h-14 rounded-2xl bg-surface-2 flex items-center justify-center mb-4">
+            <svg className="w-7 h-7 text-muted" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="3" y="11" width="18" height="10" rx="2" />
+              <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+            </svg>
+          </div>
+          <p className="font-semibold text-foreground mb-1">No access</p>
+          <p className="text-sm text-muted leading-relaxed">
+            You don't have permission to view issues in this project.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  if (isLoading) {
+    return (
+      <div className="h-full p-8 overflow-auto max-w-xl mx-auto space-y-3">
+        {Array.from({ length: 3 }).map((_, i) => <SkeletonCard key={i} />)}
+      </div>
+    );
+  }
 
   return (
     <div className="h-full overflow-auto" style={drag ? { userSelect: "none", cursor: "ew-resize" } : undefined}>

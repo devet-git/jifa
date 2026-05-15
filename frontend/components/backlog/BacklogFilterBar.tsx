@@ -206,7 +206,7 @@ export function BacklogFilterBar({ projectId, value, onChange }: Props) {
 
       {jqlMode && (
         <div className="flex items-center bg-surface border border-border rounded-lg hover:border-[var(--border-strong)] focus-within:border-brand transition">
-          <span className="ml-2.5 text-[10px] font-semibold text-muted uppercase tracking-wider shrink-0 select-none">JQL</span>
+          <span className="ml-2.5 text-xs font-semibold text-muted uppercase tracking-wider shrink-0 select-none">JQL</span>
           <input
             type="text"
             placeholder='type = "bug" AND priority = "high" ORDER BY created_at DESC'

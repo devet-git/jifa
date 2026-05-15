@@ -69,6 +69,14 @@
   --font-mono: var(--font-geist-mono);
 }
 
+/* ---------- Buttons ---------- */
+button:not(:disabled) {
+  cursor: pointer;
+}
+button:disabled {
+  cursor: not-allowed;
+}
+
 /* ---------- Base typography ----------
    Bumped base from 14 → 15px and tightened the type scale so headings
    feel modern without overpowering body copy. Tailwind utilities are

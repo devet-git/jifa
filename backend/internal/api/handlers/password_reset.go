@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"jifa/backend/config"
-	"jifa/backend/internal/mailer"
+		"jifa/backend/internal/mailer"
 	"jifa/backend/internal/models"
 
 	"github.com/gin-gonic/gin"
@@ -46,9 +46,13 @@ func (h *PasswordResetHandler) ForgotPassword(c *gin.Context) {
 				ExpiresAt: time.Now().Add(time.Hour),
 			})
 			resetURL := fmt.Sprintf("%s/reset-password?token=%s", h.cfg.AppURL, token)
+			resetBody := fmt.Sprintf(`
+<p style="margin:0 0 16px;font-size:15px;line-height:1.7;color:#1f2937;">Hi <strong>%s</strong>,</p>
+<p style="margin:0 0 8px;font-size:15px;line-height:1.7;color:#1f2937;">We received a request to reset your Jifa password. Click the button below to set a new one. This link expires in <strong>1 hour</strong>.</p>
+<p style="margin:0 0 24px;font-size:13px;line-height:1.5;color:#6b7280;">If you didn't request this, you can safely ignore this email.</p>
+%s`, user.Name, mailer.RenderButton(resetURL, "Reset Password"))
 			mailer.Send([]string{user.Email}, "Reset your Jifa password",
-				fmt.Sprintf(`<p>Hi %s,</p><p>Click the link below to reset your password (valid for 1 hour):</p><p><a href="%s">%s</a></p>`,
-					user.Name, resetURL, resetURL))
+				mailer.RenderBody("Reset your Jifa password", resetBody))
 		}
 	}
 

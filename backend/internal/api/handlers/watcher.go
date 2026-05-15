@@ -3,6 +3,7 @@ package handlers
 import (
 	"errors"
 	"net/http"
+	"strings"
 
 	"jifa/backend/internal/models"
 
@@ -52,15 +53,26 @@ func (h *WatcherHandler) Unwatch(c *gin.Context) {
 // EnsureWatcher inserts a watcher row if not already present.
 func EnsureWatcher(db *gorm.DB, issueID, userID uint) error {
 	var existing models.IssueWatcher
-	err := db.Where("issue_id = ? AND user_id = ?", issueID, userID).
+	err := db.Unscoped().
+		Where("issue_id = ? AND user_id = ?", issueID, userID).
 		First(&existing).Error
 	if err == nil {
+		if existing.DeletedAt.Valid {
+			// Row exists but was soft-deleted (unwatch → re-watch).
+			// Restore by clearing deleted_at.
+			return db.Unscoped().Model(&existing).
+				UpdateColumn("deleted_at", nil).Error
+		}
 		return nil
 	}
 	if !errors.Is(err, gorm.ErrRecordNotFound) {
 		return err
 	}
-	return db.Create(&models.IssueWatcher{IssueID: issueID, UserID: userID}).Error
+	err = db.Create(&models.IssueWatcher{IssueID: issueID, UserID: userID}).Error
+	if err != nil && strings.Contains(err.Error(), "idx_watcher_unique") {
+		return nil
+	}
+	return err
 }
 
 func parseParamUint(c *gin.Context, key string) uint {

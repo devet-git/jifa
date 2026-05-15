@@ -63,11 +63,11 @@ export function KanbanColumn({ status, issues, onIssueClick, boardKey = "default
             className="w-2 h-2 rounded-full shrink-0"
             style={{ backgroundColor: accent }}
           />
-          <span className="text-[11px] font-semibold bg-surface-2 text-muted rounded-full px-1.5 py-0.5 tabular-nums">
+          <span className="text-xs font-semibold bg-surface-2 text-muted rounded-full px-1.5 py-0.5 tabular-nums">
             {issues.length}
           </span>
           <span
-            className="text-[11px] font-semibold text-muted whitespace-nowrap"
+            className="text-xs font-semibold text-muted whitespace-nowrap"
             style={{ writingMode: "vertical-rl", transform: "rotate(180deg)" }}
           >
             {status.name}
@@ -81,7 +81,7 @@ export function KanbanColumn({ status, issues, onIssueClick, boardKey = "default
               style={{ backgroundColor: accent }}
             />
             <h3 className="font-semibold text-sm truncate flex-1">{status.name}</h3>
-            <span className="text-[11px] font-medium bg-surface-2 text-muted rounded-full px-2 py-0.5 min-w-[22px] text-center">
+            <span className="text-xs font-medium bg-surface-2 text-muted rounded-full px-2 py-0.5 min-w-[24px] text-center">
               {issues.length}
             </span>
             {selectMode && (

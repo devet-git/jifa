@@ -153,7 +153,7 @@ export default function WikiListPage({
                   {can("wiki.delete") && (
                   <span
                     onClick={(e) => { e.stopPropagation(); handleDelete(p.id); }}
-                    className="opacity-0 group-hover:opacity-100 transition text-muted hover:text-red-500 p-0.5 rounded"
+                    className="opacity-0 group-hover:opacity-100 transition text-muted hover:text-red-500 p-0.5 rounded cursor-pointer"
                     title="Delete page"
                   >
                     <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -378,7 +378,7 @@ function WikiPageView({
   }
 
   return (
-    <div className="p-8 max-w-3xl">
+    <div className="p-8">
       {/* Breadcrumb */}
       <div className="flex items-center gap-2 text-xs text-muted mb-4">
         <Link href={`/projects/${projectId}`} className="hover:text-foreground transition">

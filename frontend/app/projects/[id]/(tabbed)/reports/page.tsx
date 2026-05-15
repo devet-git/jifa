@@ -18,6 +18,7 @@ import { WorkloadChart } from "@/components/reports/WorkloadChart";
 import { CFDChart } from "@/components/reports/CFDChart";
 import { TimeInStatusChart } from "@/components/reports/TimeInStatusChart";
 import { ControlChart } from "@/components/reports/ControlChart";
+import { Skeleton } from "@/components/ui/Skeleton";
 
 export default function ReportsPage({
   params,
@@ -25,14 +26,15 @@ export default function ReportsPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = use(params);
-  const { data: sprints = [] } = useSprints(id);
-  const { data: velocity = [] } = useVelocity(id);
+  const { data: sprints = [], isLoading: sprintsLoading } = useSprints(id);
+  const { data: velocity = [], isLoading: velocityLoading } = useVelocity(id);
 
   const burndownCandidates = useMemo(
     () => sprints.filter((s) => s.status === "active" || s.status === "completed"),
     [sprints],
   );
   const activeSprint = sprints.find((s) => s.status === "active");
+  const loading = sprintsLoading || velocityLoading;
   const [selectedSprint, setSelectedSprint] = useState<number | undefined>(
     activeSprint?.id ?? burndownCandidates[0]?.id,
   );
@@ -46,6 +48,20 @@ export default function ReportsPage({
   // If a sprint is selected from sprints data only after first render,
   // honour it so charts populate.
   const effectiveSprintId = selectedSprint ?? activeSprint?.id ?? burndownCandidates[0]?.id;
+
+  if (loading) {
+    return (
+      <div className="h-full p-8 overflow-auto space-y-6 max-w-5xl mx-auto w-full">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <div key={i} className="surface-card p-6 space-y-4">
+            <Skeleton className="h-5 w-32" />
+            <Skeleton className="h-3 w-64" />
+            <Skeleton className="h-48 w-full" />
+          </div>
+        ))}
+      </div>
+    );
+  }
 
   return (
     <div className="h-full p-8 overflow-auto space-y-6 max-w-5xl mx-auto w-full">

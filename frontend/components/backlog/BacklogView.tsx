@@ -329,7 +329,7 @@ function SortableIssueRow({
     transition,
   };
   return (
-    <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
+    <div ref={setNodeRef} style={style} {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing">
       <IssueCard issue={issue} onClick={onClick} dragging={isDragging} />
     </div>
   );
