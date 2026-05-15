@@ -5,6 +5,15 @@ import { useUsers } from "@/hooks/useUsers";
 import { useLabels } from "@/hooks/useLabels";
 import { useFilters, useCreateFilter, useDeleteFilter } from "@/hooks/useFilters";
 import { Avatar } from "@/components/ui/Avatar";
+import { Button } from "@/components/ui/Button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuTrigger,
+} from "@/components/ui/DropdownMenu";
+import { ChevronDown } from "lucide-react";
 import type {
   BacklogFilterState,
   IssuePriority,
@@ -177,21 +186,25 @@ export function BacklogFilterBar({ projectId, value, onChange }: Props) {
 
         {/* Saved filters dropdown */}
         {filters.length > 0 && (
-          <select
-            className="input !py-1.5 !text-xs !w-auto"
-            value=""
-            onChange={(e) => {
-              const f = filters.find((x) => x.id === Number(e.target.value));
-              if (f) applyFilter(f.query);
-            }}
-          >
-            <option value="">Saved filters…</option>
-            {filters.map((f) => (
-              <option key={f.id} value={f.id}>
-                {f.name}
-              </option>
-            ))}
-          </select>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="secondary" size="sm" className="!text-xs">
+                Saved filters
+                <ChevronDown />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start">
+              <DropdownMenuLabel>Apply a saved filter</DropdownMenuLabel>
+              {filters.map((f) => (
+                <DropdownMenuItem
+                  key={f.id}
+                  onSelect={() => applyFilter(f.query)}
+                >
+                  {f.name}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
         )}
 
         {activeCount > 0 && (
