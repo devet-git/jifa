@@ -11,6 +11,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/Popover";
+import { Tooltip } from "@/components/ui/Tooltip";
 import { mdToHtml, htmlToMd } from "@/lib/convertMd";
 import type { Editor } from "@tiptap/react";
 
@@ -104,19 +105,29 @@ function Toolbar({ editor }: { editor: Editor }) {
     setImageUrl("");
   }
 
-  const btn = (active: boolean, onClick: () => void, title: string, children: React.ReactNode) => (
-    <button
-      type="button"
-      onMouseDown={(e) => { e.preventDefault(); onClick(); }}
-      title={title}
-      className={`w-7 h-7 flex items-center justify-center rounded text-xs font-medium transition ${
-        active
-          ? "bg-brand-soft text-brand"
-          : "text-muted hover:text-foreground hover:bg-surface-2"
-      }`}
-    >
-      {children}
-    </button>
+  const btn = (
+    active: boolean,
+    onClick: () => void,
+    title: string,
+    children: React.ReactNode,
+  ) => (
+    <Tooltip content={title}>
+      <button
+        type="button"
+        onMouseDown={(e) => {
+          e.preventDefault();
+          onClick();
+        }}
+        aria-label={title}
+        className={`w-7 h-7 flex items-center justify-center rounded text-xs font-medium transition ${
+          active
+            ? "bg-brand-soft text-brand"
+            : "text-muted hover:text-foreground hover:bg-surface-2"
+        }`}
+      >
+        {children}
+      </button>
+    </Tooltip>
   );
 
   return (
@@ -169,7 +180,7 @@ function Toolbar({ editor }: { editor: Editor }) {
         <PopoverTrigger
           type="button"
           onMouseDown={(e) => e.preventDefault()}
-          title="Insert link"
+          aria-label="Insert link"
           className={`w-7 h-7 flex items-center justify-center rounded text-xs font-medium transition outline-none ${
             editor.isActive("link")
               ? "bg-brand-soft text-brand"
@@ -226,7 +237,7 @@ function Toolbar({ editor }: { editor: Editor }) {
         <PopoverTrigger
           type="button"
           onMouseDown={(e) => e.preventDefault()}
-          title="Insert image"
+          aria-label="Insert image"
           className="w-7 h-7 flex items-center justify-center rounded text-xs font-medium text-muted hover:text-foreground hover:bg-surface-2 transition outline-none"
         >
           <svg viewBox="0 0 16 16" fill="currentColor" className="w-3.5 h-3.5">

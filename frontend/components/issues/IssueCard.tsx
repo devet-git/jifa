@@ -5,6 +5,7 @@ import { usePermissionsStore } from "@/store/permissions";
 import { toast } from "@/store/toast";
 import { Avatar } from "@/components/ui/Avatar";
 import { UserHoverCard } from "@/components/ui/UserHoverCard";
+import { Tooltip } from "@/components/ui/Tooltip";
 import {
   ContextMenu,
   ContextMenuContent,
@@ -232,25 +233,27 @@ export function IssueCard({ issue, onClick, className, dragging }: Props) {
 
       <div className="flex flex-col items-center gap-1.5 shrink-0">
         {!editing && can("issue.edit") && (
-          <button
-            type="button"
-            onClick={startEdit}
-            aria-label="Edit title"
-            title="Edit title"
-            className="opacity-0 group-hover:opacity-100 w-4 h-4 text-muted hover:text-brand transition"
-          >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M12 20h9" />
-              <path d="M16.5 3.5a2.121 2.121 0 1 1 3 3L7 19l-4 1 1-4 12.5-12.5z" />
-            </svg>
-          </button>
+          <Tooltip content="Edit title">
+            <button
+              type="button"
+              onClick={startEdit}
+              aria-label="Edit title"
+              className="opacity-0 group-hover:opacity-100 w-4 h-4 text-muted hover:text-brand transition"
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M12 20h9" />
+                <path d="M16.5 3.5a2.121 2.121 0 1 1 3 3L7 19l-4 1 1-4 12.5-12.5z" />
+              </svg>
+            </button>
+          </Tooltip>
         )}
-        <span
-          className={cn("w-3.5 h-3.5", priorityColor[issue.priority])}
-          title={`Priority: ${issue.priority}`}
-        >
-          {priorityArrow[issue.priority]}
-        </span>
+        <Tooltip content={`Priority: ${issue.priority}`}>
+          <span
+            className={cn("w-3.5 h-3.5 cursor-default", priorityColor[issue.priority])}
+          >
+            {priorityArrow[issue.priority]}
+          </span>
+        </Tooltip>
         {issue.assignee && (
           <UserHoverCard user={issue.assignee} side="top">
             <Avatar
