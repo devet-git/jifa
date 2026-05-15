@@ -9,6 +9,7 @@ import {
 } from "@/hooks/useNotifications";
 import { Avatar } from "@/components/ui/Avatar";
 import { UserHoverCard } from "@/components/ui/UserHoverCard";
+import { IssueHoverCard } from "@/components/ui/IssueHoverCard";
 import { Button } from "@/components/ui/Button";
 import { SkeletonRow } from "@/components/ui/Skeleton";
 
@@ -111,9 +112,11 @@ export default function NotificationsPage() {
                     </span>{" "}
                     <span className="text-muted">{verb[n.type]}</span>{" "}
                     {n.issue && (
-                      <span className="font-mono text-xs text-muted">
-                        {n.issue.key ?? `#${n.issue.id}`}
-                      </span>
+                      <IssueHoverCard issue={n.issue} side="top" align="start">
+                        <span className="font-mono text-xs text-muted cursor-default">
+                          {n.issue.key ?? `#${n.issue.id}`}
+                        </span>
+                      </IssueHoverCard>
                     )}
                   </p>
                   {n.body && (

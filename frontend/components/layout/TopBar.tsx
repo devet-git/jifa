@@ -12,6 +12,7 @@ import {
 } from "@/hooks/useNotifications";
 import { Avatar } from "@/components/ui/Avatar";
 import { UserHoverCard } from "@/components/ui/UserHoverCard";
+import { IssueHoverCard } from "@/components/ui/IssueHoverCard";
 import { Tooltip } from "@/components/ui/Tooltip";
 import {
   Popover,
@@ -282,9 +283,11 @@ function NotificationRow({
           <span className="font-medium">{n.actor?.name ?? "Someone"}</span>{" "}
           <span className="text-muted">{verbFor(n.type)}</span>{" "}
           {n.issue && (
-            <span className="font-mono text-xs text-muted">
-              {n.issue.key ?? `#${n.issue.id}`}
-            </span>
+            <IssueHoverCard issue={n.issue} side="left" align="start">
+              <span className="font-mono text-xs text-muted cursor-default">
+                {n.issue.key ?? `#${n.issue.id}`}
+              </span>
+            </IssueHoverCard>
           )}
         </p>
         {n.body && (
