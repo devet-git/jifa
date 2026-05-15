@@ -40,7 +40,9 @@ import {
   SheetContent,
   SheetTitle,
 } from "@/components/ui/Sheet";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/Tabs";
 import { MarkdownEditor, MarkdownBody } from "@/components/ui/MarkdownEditor";
+import { cn } from "@/lib/utils";
 import { SubTaskList } from "@/components/issues/SubTaskList";
 import { LinksPanel } from "@/components/issues/LinksPanel";
 import { ActivityFeed } from "@/components/issues/ActivityFeed";
@@ -741,17 +743,16 @@ export function IssueDetail({ issue: initialIssue, onClose }: Props) {
           <SubTaskList issue={issue} />
 
           {/* Tabs */}
-          <div>
-            <div className="flex gap-1 border-b border-border mb-4">
+          <Tabs value={tab} onValueChange={(v) => setTab(v as Tab)}>
+            <TabsList className="!bg-transparent !rounded-none !p-0 border-b border-border w-full justify-start gap-1">
               {tabs.map((t) => (
-                <button
+                <TabsTrigger
                   key={t.key}
-                  onClick={() => setTab(t.key)}
-                  className={`px-3 py-2 text-xs font-medium border-b-2 transition -mb-px ${
-                    tab === t.key
-                      ? "border-brand text-foreground"
-                      : "border-transparent text-muted hover:text-foreground"
-                  }`}
+                  value={t.key}
+                  className={cn(
+                    "!rounded-none !bg-transparent !shadow-none px-3 py-2 text-xs font-medium border-b-2 border-transparent -mb-px",
+                    "data-[state=active]:border-brand data-[state=active]:text-foreground data-[state=active]:!bg-transparent data-[state=active]:!shadow-none",
+                  )}
                 >
                   {t.label}
                   {t.count != null && t.count > 0 && (
@@ -759,11 +760,11 @@ export function IssueDetail({ issue: initialIssue, onClose }: Props) {
                       {t.count}
                     </span>
                   )}
-                </button>
+                </TabsTrigger>
               ))}
-            </div>
+            </TabsList>
 
-            {tab === "comments" && (
+            <TabsContent value="comments">
               <div>
                 <div className="space-y-4 mb-4">
                   {issue.comments?.length === 0 && (
@@ -832,11 +833,15 @@ export function IssueDetail({ issue: initialIssue, onClose }: Props) {
                   />
                 )}
               </div>
-            )}
+            </TabsContent>
 
-            {tab === "activity" && <ActivityFeed issueId={issue.id} />}
-            {tab === "links" && <LinksPanel issue={issue} />}
-          </div>
+            <TabsContent value="activity">
+              <ActivityFeed issueId={issue.id} />
+            </TabsContent>
+            <TabsContent value="links">
+              <LinksPanel issue={issue} />
+            </TabsContent>
+          </Tabs>
         </div>
       </SheetContent>
     </Sheet>
