@@ -3,6 +3,7 @@ import { useDroppable } from "@dnd-kit/core";
 import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { SortableIssueCard } from "./SortableIssueCard";
 import { Checkbox } from "@/components/ui/Checkbox";
+import { Tooltip } from "@/components/ui/Tooltip";
 import type { Issue, StatusDefinition } from "@/types";
 
 interface Props {
@@ -54,10 +55,11 @@ export function KanbanColumn({ status, issues, onIssueClick, boardKey = "default
         }}
       />
       {collapsed ? (
+        <Tooltip content={`Expand ${status.name}`} position="right">
         <button
           type="button"
           onClick={toggle}
-          title={`Expand ${status.name}`}
+          aria-label={`Expand ${status.name}`}
           className="flex-1 flex flex-col items-center gap-2 py-3 hover:bg-surface-2 transition"
         >
           <span
@@ -74,6 +76,7 @@ export function KanbanColumn({ status, issues, onIssueClick, boardKey = "default
             {status.name}
           </span>
         </button>
+        </Tooltip>
       ) : (
         <>
           <div className="px-4 py-3 flex items-center gap-2">
@@ -104,17 +107,18 @@ export function KanbanColumn({ status, issues, onIssueClick, boardKey = "default
                 }}
               />
             )}
-            <button
-              type="button"
-              onClick={toggle}
-              aria-label={`Collapse ${status.name}`}
-              title="Collapse column"
-              className="w-5 h-5 -mr-1 rounded text-muted hover:text-foreground hover:bg-surface-2 transition flex items-center justify-center"
-            >
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-3.5 h-3.5">
-                <path d="m15 18-6-6 6-6" />
-              </svg>
-            </button>
+            <Tooltip content="Collapse column">
+              <button
+                type="button"
+                onClick={toggle}
+                aria-label={`Collapse ${status.name}`}
+                className="w-5 h-5 -mr-1 rounded text-muted hover:text-foreground hover:bg-surface-2 transition flex items-center justify-center"
+              >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-3.5 h-3.5">
+                  <path d="m15 18-6-6 6-6" />
+                </svg>
+              </button>
+            </Tooltip>
           </div>
           <div
             ref={setNodeRef}

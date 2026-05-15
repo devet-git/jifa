@@ -43,6 +43,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/Tabs";
 import { Checkbox } from "@/components/ui/Checkbox";
 import { UserHoverCard } from "@/components/ui/UserHoverCard";
+import { Tooltip } from "@/components/ui/Tooltip";
 import { MarkdownEditor, MarkdownBody } from "@/components/ui/MarkdownEditor";
 import { cn } from "@/lib/utils";
 import { SubTaskList } from "@/components/issues/SubTaskList";
@@ -299,34 +300,37 @@ export function IssueDetail({ issue: initialIssue, onClose }: Props) {
               {isWatching ? "Watching" : "Watch"}
               <span className="opacity-70">{watchers.length}</span>
             </button>
-            <button
-              onClick={() => {
-                navigator.clipboard.writeText(`${window.location.origin}/issues/${issue.id}`);
-                toast("Link copied!", "success");
-              }}
-              title="Copy issue link"
-              aria-label="Copy issue link"
-              className="w-8 h-8 rounded-lg flex items-center justify-center text-muted hover:text-foreground hover:bg-surface-2 transition"
-            >
-              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
-                <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
-              </svg>
-            </button>
-            {can("issue.create") && (
+            <Tooltip content="Copy issue link">
               <button
-                onClick={handleClone}
-                disabled={cloneIssue.isPending}
-                title="Duplicate issue"
-                aria-label="Duplicate issue"
-                className="w-8 h-8 rounded-lg flex items-center justify-center text-muted hover:text-foreground hover:bg-surface-2 transition disabled:opacity-50"
+                onClick={() => {
+                  navigator.clipboard.writeText(`${window.location.origin}/issues/${issue.id}`);
+                  toast("Link copied!", "success");
+                }}
+                aria-label="Copy issue link"
+                className="w-8 h-8 rounded-lg flex items-center justify-center text-muted hover:text-foreground hover:bg-surface-2 transition"
               >
                 <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                  <rect x="9" y="9" width="11" height="11" rx="2" />
-                  <path d="M5 15V5a2 2 0 0 1 2-2h10" />
+                  <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+                  <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
                 </svg>
               </button>
+            </Tooltip>
+            {can("issue.create") && (
+              <Tooltip content="Duplicate issue">
+                <button
+                  onClick={handleClone}
+                  disabled={cloneIssue.isPending}
+                  aria-label="Duplicate issue"
+                  className="w-8 h-8 rounded-lg flex items-center justify-center text-muted hover:text-foreground hover:bg-surface-2 transition disabled:opacity-50"
+                >
+                  <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                    <rect x="9" y="9" width="11" height="11" rx="2" />
+                    <path d="M5 15V5a2 2 0 0 1 2-2h10" />
+                  </svg>
+                </button>
+              </Tooltip>
             )}
+            <Tooltip content="Close (Esc)">
             <button
               onClick={onClose}
               aria-label="Close"
@@ -336,6 +340,7 @@ export function IssueDetail({ issue: initialIssue, onClose }: Props) {
                 <path d="M18 6 6 18M6 6l12 12" />
               </svg>
             </button>
+            </Tooltip>
           </div>
         </div>
 

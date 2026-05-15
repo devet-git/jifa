@@ -12,6 +12,7 @@ import {
 } from "@/hooks/useNotifications";
 import { Avatar } from "@/components/ui/Avatar";
 import { UserHoverCard } from "@/components/ui/UserHoverCard";
+import { Tooltip } from "@/components/ui/Tooltip";
 import {
   Popover,
   PopoverContent,
@@ -161,9 +162,9 @@ function BellMenu() {
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
+      <Tooltip content="Notifications">
       <PopoverTrigger asChild>
         <button
-          title="Notifications"
           aria-label="Notifications"
           className="relative w-9 h-9 rounded-lg flex items-center justify-center text-muted hover:text-foreground hover:bg-surface-2 transition outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
         >
@@ -186,6 +187,7 @@ function BellMenu() {
           )}
         </button>
       </PopoverTrigger>
+      </Tooltip>
       <PopoverContent
         align="end"
         className="!p-0 w-96 max-h-[480px] overflow-hidden flex flex-col"
