@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import api from "@/lib/api";
 import { AuthShell } from "@/components/layout/AuthShell";
+import { Alert } from "@/components/ui/Alert";
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
@@ -45,13 +46,9 @@ export default function ForgotPasswordPage() {
       ) : (
         <>
           {error && (
-            <div className="mb-4 flex items-start gap-2 p-3 rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm dark:bg-red-500/10 dark:border-red-500/30 dark:text-red-300">
-              <svg className="w-4 h-4 mt-0.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <circle cx="12" cy="12" r="10" />
-                <path d="M12 8v4M12 16h.01" />
-              </svg>
-              <span>{error}</span>
-            </div>
+            <Alert variant="destructive" className="mb-4">
+              {error}
+            </Alert>
           )}
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
