@@ -11,6 +11,7 @@ import {
   useDeleteAttachment,
 } from "@/hooks/useAttachments";
 import { Avatar } from "@/components/ui/Avatar";
+import { UserHoverCard } from "@/components/ui/UserHoverCard";
 
 interface Props {
   issueId: number;
@@ -186,7 +187,9 @@ function AttachmentTile({
             {att.original_filename}
           </p>
           <div className="flex items-center gap-1.5 mt-0.5 text-[10px] text-gray-400">
-            <Avatar name={att.uploader?.name} size="sm" />
+            <UserHoverCard user={att.uploader} side="top">
+              <Avatar name={att.uploader?.name} size="sm" />
+            </UserHoverCard>
             <span>{humanSize(att.size)}</span>
           </div>
         </div>

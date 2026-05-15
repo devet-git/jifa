@@ -68,6 +68,7 @@ import {
   useSetRolePermissions,
 } from "@/hooks/useRoles";
 import { Avatar } from "@/components/ui/Avatar";
+import { UserHoverCard } from "@/components/ui/UserHoverCard";
 import { Button } from "@/components/ui/Button";
 import {
   Select,
@@ -417,7 +418,9 @@ export default function ProjectSettingsPage({
                         key={m.id}
                         className="px-5 py-3.5 flex items-center gap-3"
                       >
-                        <Avatar name={m.user?.name} size="md" />
+                        <UserHoverCard user={m.user} side="right" align="start">
+                          <Avatar name={m.user?.name} size="md" />
+                        </UserHoverCard>
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-medium text-foreground truncate">
                             {m.user?.name}
@@ -647,7 +650,9 @@ function AuditTab({ projectId, dateFormat, timeFormat }: { projectId: string; da
           <ul className="divide-y divide-border">
             {entries.map((e) => (
               <li key={e.id} className="px-5 py-3.5 flex gap-3">
-                <Avatar name={e.actor?.name ?? "?"} size="sm" />
+                <UserHoverCard user={e.actor} side="right" align="start">
+                  <Avatar name={e.actor?.name ?? "?"} size="sm" />
+                </UserHoverCard>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm">
                     <span className="font-medium text-foreground">
