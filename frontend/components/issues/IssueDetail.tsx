@@ -21,6 +21,20 @@ import { showConfirm } from "@/store/confirm";
 import { Badge } from "@/components/ui/Badge";
 import { Avatar } from "@/components/ui/Avatar";
 import { Button } from "@/components/ui/Button";
+import { DatePicker } from "@/components/ui/DatePicker";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/Select";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/DropdownMenu";
 import { MarkdownEditor, MarkdownBody } from "@/components/ui/MarkdownEditor";
 import { SubTaskList } from "@/components/issues/SubTaskList";
 import { LinksPanel } from "@/components/issues/LinksPanel";
@@ -103,7 +117,6 @@ export function IssueDetail({ issue: initialIssue, onClose }: Props) {
   const [showLabelPicker, setShowLabelPicker] = useState(false);
   const [showComponentPicker, setShowComponentPicker] = useState(false);
   const [tab, setTab] = useState<Tab>("comments");
-  const [showTypePicker, setShowTypePicker] = useState(false);
 
   const currentLabelIds = (issue.labels ?? []).map((l) => l.id);
   const currentComponentIds = (issue.components ?? []).map((c) => c.id);
@@ -188,38 +201,30 @@ export function IssueDetail({ issue: initialIssue, onClose }: Props) {
         <div className="flex items-start justify-between p-6 border-b border-border sticky top-0 bg-surface/95 backdrop-blur z-10">
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-2 flex-wrap">
-              <div className="relative">
-                <button
-                  onClick={() => can("issue.edit") && setShowTypePicker((v) => !v)}
-                  className="cursor-pointer"
-                >
-                  <Badge type="issueType" value={issue.type} />
-                </button>
-                {showTypePicker && (
-                  <>
-                    <div
-                      className="fixed inset-0 z-10"
-                      onClick={() => setShowTypePicker(false)}
-                    />
-                    <div className="absolute top-full left-0 mt-1 z-20 bg-surface border border-border rounded-lg shadow-xl py-1 min-w-[120px]">
-                      {(["task", "bug", "story", "epic"] as const).map((t) => (
-                        <button
-                          key={t}
-                          onClick={() => {
-                            updateField("type", t);
-                            setShowTypePicker(false);
-                          }}
-                          className={`w-full text-left px-3 py-1.5 text-sm hover:bg-surface-2 transition capitalize ${
-                            t === issue.type ? "text-brand font-medium" : "text-foreground"
-                          }`}
-                        >
-                          {t}
-                        </button>
-                      ))}
-                    </div>
-                  </>
-                )}
-              </div>
+              {can("issue.edit") ? (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <button className="cursor-pointer">
+                      <Badge type="issueType" value={issue.type} />
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="start">
+                    {(["task", "bug", "story", "epic"] as const).map((t) => (
+                      <DropdownMenuItem
+                        key={t}
+                        onSelect={() => updateField("type", t)}
+                        className={`capitalize ${
+                          t === issue.type ? "text-brand font-medium" : ""
+                        }`}
+                      >
+                        {t}
+                      </DropdownMenuItem>
+                    ))}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              ) : (
+                <Badge type="issueType" value={issue.type} />
+              )}
               {isEpic && issue.color && (
                 <span
                   className="inline-block w-3 h-3 rounded-full ring-2 ring-surface"
@@ -365,17 +370,21 @@ export function IssueDetail({ issue: initialIssue, onClose }: Props) {
                 Priority
               </p>
               {can("issue.edit") ? (
-                <select
-                  className="input !py-1.5 !text-xs"
+                <Select
                   value={issue.priority}
-                  onChange={(e) => updateField("priority", e.target.value)}
+                  onValueChange={(v) => updateField("priority", v)}
                 >
-                  {PRIORITY_OPTIONS.map((p) => (
-                    <option key={p} value={p}>
-                      {p}
-                    </option>
-                  ))}
-                </select>
+                  <SelectTrigger className="!py-1.5 !text-xs capitalize">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {PRIORITY_OPTIONS.map((p) => (
+                      <SelectItem key={p} value={p} className="capitalize">
+                        {p}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               ) : (
                 <p className="text-sm capitalize">{issue.priority}</p>
               )}
@@ -385,23 +394,24 @@ export function IssueDetail({ issue: initialIssue, onClose }: Props) {
                 Story Points
               </p>
               {can("issue.edit") ? (
-                <select
-                  className="input !py-1.5 !text-xs"
-                  value={issue.story_points ?? ""}
-                  onChange={(e) =>
-                    updateField(
-                      "story_points",
-                      e.target.value ? Number(e.target.value) : null,
-                    )
+                <Select
+                  value={issue.story_points != null ? String(issue.story_points) : "__none__"}
+                  onValueChange={(v) =>
+                    updateField("story_points", v === "__none__" ? null : Number(v))
                   }
                 >
-                  <option value="">-</option>
-                  {[1, 2, 3, 5, 8, 13].map((n) => (
-                    <option key={n} value={n}>
-                      {n}
-                    </option>
-                  ))}
-                </select>
+                  <SelectTrigger className="!py-1.5 !text-xs">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__none__">—</SelectItem>
+                    {[1, 2, 3, 5, 8, 13].map((n) => (
+                      <SelectItem key={n} value={String(n)}>
+                        {n}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               ) : (
                 <p className="text-sm">{issue.story_points ?? "—"}</p>
               )}
@@ -411,13 +421,10 @@ export function IssueDetail({ issue: initialIssue, onClose }: Props) {
                 Start Date
               </p>
               {can("issue.edit") ? (
-                <input
-                  type="date"
-                  className="input !py-1.5 !text-xs"
+                <DatePicker
+                  className="!py-1.5 !text-xs"
                   value={issue.start_date ? issue.start_date.slice(0, 10) : ""}
-                  onChange={(e) =>
-                    updateField("start_date", e.target.value || null)
-                  }
+                  onChange={(v) => updateField("start_date", v || null)}
                 />
               ) : (
                 <p className="text-sm">{issue.start_date ? issue.start_date.slice(0, 10) : "—"}</p>
@@ -428,11 +435,10 @@ export function IssueDetail({ issue: initialIssue, onClose }: Props) {
                 Due Date
               </p>
               {can("issue.edit") ? (
-                <input
-                  type="date"
-                  className="input !py-1.5 !text-xs"
+                <DatePicker
+                  className="!py-1.5 !text-xs"
                   value={issue.due_date ? issue.due_date.slice(0, 10) : ""}
-                  onChange={(e) => updateField("due_date", e.target.value || null)}
+                  onChange={(v) => updateField("due_date", v || null)}
                 />
               ) : (
                 <p className="text-sm">{issue.due_date ? issue.due_date.slice(0, 10) : "—"}</p>
@@ -452,23 +458,24 @@ export function IssueDetail({ issue: initialIssue, onClose }: Props) {
                 Assignee
               </p>
               {can("issue.edit") ? (
-                <select
-                  className="input !py-1.5 !text-xs"
-                  value={issue.assignee?.id ?? ""}
-                  onChange={(e) =>
-                    updateField(
-                      "assignee_id",
-                      e.target.value ? Number(e.target.value) : null,
-                    )
+                <Select
+                  value={issue.assignee?.id != null ? String(issue.assignee.id) : "__none__"}
+                  onValueChange={(v) =>
+                    updateField("assignee_id", v === "__none__" ? null : Number(v))
                   }
                 >
-                  <option value="">Unassigned</option>
-                  {users.map((u) => (
-                    <option key={u.id} value={u.id}>
-                      {u.name}
-                    </option>
-                  ))}
-                </select>
+                  <SelectTrigger className="!py-1.5 !text-xs">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__none__">Unassigned</SelectItem>
+                    {users.map((u) => (
+                      <SelectItem key={u.id} value={String(u.id)}>
+                        {u.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               ) : (
                 <p className="text-sm">{issue.assignee?.name ?? "Unassigned"}</p>
               )}
@@ -479,23 +486,24 @@ export function IssueDetail({ issue: initialIssue, onClose }: Props) {
                   Epic
                 </p>
                 {can("issue.edit") ? (
-                  <select
-                    className="input !py-1.5 !text-xs"
-                    value={issue.parent_id ?? ""}
-                    onChange={(e) =>
-                      updateField(
-                        "parent_id",
-                        e.target.value ? Number(e.target.value) : null,
-                      )
+                  <Select
+                    value={issue.parent_id != null ? String(issue.parent_id) : "__none__"}
+                    onValueChange={(v) =>
+                      updateField("parent_id", v === "__none__" ? null : Number(v))
                     }
                   >
-                    <option value="">None</option>
-                    {epics.map((ep) => (
-                      <option key={ep.id} value={ep.id}>
-                        {ep.title}
-                      </option>
-                    ))}
-                  </select>
+                    <SelectTrigger className="!py-1.5 !text-xs">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__none__">None</SelectItem>
+                      {epics.map((ep) => (
+                        <SelectItem key={ep.id} value={String(ep.id)}>
+                          {ep.title}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 ) : (
                   <p className="text-sm">{parentEpic?.title ?? "None"}</p>
                 )}
@@ -506,24 +514,25 @@ export function IssueDetail({ issue: initialIssue, onClose }: Props) {
                 Fix Version
               </p>
               {can("issue.edit") ? (
-                <select
-                  className="input !py-1.5 !text-xs"
-                  value={issue.version_id ?? ""}
-                  onChange={(e) =>
-                    updateField(
-                      "version_id",
-                      e.target.value ? Number(e.target.value) : null,
-                    )
+                <Select
+                  value={issue.version_id != null ? String(issue.version_id) : "__none__"}
+                  onValueChange={(v) =>
+                    updateField("version_id", v === "__none__" ? null : Number(v))
                   }
                 >
-                  <option value="">None</option>
-                  {versions.map((v) => (
-                    <option key={v.id} value={v.id}>
-                      {v.name}
-                      {v.status === "released" ? " (released)" : ""}
-                    </option>
-                  ))}
-                </select>
+                  <SelectTrigger className="!py-1.5 !text-xs">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__none__">None</SelectItem>
+                    {versions.map((v) => (
+                      <SelectItem key={v.id} value={String(v.id)}>
+                        {v.name}
+                        {v.status === "released" ? " (released)" : ""}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               ) : (
                 <p className="text-sm">{versions.find((v) => v.id === issue.version_id)?.name ?? "None"}</p>
               )}
