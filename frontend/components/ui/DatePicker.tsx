@@ -1,6 +1,9 @@
 "use client";
 
-import { useRef, useMemo } from "react";
+import * as React from "react";
+import { Calendar as CalendarIcon } from "lucide-react";
+import { Calendar } from "@/components/ui/Calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/Popover";
 import { useProjectFormat } from "@/lib/projectFormat";
 import { fmt } from "@/lib/formatDate";
 import { cn } from "@/lib/utils";
@@ -19,6 +22,19 @@ interface DatePickerProps {
   required?: boolean;
 }
 
+function parseValue(value: string | undefined): Date | undefined {
+  if (!value) return undefined;
+  const d = new Date(value + (value.includes("T") ? "" : "T00:00:00"));
+  return isNaN(d.getTime()) ? undefined : d;
+}
+
+function toIsoDate(d: Date): string {
+  const yyyy = d.getFullYear();
+  const mm = (d.getMonth() + 1).toString().padStart(2, "0");
+  const dd = d.getDate().toString().padStart(2, "0");
+  return `${yyyy}-${mm}-${dd}`;
+}
+
 export function DatePicker({
   value,
   onChange,
@@ -30,7 +46,8 @@ export function DatePicker({
   disabled,
   required,
 }: DatePickerProps) {
-  const inputRef = useRef<HTMLInputElement>(null);
+  const [open, setOpen] = React.useState(false);
+
   let dateFormat: string;
   try {
     const ctx = useProjectFormat();
@@ -39,67 +56,54 @@ export function DatePicker({
     dateFormat = explicitFormat || DEFAULT_FORMAT;
   }
 
-  const displayText = useMemo(() => {
-    if (!value) return "";
-    const d = new Date(value + (value.includes("T") ? "" : "T00:00:00"));
-    if (isNaN(d.getTime())) return value;
-    return fmt(d, dateFormat);
-  }, [value, dateFormat]);
-
-  function openPicker() {
-    if (disabled) return;
-    const el = inputRef.current;
-    if (!el) return;
-    if (typeof el.showPicker === "function") {
-      try {
-        el.showPicker();
-        return;
-      } catch {
-        // fall through to focus+click fallback
-      }
-    }
-    el.focus();
-    el.click();
-  }
+  const selected = parseValue(value);
+  const displayText = selected ? fmt(selected, dateFormat) : "";
+  const fromDate = parseValue(min);
+  const toDate = parseValue(max);
 
   return (
-    <div
-      className="relative"
-      onKeyDown={(e) => {
-        if (e.key === "Enter" || e.key === " ") {
-          e.preventDefault();
-          openPicker();
-        }
-      }}
-    >
-      <input
-        type="text"
-        readOnly
-        value={displayText}
-        placeholder={placeholder || DEFAULT_FORMAT.toLowerCase()}
-        onClick={openPicker}
-        onFocus={openPicker}
-        disabled={disabled}
-        required={required}
-        className={cn(
-          "input cursor-pointer",
-          !value && "text-muted/60",
-          className,
-        )}
-      />
-      <input
-        ref={inputRef}
-        type="date"
-        value={value || ""}
-        onChange={(e) => onChange(e.target.value)}
-        min={min}
-        max={max}
-        disabled={disabled}
-        required={required}
-        className="absolute inset-0 w-full h-full opacity-0 pointer-events-none"
-        tabIndex={-1}
-        aria-hidden
-      />
-    </div>
+    <Popover open={open} onOpenChange={(o) => !disabled && setOpen(o)}>
+      <PopoverTrigger asChild>
+        <button
+          type="button"
+          disabled={disabled}
+          aria-required={required}
+          className={cn(
+            "input cursor-pointer flex items-center justify-between gap-2 text-left",
+            !selected && "text-muted/60",
+            disabled && "opacity-50 cursor-not-allowed",
+            className,
+          )}
+        >
+          <span className="truncate">
+            {displayText || placeholder || DEFAULT_FORMAT.toLowerCase()}
+          </span>
+          <CalendarIcon className="h-4 w-4 shrink-0 opacity-60" />
+        </button>
+      </PopoverTrigger>
+      <PopoverContent className="w-auto p-0" align="start">
+        <Calendar
+          mode="single"
+          selected={selected}
+          onSelect={(d) => {
+            if (d) {
+              onChange(toIsoDate(d));
+              setOpen(false);
+            } else {
+              onChange("");
+            }
+          }}
+          defaultMonth={selected}
+          startMonth={fromDate}
+          endMonth={toDate}
+          disabled={
+            fromDate || toDate
+              ? (d) =>
+                  (!!fromDate && d < fromDate) || (!!toDate && d > toDate)
+              : undefined
+          }
+        />
+      </PopoverContent>
+    </Popover>
   );
 }

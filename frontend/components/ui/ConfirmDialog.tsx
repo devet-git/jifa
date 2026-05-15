@@ -1,8 +1,15 @@
 "use client";
 
 import { useConfirmStore } from "@/store/confirm";
-import { Modal } from "./Modal";
-import { Button } from "./Button";
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/AlertDialog";
+import { Button } from "@/components/ui/Button";
 
 export function ConfirmDialog() {
   const { open, title, message, confirmLabel, variant, resolve } = useConfirmStore();
@@ -18,20 +25,25 @@ export function ConfirmDialog() {
   }
 
   return (
-    <Modal open={open} onClose={handleClose} title={title} size="sm">
-      <p className="text-sm text-muted mb-6">{message}</p>
-      <div className="flex justify-end gap-2">
-        <Button size="sm" variant="secondary" onClick={handleClose}>
-          Cancel
-        </Button>
-        <Button
-          size="sm"
-          variant={variant === "danger" ? "danger" : "gradient"}
-          onClick={handleConfirm}
-        >
-          {confirmLabel}
-        </Button>
-      </div>
-    </Modal>
+    <AlertDialog open={open} onOpenChange={(o) => !o && handleClose()}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>{title}</AlertDialogTitle>
+          <AlertDialogDescription>{message}</AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <Button size="sm" variant="secondary" onClick={handleClose}>
+            Cancel
+          </Button>
+          <Button
+            size="sm"
+            variant={variant === "danger" ? "danger" : "gradient"}
+            onClick={handleConfirm}
+          >
+            {confirmLabel}
+          </Button>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
   );
 }

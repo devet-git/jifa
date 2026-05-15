@@ -1,47 +1,67 @@
 "use client";
 
-import { useState } from "react";
+import * as React from "react";
+import * as TooltipPrimitive from "@radix-ui/react-tooltip";
+import { cn } from "@/lib/utils";
 
-interface Props {
-  content: string;
+/* Underlying primitives — re-exported for advanced uses. */
+const TooltipProvider = TooltipPrimitive.Provider;
+const TooltipRoot = TooltipPrimitive.Root;
+const TooltipTrigger = TooltipPrimitive.Trigger;
+const TooltipPortal = TooltipPrimitive.Portal;
+
+const TooltipContent = React.forwardRef<
+  React.ElementRef<typeof TooltipPrimitive.Content>,
+  React.ComponentPropsWithoutRef<typeof TooltipPrimitive.Content>
+>(({ className, sideOffset = 6, ...props }, ref) => (
+  <TooltipPrimitive.Content
+    ref={ref}
+    sideOffset={sideOffset}
+    className={cn(
+      "z-50 overflow-hidden rounded-md bg-surface-3 text-foreground px-2 py-1 text-[11px] font-medium shadow-md",
+      "data-[state=delayed-open]:animate-in data-[state=closed]:animate-out",
+      "data-[state=delayed-open]:fade-in-0 data-[state=closed]:fade-out-0",
+      "data-[state=delayed-open]:zoom-in-95 data-[state=closed]:zoom-out-95",
+      "data-[side=bottom]:slide-in-from-top-1 data-[side=top]:slide-in-from-bottom-1",
+      "data-[side=left]:slide-in-from-right-1 data-[side=right]:slide-in-from-left-1",
+      className,
+    )}
+    {...props}
+  />
+));
+TooltipContent.displayName = TooltipPrimitive.Content.displayName;
+
+/* Backwards-compatible high-level Tooltip kept for existing call sites
+   that pass `content`/`position`/`children`. New code should prefer the
+   primitives above for composition. */
+interface LegacyTooltipProps {
+  content: React.ReactNode;
   children: React.ReactNode;
   position?: "top" | "bottom" | "left" | "right";
+  delayDuration?: number;
 }
 
-export function Tooltip({ content, children, position = "top" }: Props) {
-  const [show, setShow] = useState(false);
-
-  const positions = {
-    top: "bottom-full left-1/2 -translate-x-1/2 mb-1.5",
-    bottom: "top-full left-1/2 -translate-x-1/2 mt-1.5",
-    left: "right-full top-1/2 -translate-y-1/2 mr-1.5",
-    right: "left-full top-1/2 -translate-y-1/2 ml-1.5",
-  };
-
-  const arrows = {
-    top: "top-full left-1/2 -translate-x-1/2 border-l-4 border-r-4 border-t-4 border-transparent border-t-surface-3",
-    bottom: "bottom-full left-1/2 -translate-x-1/2 border-l-4 border-r-4 border-b-4 border-transparent border-b-surface-3",
-    left: "left-full top-1/2 -translate-y-1/2 border-t-4 border-b-4 border-l-4 border-transparent border-l-surface-3",
-    right: "right-full top-1/2 -translate-y-1/2 border-t-4 border-b-4 border-r-4 border-transparent border-r-surface-3",
-  };
-
+function Tooltip({
+  content,
+  children,
+  position = "top",
+  delayDuration = 200,
+}: LegacyTooltipProps) {
   return (
-    <div
-      className="relative inline-flex"
-      onMouseEnter={() => setShow(true)}
-      onMouseLeave={() => setShow(false)}
-      onFocus={() => setShow(true)}
-      onBlur={() => setShow(false)}
-    >
-      {children}
-      {show && (
-        <div className={`absolute z-50 ${positions[position]}`}>
-          <div className="bg-surface-3 text-foreground text-[11px] font-medium px-2 py-1 rounded-md shadow-lg whitespace-nowrap">
-            {content}
-          </div>
-          <div className={`absolute ${arrows[position]}`} />
-        </div>
-      )}
-    </div>
+    <TooltipRoot delayDuration={delayDuration}>
+      <TooltipTrigger asChild>
+        <span className="inline-flex">{children}</span>
+      </TooltipTrigger>
+      <TooltipContent side={position}>{content}</TooltipContent>
+    </TooltipRoot>
   );
 }
+
+export {
+  Tooltip,
+  TooltipProvider,
+  TooltipRoot,
+  TooltipTrigger,
+  TooltipContent,
+  TooltipPortal,
+};

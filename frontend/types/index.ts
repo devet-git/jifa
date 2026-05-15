@@ -321,6 +321,16 @@ export interface ActivityLog {
   created_at: string;
 }
 
+export interface ApiToken {
+  id: number;
+  name: string;
+  last_chars: string;
+  expires_at?: string;
+  last_used_at?: string;
+  created_at: string;
+  token?: string; // returned only on create
+}
+
 export interface WikiPage {
   id: number;
   project_id: number;
