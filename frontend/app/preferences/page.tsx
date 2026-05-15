@@ -14,6 +14,7 @@ import { toast } from "@/store/toast";
 import { Avatar } from "@/components/ui/Avatar";
 import { Button } from "@/components/ui/Button";
 import { DatePicker } from "@/components/ui/DatePicker";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/Tabs";
 import type { ApiToken, NotificationPrefs } from "@/types";
 
 type Row = {
@@ -83,43 +84,59 @@ export default function PreferencesPage() {
 
   return (
     <div className="max-w-4xl mx-auto">
-      {/* Sticky header + tab bar */}
-      <div className="sticky top-0 z-10 bg-background pt-8 pb-0 px-8">
-        <div className="mb-6">
-          <h1 className="text-2xl font-bold tracking-tight">Preferences</h1>
-          <p className="text-sm text-muted mt-1">
-            Manage your profile, security, and integration settings.
-          </p>
+      <Tabs value={tab} onValueChange={setTab}>
+        {/* Sticky header + tab bar */}
+        <div className="sticky top-0 z-10 bg-background pt-8 pb-0 px-8">
+          <div className="mb-6">
+            <h1 className="text-2xl font-bold tracking-tight">Preferences</h1>
+            <p className="text-sm text-muted mt-1">
+              Manage your profile, security, and integration settings.
+            </p>
+          </div>
+
+          <TabsList className="mb-8 w-fit overflow-x-auto bg-surface-2">
+            {TABS.map((t) => (
+              <TabsTrigger
+                key={t.id}
+                value={t.id}
+                className="flex items-center gap-2 text-sm px-4 py-2 whitespace-nowrap"
+              >
+                <svg
+                  className="w-4 h-4"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d={iconPaths[t.icon]} />
+                </svg>
+                {t.label}
+              </TabsTrigger>
+            ))}
+          </TabsList>
         </div>
 
-        <div className="flex gap-1 mb-8 p-1 bg-surface-2 rounded-xl w-fit overflow-x-auto">
-          {TABS.map((t) => (
-            <button
-              key={t.id}
-              onClick={() => setTab(t.id)}
-               className={`flex items-center gap-2 text-sm px-4 py-2 rounded-lg font-medium transition whitespace-nowrap cursor-pointer ${
-                 tab === t.id
-                   ? "bg-background text-foreground shadow-sm"
-                   : "text-muted hover:text-foreground"
-               }`}
-            >
-              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d={iconPaths[t.icon]} />
-              </svg>
-              {t.label}
-            </button>
-          ))}
+        {/* Tab content — scrolls under sticky header */}
+        <div className="px-8 pb-8">
+          <TabsContent value="account">
+            <AccountTab />
+          </TabsContent>
+          <TabsContent value="security">
+            <SecurityTab />
+          </TabsContent>
+          <TabsContent value="tokens">
+            <TokensTab />
+          </TabsContent>
+          <TabsContent value="integrations">
+            <MCPTab />
+          </TabsContent>
+          <TabsContent value="notifications">
+            <NotificationsTab />
+          </TabsContent>
         </div>
-      </div>
-
-      {/* Tab content — scrolls under sticky header */}
-      <div className="px-8 pb-8">
-        {tab === "account" && <AccountTab />}
-        {tab === "security" && <SecurityTab />}
-        {tab === "tokens" && <TokensTab />}
-        {tab === "integrations" && <MCPTab />}
-        {tab === "notifications" && <NotificationsTab />}
-      </div>
+      </Tabs>
     </div>
   );
 }
