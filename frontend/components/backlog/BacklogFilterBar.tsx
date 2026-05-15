@@ -13,6 +13,11 @@ import {
   DropdownMenuLabel,
   DropdownMenuTrigger,
 } from "@/components/ui/DropdownMenu";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/Popover";
 import { ChevronDown } from "lucide-react";
 import type {
   BacklogFilterState,
@@ -293,12 +298,10 @@ function DropdownMulti({
   selected: (number | string)[];
   onToggle: (id: number | string) => void;
 }) {
-  const [open, setOpen] = useState(false);
   return (
-    <div className="relative">
-      <button
-        onClick={() => setOpen((v) => !v)}
-        className={`inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium transition ring-1 ${
+    <Popover>
+      <PopoverTrigger
+        className={`inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium transition ring-1 outline-none focus-visible:ring-2 focus-visible:ring-ring/60 ${
           count > 0
             ? "bg-brand-soft text-brand-strong ring-[color-mix(in_srgb,var(--brand)_30%,transparent)]"
             : "bg-surface text-foreground ring-border hover:bg-surface-2"
@@ -310,49 +313,40 @@ function DropdownMulti({
             {count}
           </span>
         )}
-        <svg className="w-3 h-3 opacity-60" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-          <path d="m6 9 6 6 6-6" />
-        </svg>
-      </button>
-      {open && (
-        <>
-          <div
-            className="fixed inset-0 z-10"
-            onClick={() => setOpen(false)}
-          />
-          <div className="absolute left-0 mt-2 surface-elevated w-56 max-h-64 overflow-auto z-20 animate-slide-down">
-            {options.length === 0 ? (
-              <p className="px-3 py-2 text-xs text-muted">
-                Nothing available.
-              </p>
-            ) : (
-              options.map((opt) => {
-                const checked = selected.includes(opt.id);
-                return (
-                  <label
-                    key={opt.id}
-                    className="flex items-center gap-2 px-3 py-1.5 cursor-pointer hover:bg-surface-2 text-sm transition"
-                  >
-                    <input
-                      type="checkbox"
-                      checked={checked}
-                      onChange={() => onToggle(opt.id)}
-                    />
-                    {opt.avatar && <Avatar name={opt.avatar} size="sm" />}
-                    {opt.color && (
-                      <span
-                        className="w-3 h-3 rounded-full"
-                        style={{ backgroundColor: opt.color }}
-                      />
-                    )}
-                    <span className="truncate">{opt.label}</span>
-                  </label>
-                );
-              })
-            )}
-          </div>
-        </>
-      )}
-    </div>
+        <ChevronDown className="w-3 h-3 opacity-60" />
+      </PopoverTrigger>
+      <PopoverContent
+        align="start"
+        className="!p-0 w-56 max-h-64 overflow-auto"
+      >
+        {options.length === 0 ? (
+          <p className="px-3 py-2 text-xs text-muted">Nothing available.</p>
+        ) : (
+          options.map((opt) => {
+            const checked = selected.includes(opt.id);
+            return (
+              <label
+                key={opt.id}
+                className="flex items-center gap-2 px-3 py-1.5 cursor-pointer hover:bg-surface-2 text-sm transition"
+              >
+                <input
+                  type="checkbox"
+                  checked={checked}
+                  onChange={() => onToggle(opt.id)}
+                />
+                {opt.avatar && <Avatar name={opt.avatar} size="sm" />}
+                {opt.color && (
+                  <span
+                    className="w-3 h-3 rounded-full"
+                    style={{ backgroundColor: opt.color }}
+                  />
+                )}
+                <span className="truncate">{opt.label}</span>
+              </label>
+            );
+          })
+        )}
+      </PopoverContent>
+    </Popover>
   );
 }
