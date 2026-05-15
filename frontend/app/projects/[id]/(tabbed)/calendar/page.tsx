@@ -1,8 +1,6 @@
 "use client";
 
 import { use, useState } from "react";
-import Link from "next/link";
-import { useProject } from "@/hooks/useProject";
 import { useIssues } from "@/hooks/useIssues";
 import { IssueDetail } from "@/components/issues/IssueDetail";
 import type { Issue } from "@/types";
@@ -26,8 +24,6 @@ export default function CalendarPage({
   const [year, setYear] = useState(today.getFullYear());
   const [month, setMonth] = useState(today.getMonth());
   const [selectedIssue, setSelectedIssue] = useState<Issue | null>(null);
-
-  const { data: project } = useProject(id);
 
   const firstDay = new Date(year, month, 1);
   const lastDay = new Date(year, month + 1, 0);
@@ -70,17 +66,7 @@ export default function CalendarPage({
 
   return (
     <div className="flex flex-col h-full">
-      <div className="px-8 pt-7 pb-4 border-b border-border bg-surface flex items-center gap-4">
-        <Link
-          href={`/projects/${id}`}
-          className="inline-flex items-center gap-1 text-xs text-muted hover:text-brand transition"
-        >
-          <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-            <path d="m15 18-6-6 6-6" />
-          </svg>
-          {project?.name}
-        </Link>
-        <h1 className="text-2xl font-bold tracking-tight flex-1">Calendar</h1>
+      <div className="px-8 pt-4 pb-4 border-b border-border bg-surface shrink-0">
         <div className="flex items-center gap-2">
           <button
             onClick={prevMonth}
@@ -90,7 +76,7 @@ export default function CalendarPage({
               <path d="m15 18-6-6 6-6" />
             </svg>
           </button>
-          <span className="text-sm font-semibold min-w-[140px] text-center">{monthLabel}</span>
+          <span className="text-lg font-bold min-w-[160px] text-center">{monthLabel}</span>
           <button
             onClick={nextMonth}
             className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-surface-2 transition text-muted hover:text-foreground"

@@ -27,8 +27,8 @@ export function CreateSprintModal({ open, onClose, projectId }: Props) {
       data: {
         name: form.name,
         goal: form.goal,
-        start_date: form.start_date || undefined,
-        end_date: form.end_date || undefined,
+        start_date: form.start_date ? `${form.start_date}T00:00:00Z` : undefined,
+        end_date: form.end_date ? `${form.end_date}T00:00:00Z` : undefined,
       },
     });
     setForm({ name: "", goal: "", start_date: "", end_date: "" });

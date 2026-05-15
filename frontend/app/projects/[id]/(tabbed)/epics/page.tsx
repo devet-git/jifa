@@ -1,8 +1,6 @@
 "use client";
 
 import { use, useMemo, useState } from "react";
-import Link from "next/link";
-import { useProject } from "@/hooks/useProject";
 import { useIssues } from "@/hooks/useIssues";
 import { IssueDetail } from "@/components/issues/IssueDetail";
 import type { Issue, IssueStatus } from "@/types";
@@ -13,7 +11,6 @@ export default function EpicsPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = use(params);
-  const { data: project } = useProject(id);
   const { data: allIssues = [] } = useIssues({ project_id: id });
   const [selected, setSelected] = useState<Issue | null>(null);
 
@@ -35,21 +32,7 @@ export default function EpicsPage({
   }
 
   return (
-    <div className="flex flex-col h-full">
-      <div className="px-8 pt-7 pb-4 border-b border-border bg-surface">
-        <Link
-          href={`/projects/${id}`}
-          className="inline-flex items-center gap-1 text-xs text-muted hover:text-brand transition mb-2"
-        >
-          <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-            <path d="m15 18-6-6 6-6" />
-          </svg>
-          {project?.name}
-        </Link>
-        <h1 className="text-2xl font-bold tracking-tight">Epics</h1>
-      </div>
-
-      <div className="flex-1 p-8 overflow-auto">
+    <div className="h-full p-8 overflow-auto">
         {epics.length === 0 ? (
           <div className="surface-card p-12 text-center max-w-2xl mx-auto">
             <div className="mx-auto w-12 h-12 rounded-xl bg-violet-50 dark:bg-violet-500/15 flex items-center justify-center mb-3">
@@ -112,11 +95,10 @@ export default function EpicsPage({
             })}
           </div>
         )}
-      </div>
 
-      {selected && (
-        <IssueDetail issue={selected} onClose={() => setSelected(null)} />
-      )}
+        {selected && (
+          <IssueDetail issue={selected} onClose={() => setSelected(null)} />
+        )}
     </div>
   );
 }

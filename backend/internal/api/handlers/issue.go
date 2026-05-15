@@ -6,7 +6,6 @@ import (
 	"strconv"
 	"time"
 
-	"jifa/backend/internal/api/middleware"
 	"jifa/backend/internal/models"
 	"jifa/backend/internal/webhook"
 
@@ -27,6 +26,39 @@ const rankStep = 1024.0
 // rebalanceThreshold — if the gap between two neighbouring ranks falls below
 // this, we rebalance the affected project's issues.
 const rebalanceThreshold = 1e-6
+
+// loadPermissionsForProject returns the user's effective permission set for a
+// project. The owner gets everything; non-owners are resolved through their
+// member RoleID. Returns nil if the user has no access.
+func loadPermissionsForProject(db *gorm.DB, userID, projectID uint) map[string]bool {
+	var project models.Project
+	if err := db.Select("id, owner_id").First(&project, projectID).Error; err != nil {
+		return nil
+	}
+	if project.OwnerID == userID {
+		var all []models.Permission
+		db.Find(&all)
+		m := make(map[string]bool, len(all))
+		for _, p := range all {
+			m[p.Key] = true
+		}
+		return m
+	}
+	var member models.Member
+	if err := db.Where("project_id = ? AND user_id = ?", projectID, userID).First(&member).Error; err != nil {
+		return nil
+	}
+	var keys []string
+	db.Table("role_permissions").
+		Joins("JOIN permissions ON permissions.id = role_permissions.permission_id").
+		Where("role_permissions.role_id = ?", member.RoleID).
+		Pluck("permissions.key", &keys)
+	m := make(map[string]bool, len(keys))
+	for _, k := range keys {
+		m[k] = true
+	}
+	return m
+}
 
 // setIssueKey builds the human-readable key from the issue's project.
 func setIssueKey(issue *models.Issue) {
@@ -133,13 +165,13 @@ func (h *IssueHandler) Create(c *gin.Context) {
 		return
 	}
 
-	role := middleware.LookupRole(h.db, userID.(uint), dto.ProjectID)
-	if role == "" {
+	perms := loadPermissionsForProject(h.db, userID.(uint), dto.ProjectID)
+	if perms == nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "project not found"})
 		return
 	}
-	if !middleware.CanAccess(role, models.RoleMember) {
-		c.JSON(http.StatusForbidden, gin.H{"error": "insufficient role"})
+	if !perms["issue.create"] {
+		c.JSON(http.StatusForbidden, gin.H{"error": "insufficient permissions"})
 		return
 	}
 
@@ -484,16 +516,20 @@ func (h *IssueHandler) Bulk(c *gin.Context) {
 	h.db.Select("id, project_id, status, assignee_id, sprint_id").
 		Where("id IN ?", req.IssueIDs).Find(&issues)
 
-	// Cache role lookups per project.
-	roleCache := map[uint]models.ProjectRole{}
+	// Cache permission lookups per project.
+	permCache := map[uint]map[string]bool{}
 	allowed := make([]uint, 0, len(issues))
+	requiredPerm := "issue.edit"
+	if req.Delete {
+		requiredPerm = "issue.delete"
+	}
 	for _, i := range issues {
-		role, ok := roleCache[i.ProjectID]
+		perms, ok := permCache[i.ProjectID]
 		if !ok {
-			role = middleware.LookupRole(h.db, userID.(uint), i.ProjectID)
-			roleCache[i.ProjectID] = role
+			perms = loadPermissionsForProject(h.db, userID.(uint), i.ProjectID)
+			permCache[i.ProjectID] = perms
 		}
-		if middleware.CanAccess(role, models.RoleMember) {
+		if perms != nil && perms[requiredPerm] {
 			allowed = append(allowed, i.ID)
 		}
 	}
@@ -800,9 +836,10 @@ func (h *IssueHandler) UpdateComment(c *gin.Context) {
 		c.JSON(http.StatusNotFound, gin.H{"error": "comment not found"})
 		return
 	}
-	roleVal, _ := c.Get("projectRole")
-	role, _ := roleVal.(models.ProjectRole)
-	if comment.AuthorID != userID.(uint) && !middleware.CanAccess(role, models.RoleAdmin) {
+	perms, _ := c.Get("permissions")
+	permMap, _ := perms.(map[string]bool)
+	isCommentAdmin := permMap["project.edit"] || permMap["member.invite"]
+	if comment.AuthorID != userID.(uint) && !isCommentAdmin {
 		c.JSON(http.StatusForbidden, gin.H{"error": "only the author or an admin can edit this comment"})
 		return
 	}
@@ -817,11 +854,6 @@ func (h *IssueHandler) Convert(c *gin.Context) {
 	var issue models.Issue
 	if err := h.db.First(&issue, c.Param("id")).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "issue not found"})
-		return
-	}
-	role := middleware.LookupRole(h.db, userID.(uint), issue.ProjectID)
-	if !middleware.CanAccess(role, models.RoleMember) {
-		c.JSON(http.StatusForbidden, gin.H{"error": "insufficient role"})
 		return
 	}
 	var req struct {
@@ -857,9 +889,10 @@ func (h *IssueHandler) DeleteComment(c *gin.Context) {
 		c.JSON(http.StatusNotFound, gin.H{"error": "comment not found"})
 		return
 	}
-	roleVal, _ := c.Get("projectRole")
-	role, _ := roleVal.(models.ProjectRole)
-	if comment.AuthorID != userID.(uint) && !middleware.CanAccess(role, models.RoleAdmin) {
+	perms, _ := c.Get("permissions")
+	permMap, _ := perms.(map[string]bool)
+	isCommentAdmin := permMap["project.edit"] || permMap["member.invite"]
+	if comment.AuthorID != userID.(uint) && !isCommentAdmin {
 		c.JSON(http.StatusForbidden, gin.H{"error": "only the author or an admin can delete this comment"})
 		return
 	}

@@ -41,8 +41,57 @@ func Migrate(db *gorm.DB) error {
 		&models.ProjectStar{},
 		&models.IssueTemplate{},
 		&models.PasswordResetToken{},
+		&models.Permission{},
+		&models.Role{},
+		&models.RolePermission{},
 		&models.WikiPage{},
 	)
+}
+
+// SeedPermissionsAndRoles creates the permission catalog and the three system
+// roles (Admin / Member / Viewer).  Safe to call on every boot — skips
+// everything if permissions already exist.
+func SeedPermissionsAndRoles(db *gorm.DB) error {
+	var n int64
+	db.Model(&models.Permission{}).Count(&n)
+	if n > 0 {
+		return nil
+	}
+
+	// Seed permissions
+	for _, p := range models.AllPermissions {
+		db.Create(&models.Permission{
+			Key:         p.Key,
+			Name:        p.Name,
+			Group:       p.Group,
+			Description: p.Description,
+		})
+	}
+
+	// Build key→id lookup
+	var perms []models.Permission
+	db.Find(&perms)
+	keyToID := make(map[string]uint, len(perms))
+	for _, p := range perms {
+		keyToID[p.Key] = p.ID
+	}
+
+	// Seed system roles
+	for _, rd := range models.SystemRoles() {
+		role := models.Role{Name: rd.Name, IsSystem: true}
+		db.Create(&role)
+
+		for _, key := range rd.Permissions {
+			if id, ok := keyToID[key]; ok {
+				db.Create(&models.RolePermission{
+					RoleID:       role.ID,
+					PermissionID: id,
+				})
+			}
+		}
+	}
+
+	return nil
 }
 
 // SeedStatuses backfills the default status set for any project that has no

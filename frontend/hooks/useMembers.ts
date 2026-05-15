@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import api from "@/lib/api";
-import type { Member, ProjectRole } from "@/types";
+import type { Member } from "@/types";
 
 export function useMembers(projectId: number | string) {
   return useQuery<Member[]>({
@@ -14,7 +14,7 @@ export function useMembers(projectId: number | string) {
 export function useAddMember(projectId: number | string) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (data: { email: string; role: ProjectRole }) =>
+    mutationFn: (data: { email: string; role_id: number }) =>
       api.post(`/projects/${projectId}/members`, data).then((r) => r.data),
     onSuccess: () =>
       qc.invalidateQueries({ queryKey: ["members", String(projectId)] }),
@@ -24,9 +24,9 @@ export function useAddMember(projectId: number | string) {
 export function useUpdateMemberRole(projectId: number | string) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ memberId, role }: { memberId: number; role: ProjectRole }) =>
+    mutationFn: ({ memberId, role_id }: { memberId: number; role_id: number }) =>
       api
-        .put(`/projects/${projectId}/members/${memberId}`, { role })
+        .put(`/projects/${projectId}/members/${memberId}`, { role_id })
         .then((r) => r.data),
     onSuccess: () =>
       qc.invalidateQueries({ queryKey: ["members", String(projectId)] }),

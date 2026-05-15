@@ -10,7 +10,11 @@ import {
   parseDuration,
   formatDuration,
 } from "@/hooks/useWorklog";
+import { usePermissionsStore } from "@/store/permissions";
+import { PermissionGate } from "@/components/ui/PermissionGate";
 import { Avatar } from "@/components/ui/Avatar";
+import { formatDate } from "@/lib/formatDate";
+import { useProjectFormat } from "@/lib/projectFormat";
 import type { Issue } from "@/types";
 
 interface Props {
@@ -18,10 +22,14 @@ interface Props {
 }
 
 export function TimeTrackingPanel({ issue }: Props) {
+  const can = usePermissionsStore((s) => s.can);
+  const canWorklog = can("issue.worklog");
+  const canEdit = can("issue.edit");
   const qc = useQueryClient();
   const { data: logs = [] } = useWorklog(issue.id);
   const add = useAddWorklog(issue.id);
   const remove = useDeleteWorklog(issue.id);
+  const { dateFormat } = useProjectFormat();
 
   const [duration, setDuration] = useState("");
   const [desc, setDesc] = useState("");
@@ -80,7 +88,7 @@ export function TimeTrackingPanel({ issue }: Props) {
           </span>
           <span className="text-gray-500">
             Estimate{" "}
-            {showEstimate ? (
+            {canEdit && showEstimate ? (
               <span className="inline-flex items-center gap-1">
                 <input
                   autoFocus
@@ -100,7 +108,7 @@ export function TimeTrackingPanel({ issue }: Props) {
                   ok
                 </button>
               </span>
-            ) : (
+            ) : canEdit ? (
               <button
                 onClick={() => {
                   setEstimateDraft(estimate ? formatDuration(estimate) : "");
@@ -110,6 +118,10 @@ export function TimeTrackingPanel({ issue }: Props) {
               >
                 {estimate ? formatDuration(estimate) : "set"}
               </button>
+            ) : (
+              <span className="font-semibold text-gray-800">
+                {estimate ? formatDuration(estimate) : "—"}
+              </span>
             )}
           </span>
           {estimate > 0 && (
@@ -137,27 +149,29 @@ export function TimeTrackingPanel({ issue }: Props) {
         )}
       </div>
 
-      <form onSubmit={handleLog} className="flex gap-2 mb-2">
-        <input
-          placeholder="1h 30m"
-          className="border rounded px-2 py-1 text-sm w-24"
-          value={duration}
-          onChange={(e) => setDuration(e.target.value)}
-        />
-        <input
-          placeholder="What did you work on?"
-          className="flex-1 border rounded px-2 py-1 text-sm"
-          value={desc}
-          onChange={(e) => setDesc(e.target.value)}
-        />
-        <button
-          type="submit"
-          disabled={!duration || add.isPending}
-          className="text-xs bg-blue-600 text-white rounded px-3 py-1 disabled:opacity-50"
-        >
-          Log
-        </button>
-      </form>
+      <PermissionGate perm="issue.worklog" message="Bạn không có quyền ghi nhật ký công việc">
+        <form onSubmit={handleLog} className="flex gap-2 mb-2" style={canWorklog ? {} : { pointerEvents: "none" }}>
+          <input
+            placeholder="1h 30m"
+            className="border rounded px-2 py-1 text-sm w-24"
+            value={duration}
+            onChange={(e) => canWorklog && setDuration(e.target.value)}
+          />
+          <input
+            placeholder="What did you work on?"
+            className="flex-1 border rounded px-2 py-1 text-sm"
+            value={desc}
+            onChange={(e) => canWorklog && setDesc(e.target.value)}
+          />
+          <button
+            type="submit"
+            disabled={!duration || add.isPending || !canWorklog}
+            className="text-xs bg-blue-600 text-white rounded px-3 py-1 disabled:opacity-50"
+          >
+            Log
+          </button>
+        </form>
+      </PermissionGate>
       {error && <p className="text-xs text-red-600 mb-2">{error}</p>}
 
       {logs.length > 0 && (
@@ -173,14 +187,16 @@ export function TimeTrackingPanel({ issue }: Props) {
                 {l.description || <em className="text-gray-400">—</em>}
               </span>
               <span className="text-xs text-gray-400">
-                {new Date(l.started_at).toLocaleDateString()}
+                {formatDate(l.started_at, dateFormat, null)}
               </span>
-              <button
-                onClick={() => remove.mutate(l.id)}
-                className="text-xs text-gray-400 hover:text-red-500"
-              >
-                ×
-              </button>
+              <PermissionGate perm="issue.worklog" message="Bạn không có quyền ghi nhật ký công việc">
+                <button
+                  onClick={() => canWorklog && remove.mutate(l.id)}
+                  className="text-xs text-gray-400 hover:text-red-500"
+                >
+                  ×
+                </button>
+              </PermissionGate>
             </li>
           ))}
         </ul>

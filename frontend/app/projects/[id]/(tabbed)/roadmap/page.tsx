@@ -1,9 +1,9 @@
 "use client";
 
 import { use, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import Link from "next/link";
-import { useProject } from "@/hooks/useProject";
+
 import { useIssues, useUpdateIssue } from "@/hooks/useIssues";
+import { usePermissionsStore } from "@/store/permissions";
 import { IssueDetail } from "@/components/issues/IssueDetail";
 import type { Issue } from "@/types";
 
@@ -26,13 +26,14 @@ export default function RoadmapPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = use(params);
-  const { data: project } = useProject(id);
+  const can = usePermissionsStore((s) => s.can);
   const { data: issues = [] } = useIssues({ project_id: id });
   const [selected, setSelected] = useState<Issue | null>(null);
   const updateIssue = useUpdateIssue();
   const [drag, setDrag] = useState<DragState | null>(null);
   const dragRef = useRef<DragState | null>(null);
   dragRef.current = drag;
+  const canEditIssue = can("issue.edit");
 
   const epics = useMemo(
     () => issues.filter((i) => i.type === "epic"),
@@ -115,7 +116,7 @@ export default function RoadmapPage({
       if (!d) return;
       const days = Math.round(d.currentX2 / DAY_PX);
       const newDueDate = addDays(rangeStart, days);
-      const iso = fmtDate(newDueDate);
+      const iso = `${fmtDate(newDueDate)}T00:00:00Z`;
       updateIssue.mutate({ id: d.id, due_date: iso } as { id: number; due_date: string });
       setDrag(null);
     }
@@ -128,26 +129,7 @@ export default function RoadmapPage({
   }, [drag, rangeStart, updateIssue]);
 
   return (
-    <div className="flex flex-col h-full">
-      <div className="px-8 pt-7 pb-4 border-b border-border bg-surface">
-        <Link
-          href={`/projects/${id}`}
-          className="inline-flex items-center gap-1 text-xs text-muted hover:text-brand transition mb-2"
-        >
-          <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-            <path d="m15 18-6-6 6-6" />
-          </svg>
-          {project?.name}
-        </Link>
-        <h1 className="text-2xl font-bold tracking-tight">Roadmap</h1>
-        <p className="text-xs text-muted mt-1">
-          Set a <b className="text-foreground">start date</b> and{" "}
-          <b className="text-foreground">due date</b> on epics to display them here.
-          Drag the right edge of a bar to change its due date.
-        </p>
-      </div>
-
-      <div className="flex-1 overflow-auto" style={drag ? { userSelect: "none", cursor: "ew-resize" } : undefined}>
+    <div className="h-full overflow-auto" style={drag ? { userSelect: "none", cursor: "ew-resize" } : undefined}>
         {epics.length === 0 ? (
           <div className="surface-card p-12 text-center max-w-xl mx-auto mt-12">
             <div className="mx-auto w-12 h-12 rounded-xl bg-violet-50 dark:bg-violet-500/15 flex items-center justify-center mb-3">
@@ -236,6 +218,7 @@ export default function RoadmapPage({
                         xForDate={xForDate}
                         totalW={totalW}
                         isEpic
+                        canEditIssue={canEditIssue}
                         dragX2={drag?.id === epic.id ? drag.currentX2 : undefined}
                         onResizeStart={handleResizeStart}
                       />,
@@ -250,6 +233,7 @@ export default function RoadmapPage({
                           y={cy}
                           xForDate={xForDate}
                           totalW={totalW}
+                          canEditIssue={canEditIssue}
                           dragX2={drag?.id === ch.id ? drag.currentX2 : undefined}
                           onResizeStart={handleResizeStart}
                         />,
@@ -263,11 +247,10 @@ export default function RoadmapPage({
             </div>
           </div>
         )}
-      </div>
 
-      {selected && (
-        <IssueDetail issue={selected} onClose={() => setSelected(null)} />
-      )}
+        {selected && (
+          <IssueDetail issue={selected} onClose={() => setSelected(null)} />
+        )}
     </div>
   );
 }
@@ -278,6 +261,7 @@ function BarRow({
   xForDate,
   totalW,
   isEpic,
+  canEditIssue,
   dragX2,
   onResizeStart,
 }: {
@@ -286,6 +270,7 @@ function BarRow({
   xForDate: (d?: string | Date | null) => number | null;
   totalW: number;
   isEpic?: boolean;
+  canEditIssue?: boolean;
   dragX2?: number;
   onResizeStart: (id: number, origX2: number, clientX: number) => void;
 }) {
@@ -325,41 +310,45 @@ function BarRow({
           {issue.due_date ? `${issue.due_date.slice(0, 10)})` : ""}
         </title>
       </rect>
-      {/* Resize handle — right edge */}
-      <rect
-        x={x1 + width - HANDLE_W}
-        y={y + 4}
-        width={HANDLE_W}
-        height={ROW_H - 8}
-        rx={2}
-        fill="transparent"
-        style={{ cursor: "ew-resize" }}
-        onMouseDown={(e) => {
-          e.stopPropagation();
-          onResizeStart(issue.id, x2 + DAY_PX, e.clientX);
-        }}
-      />
-      {/* Resize grip dots */}
-      <line
-        x1={x1 + width - 3}
-        x2={x1 + width - 3}
-        y1={y + ROW_H / 2 - 4}
-        y2={y + ROW_H / 2 + 4}
-        stroke="white"
-        strokeWidth={1.5}
-        strokeOpacity={0.7}
-        style={{ pointerEvents: "none" }}
-      />
-      <line
-        x1={x1 + width - 6}
-        x2={x1 + width - 6}
-        y1={y + ROW_H / 2 - 4}
-        y2={y + ROW_H / 2 + 4}
-        stroke="white"
-        strokeWidth={1.5}
-        strokeOpacity={0.5}
-        style={{ pointerEvents: "none" }}
-      />
+      {canEditIssue && (
+        <>
+          {/* Resize handle — right edge */}
+          <rect
+            x={x1 + width - HANDLE_W}
+            y={y + 4}
+            width={HANDLE_W}
+            height={ROW_H - 8}
+            rx={2}
+            fill="transparent"
+            style={{ cursor: "ew-resize" }}
+            onMouseDown={(e) => {
+              e.stopPropagation();
+              onResizeStart(issue.id, x2 + DAY_PX, e.clientX);
+            }}
+          />
+          {/* Resize grip dots */}
+          <line
+            x1={x1 + width - 3}
+            x2={x1 + width - 3}
+            y1={y + ROW_H / 2 - 4}
+            y2={y + ROW_H / 2 + 4}
+            stroke="white"
+            strokeWidth={1.5}
+            strokeOpacity={0.7}
+            style={{ pointerEvents: "none" }}
+          />
+          <line
+            x1={x1 + width - 6}
+            x2={x1 + width - 6}
+            y1={y + ROW_H / 2 - 4}
+            y2={y + ROW_H / 2 + 4}
+            stroke="white"
+            strokeWidth={1.5}
+            strokeOpacity={0.5}
+            style={{ pointerEvents: "none" }}
+          />
+        </>
+      )}
     </g>
   );
 }

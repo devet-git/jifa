@@ -15,6 +15,9 @@ import { useVersions } from "@/hooks/useVersions";
 import { useComponents, useSetIssueComponents } from "@/hooks/useComponents";
 import { useStatuses } from "@/hooks/useStatuses";
 import { useAuthStore } from "@/store/auth";
+import { usePermissionsStore } from "@/store/permissions";
+import { toast } from "@/store/toast";
+import { showConfirm } from "@/store/confirm";
 import { Badge } from "@/components/ui/Badge";
 import { Avatar } from "@/components/ui/Avatar";
 import { Button } from "@/components/ui/Button";
@@ -25,6 +28,8 @@ import { ActivityFeed } from "@/components/issues/ActivityFeed";
 import { CommentBox } from "@/components/issues/CommentBox";
 import { AttachmentPanel } from "@/components/issues/AttachmentPanel";
 import { TimeTrackingPanel } from "@/components/issues/TimeTrackingPanel";
+import { formatDate } from "@/lib/formatDate";
+import { useProjectFormat } from "@/lib/projectFormat";
 import api from "@/lib/api";
 import { useQueryClient } from "@tanstack/react-query";
 import type { Issue, IssuePriority } from "@/types";
@@ -49,6 +54,7 @@ type Tab = "comments" | "activity" | "links";
 
 export function IssueDetail({ issue: initialIssue, onClose }: Props) {
   const qc = useQueryClient();
+  const can = usePermissionsStore((s) => s.can);
   const { data: issue = initialIssue } = useIssue(initialIssue.id);
   const { data: users = [] } = useUsers();
   const { data: projectLabels = [] } = useLabels(issue.project_id);
@@ -61,6 +67,7 @@ export function IssueDetail({ issue: initialIssue, onClose }: Props) {
   const { data: statuses = [] } = useStatuses(issue.project_id);
   const setIssueComponents = useSetIssueComponents();
   const { user } = useAuthStore();
+  const { dateFormat, timeFormat } = useProjectFormat();
   const toggleWatch = useToggleWatch(issue.id);
   const setIssueLabelsMutation = useSetIssueLabels();
   const updateStatus = useUpdateIssueStatus();
@@ -72,9 +79,7 @@ export function IssueDetail({ issue: initialIssue, onClose }: Props) {
     onClose();
     // After invalidation the new issue is visible in the lists; let the user
     // know which key was created so they can open it.
-    if (typeof window !== "undefined") {
-      window.alert(`Cloned to ${created.key ?? `#${created.id}`}`);
-    }
+    toast(`Cloned to ${created.key ?? `#${created.id}`}`, "success");
   }
 
   const [submitting, setSubmitting] = useState(false);
@@ -88,7 +93,7 @@ export function IssueDetail({ issue: initialIssue, onClose }: Props) {
     qc.invalidateQueries({ queryKey: ["issue", issue.id] });
   }
   async function handleDeleteComment(commentId: number) {
-    if (!confirm("Delete this comment?")) return;
+    if (!(await showConfirm({ message: "Delete this comment?", variant: "danger" }))) return;
     await api.delete(`/issues/${issue.id}/comments/${commentId}`);
     qc.invalidateQueries({ queryKey: ["issue", issue.id] });
   }
@@ -98,6 +103,7 @@ export function IssueDetail({ issue: initialIssue, onClose }: Props) {
   const [showLabelPicker, setShowLabelPicker] = useState(false);
   const [showComponentPicker, setShowComponentPicker] = useState(false);
   const [tab, setTab] = useState<Tab>("comments");
+  const [showTypePicker, setShowTypePicker] = useState(false);
 
   const currentLabelIds = (issue.labels ?? []).map((l) => l.id);
   const currentComponentIds = (issue.components ?? []).map((c) => c.id);
@@ -182,7 +188,38 @@ export function IssueDetail({ issue: initialIssue, onClose }: Props) {
         <div className="flex items-start justify-between p-6 border-b border-border sticky top-0 bg-surface/95 backdrop-blur z-10">
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-2 flex-wrap">
-              <Badge type="issueType" value={issue.type} />
+              <div className="relative">
+                <button
+                  onClick={() => can("issue.edit") && setShowTypePicker((v) => !v)}
+                  className="cursor-pointer"
+                >
+                  <Badge type="issueType" value={issue.type} />
+                </button>
+                {showTypePicker && (
+                  <>
+                    <div
+                      className="fixed inset-0 z-10"
+                      onClick={() => setShowTypePicker(false)}
+                    />
+                    <div className="absolute top-full left-0 mt-1 z-20 bg-surface border border-border rounded-lg shadow-xl py-1 min-w-[120px]">
+                      {(["task", "bug", "story", "epic"] as const).map((t) => (
+                        <button
+                          key={t}
+                          onClick={() => {
+                            updateField("type", t);
+                            setShowTypePicker(false);
+                          }}
+                          className={`w-full text-left px-3 py-1.5 text-sm hover:bg-surface-2 transition capitalize ${
+                            t === issue.type ? "text-brand font-medium" : "text-foreground"
+                          }`}
+                        >
+                          {t}
+                        </button>
+                      ))}
+                    </div>
+                  </>
+                )}
+              </div>
               {isEpic && issue.color && (
                 <span
                   className="inline-block w-3 h-3 rounded-full ring-2 ring-surface"
@@ -205,7 +242,7 @@ export function IssueDetail({ issue: initialIssue, onClose }: Props) {
                 </span>
               )}
             </div>
-            {editingTitle ? (
+            {can("issue.edit") && editingTitle ? (
               <div className="flex gap-2 items-center">
                 <input
                   className="input !text-lg font-bold flex-1"
@@ -223,9 +260,9 @@ export function IssueDetail({ issue: initialIssue, onClose }: Props) {
               </div>
             ) : (
               <h2
-                className="text-lg font-bold cursor-text hover:bg-surface-2 rounded-md px-2 -mx-2 py-1 -my-1 transition"
-                onClick={startEditTitle}
-                title="Click to edit"
+                className={`text-lg font-bold ${can("issue.edit") ? "cursor-text hover:bg-surface-2" : ""} rounded-md px-2 -mx-2 py-1 -my-1 transition`}
+                onClick={can("issue.edit") ? startEditTitle : undefined}
+                title={can("issue.edit") ? "Click to edit" : undefined}
               >
                 {issue.title}
               </h2>
@@ -249,17 +286,33 @@ export function IssueDetail({ issue: initialIssue, onClose }: Props) {
               <span className="opacity-70">{watchers.length}</span>
             </button>
             <button
-              onClick={handleClone}
-              disabled={cloneIssue.isPending}
-              title="Duplicate issue"
-              aria-label="Duplicate issue"
-              className="w-8 h-8 rounded-lg flex items-center justify-center text-muted hover:text-foreground hover:bg-surface-2 transition disabled:opacity-50"
+              onClick={() => {
+                navigator.clipboard.writeText(`${window.location.origin}/issues/${issue.id}`);
+                toast("Link copied!", "success");
+              }}
+              title="Copy issue link"
+              aria-label="Copy issue link"
+              className="w-8 h-8 rounded-lg flex items-center justify-center text-muted hover:text-foreground hover:bg-surface-2 transition"
             >
               <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                <rect x="9" y="9" width="11" height="11" rx="2" />
-                <path d="M5 15V5a2 2 0 0 1 2-2h10" />
+                <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+                <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
               </svg>
             </button>
+            {can("issue.create") && (
+              <button
+                onClick={handleClone}
+                disabled={cloneIssue.isPending}
+                title="Duplicate issue"
+                aria-label="Duplicate issue"
+                className="w-8 h-8 rounded-lg flex items-center justify-center text-muted hover:text-foreground hover:bg-surface-2 transition disabled:opacity-50"
+              >
+                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="9" y="9" width="11" height="11" rx="2" />
+                  <path d="M5 15V5a2 2 0 0 1 2-2h10" />
+                </svg>
+              </button>
+            )}
             <button
               onClick={onClose}
               aria-label="Close"
@@ -286,12 +339,12 @@ export function IssueDetail({ issue: initialIssue, onClose }: Props) {
                   <button
                     key={s.id}
                     onClick={() =>
-                      updateStatus.mutate({ id: issue.id, status: s.key })
+                      can("issue.edit") && updateStatus.mutate({ id: issue.id, status: s.key })
                     }
                     className={`px-3 py-1.5 rounded-lg text-xs font-medium ring-1 transition inline-flex items-center gap-1.5 ${
                       active
                         ? "bg-brand-soft text-brand-strong ring-[color-mix(in_srgb,var(--brand)_30%,transparent)] shadow-sm"
-                        : "ring-border text-muted hover:text-foreground hover:bg-surface-2"
+                        : `ring-border text-muted ${can("issue.edit") ? "hover:text-foreground hover:bg-surface-2" : ""}`
                     }`}
                   >
                     <span
@@ -311,63 +364,79 @@ export function IssueDetail({ issue: initialIssue, onClose }: Props) {
               <p className="text-[11px] text-muted uppercase tracking-wider mb-1.5 font-medium">
                 Priority
               </p>
-              <select
-                className="input !py-1.5 !text-xs"
-                value={issue.priority}
-                onChange={(e) => updateField("priority", e.target.value)}
-              >
-                {PRIORITY_OPTIONS.map((p) => (
-                  <option key={p} value={p}>
-                    {p}
-                  </option>
-                ))}
-              </select>
+              {can("issue.edit") ? (
+                <select
+                  className="input !py-1.5 !text-xs"
+                  value={issue.priority}
+                  onChange={(e) => updateField("priority", e.target.value)}
+                >
+                  {PRIORITY_OPTIONS.map((p) => (
+                    <option key={p} value={p}>
+                      {p}
+                    </option>
+                  ))}
+                </select>
+              ) : (
+                <p className="text-sm capitalize">{issue.priority}</p>
+              )}
             </div>
             <div>
               <p className="text-[11px] text-muted uppercase tracking-wider mb-1.5 font-medium">
                 Story Points
               </p>
-              <select
-                className="input !py-1.5 !text-xs"
-                value={issue.story_points ?? ""}
-                onChange={(e) =>
-                  updateField(
-                    "story_points",
-                    e.target.value ? Number(e.target.value) : null,
-                  )
-                }
-              >
-                <option value="">-</option>
-                {[1, 2, 3, 5, 8, 13].map((n) => (
-                  <option key={n} value={n}>
-                    {n}
-                  </option>
-                ))}
-              </select>
+              {can("issue.edit") ? (
+                <select
+                  className="input !py-1.5 !text-xs"
+                  value={issue.story_points ?? ""}
+                  onChange={(e) =>
+                    updateField(
+                      "story_points",
+                      e.target.value ? Number(e.target.value) : null,
+                    )
+                  }
+                >
+                  <option value="">-</option>
+                  {[1, 2, 3, 5, 8, 13].map((n) => (
+                    <option key={n} value={n}>
+                      {n}
+                    </option>
+                  ))}
+                </select>
+              ) : (
+                <p className="text-sm">{issue.story_points ?? "—"}</p>
+              )}
             </div>
             <div>
               <p className="text-[11px] text-muted uppercase tracking-wider mb-1.5 font-medium">
                 Start Date
               </p>
-              <input
-                type="date"
-                className="input !py-1.5 !text-xs"
-                value={issue.start_date ? issue.start_date.slice(0, 10) : ""}
-                onChange={(e) =>
-                  updateField("start_date", e.target.value || null)
-                }
-              />
+              {can("issue.edit") ? (
+                <input
+                  type="date"
+                  className="input !py-1.5 !text-xs"
+                  value={issue.start_date ? issue.start_date.slice(0, 10) : ""}
+                  onChange={(e) =>
+                    updateField("start_date", e.target.value || null)
+                  }
+                />
+              ) : (
+                <p className="text-sm">{issue.start_date ? issue.start_date.slice(0, 10) : "—"}</p>
+              )}
             </div>
             <div>
               <p className="text-[11px] text-muted uppercase tracking-wider mb-1.5 font-medium">
                 Due Date
               </p>
-              <input
-                type="date"
-                className="input !py-1.5 !text-xs"
-                value={issue.due_date ? issue.due_date.slice(0, 10) : ""}
-                onChange={(e) => updateField("due_date", e.target.value || null)}
-              />
+              {can("issue.edit") ? (
+                <input
+                  type="date"
+                  className="input !py-1.5 !text-xs"
+                  value={issue.due_date ? issue.due_date.slice(0, 10) : ""}
+                  onChange={(e) => updateField("due_date", e.target.value || null)}
+                />
+              ) : (
+                <p className="text-sm">{issue.due_date ? issue.due_date.slice(0, 10) : "—"}</p>
+              )}
             </div>
             <div>
               <p className="text-[11px] text-muted uppercase tracking-wider mb-1.5 font-medium">
@@ -382,70 +451,82 @@ export function IssueDetail({ issue: initialIssue, onClose }: Props) {
               <p className="text-[11px] text-muted uppercase tracking-wider mb-1.5 font-medium">
                 Assignee
               </p>
-              <select
-                className="input !py-1.5 !text-xs"
-                value={issue.assignee?.id ?? ""}
-                onChange={(e) =>
-                  updateField(
-                    "assignee_id",
-                    e.target.value ? Number(e.target.value) : null,
-                  )
-                }
-              >
-                <option value="">Unassigned</option>
-                {users.map((u) => (
-                  <option key={u.id} value={u.id}>
-                    {u.name}
-                  </option>
-                ))}
-              </select>
+              {can("issue.edit") ? (
+                <select
+                  className="input !py-1.5 !text-xs"
+                  value={issue.assignee?.id ?? ""}
+                  onChange={(e) =>
+                    updateField(
+                      "assignee_id",
+                      e.target.value ? Number(e.target.value) : null,
+                    )
+                  }
+                >
+                  <option value="">Unassigned</option>
+                  {users.map((u) => (
+                    <option key={u.id} value={u.id}>
+                      {u.name}
+                    </option>
+                  ))}
+                </select>
+              ) : (
+                <p className="text-sm">{issue.assignee?.name ?? "Unassigned"}</p>
+              )}
             </div>
             {!isEpic && (
               <div>
                 <p className="text-[11px] text-muted uppercase tracking-wider mb-1.5 font-medium">
                   Epic
                 </p>
-                <select
-                  className="input !py-1.5 !text-xs"
-                  value={issue.parent_id ?? ""}
-                  onChange={(e) =>
-                    updateField(
-                      "parent_id",
-                      e.target.value ? Number(e.target.value) : null,
-                    )
-                  }
-                >
-                  <option value="">None</option>
-                  {epics.map((ep) => (
-                    <option key={ep.id} value={ep.id}>
-                      {ep.title}
-                    </option>
-                  ))}
-                </select>
+                {can("issue.edit") ? (
+                  <select
+                    className="input !py-1.5 !text-xs"
+                    value={issue.parent_id ?? ""}
+                    onChange={(e) =>
+                      updateField(
+                        "parent_id",
+                        e.target.value ? Number(e.target.value) : null,
+                      )
+                    }
+                  >
+                    <option value="">None</option>
+                    {epics.map((ep) => (
+                      <option key={ep.id} value={ep.id}>
+                        {ep.title}
+                      </option>
+                    ))}
+                  </select>
+                ) : (
+                  <p className="text-sm">{parentEpic?.title ?? "None"}</p>
+                )}
               </div>
             )}
             <div>
               <p className="text-[11px] text-muted uppercase tracking-wider mb-1.5 font-medium">
                 Fix Version
               </p>
-              <select
-                className="input !py-1.5 !text-xs"
-                value={issue.version_id ?? ""}
-                onChange={(e) =>
-                  updateField(
-                    "version_id",
-                    e.target.value ? Number(e.target.value) : null,
-                  )
-                }
-              >
-                <option value="">None</option>
-                {versions.map((v) => (
-                  <option key={v.id} value={v.id}>
-                    {v.name}
-                    {v.status === "released" ? " (released)" : ""}
-                  </option>
-                ))}
-              </select>
+              {can("issue.edit") ? (
+                <select
+                  className="input !py-1.5 !text-xs"
+                  value={issue.version_id ?? ""}
+                  onChange={(e) =>
+                    updateField(
+                      "version_id",
+                      e.target.value ? Number(e.target.value) : null,
+                    )
+                  }
+                >
+                  <option value="">None</option>
+                  {versions.map((v) => (
+                    <option key={v.id} value={v.id}>
+                      {v.name}
+                      {v.status === "released" ? " (released)" : ""}
+                    </option>
+                  ))}
+                </select>
+              ) : (
+                <p className="text-sm">{versions.find((v) => v.id === issue.version_id)?.name ?? "None"}</p>
+              )}
             </div>
             {isEpic && (
               <div>
@@ -456,12 +537,12 @@ export function IssueDetail({ issue: initialIssue, onClose }: Props) {
                   {EPIC_COLORS.map((c) => (
                     <button
                       key={c}
-                      onClick={() => updateField("color", c)}
+                      onClick={() => can("issue.edit") && updateField("color", c)}
                       title={c}
                       className={`w-6 h-6 rounded-full ring-2 ring-offset-2 ring-offset-surface transition ${
                         issue.color === c
                           ? "ring-foreground"
-                          : "ring-transparent hover:ring-border"
+                          : `ring-transparent ${can("issue.edit") ? "hover:ring-border" : ""}`
                       }`}
                       style={{ backgroundColor: c }}
                     />
@@ -477,7 +558,7 @@ export function IssueDetail({ issue: initialIssue, onClose }: Props) {
               <p className="text-[11px] text-muted uppercase tracking-wider font-medium">
                 Description
               </p>
-              {!editingDesc && (
+              {!editingDesc && can("issue.edit") && (
                 <button
                   onClick={startEditDesc}
                   className="text-xs text-brand hover:underline font-medium"
@@ -510,8 +591,8 @@ export function IssueDetail({ issue: initialIssue, onClose }: Props) {
               </div>
             ) : (
               <div
-                onClick={startEditDesc}
-                className="min-h-12 p-3 rounded-lg bg-surface-2/50 hover:bg-surface-2 cursor-text transition"
+                onClick={can("issue.edit") ? startEditDesc : undefined}
+                className={`min-h-12 p-3 rounded-lg bg-surface-2/50 ${can("issue.edit") ? "hover:bg-surface-2 cursor-text" : ""} transition`}
               >
                 {issue.description ? (
                   <MarkdownBody content={issue.description} />
@@ -528,12 +609,14 @@ export function IssueDetail({ issue: initialIssue, onClose }: Props) {
               <p className="text-[11px] text-muted uppercase tracking-wider font-medium">
                 Labels
               </p>
-              <button
-                onClick={() => setShowLabelPicker((v) => !v)}
-                className="text-xs text-brand hover:underline font-medium"
-              >
-                {showLabelPicker ? "Done" : "Edit"}
-              </button>
+              {can("issue.edit") && (
+                <button
+                  onClick={() => setShowLabelPicker((v) => !v)}
+                  className="text-xs text-brand hover:underline font-medium"
+                >
+                  {showLabelPicker ? "Done" : "Edit"}
+                </button>
+              )}
             </div>
             <div className="flex gap-1.5 flex-wrap mb-1">
               {(issue.labels ?? []).map((l) => (
@@ -584,12 +667,14 @@ export function IssueDetail({ issue: initialIssue, onClose }: Props) {
               <p className="text-[11px] text-muted uppercase tracking-wider font-medium">
                 Components
               </p>
-              <button
-                onClick={() => setShowComponentPicker((v) => !v)}
-                className="text-xs text-brand hover:underline font-medium"
-              >
-                {showComponentPicker ? "Done" : "Edit"}
-              </button>
+              {can("issue.edit") && (
+                <button
+                  onClick={() => setShowComponentPicker((v) => !v)}
+                  className="text-xs text-brand hover:underline font-medium"
+                >
+                  {showComponentPicker ? "Done" : "Edit"}
+                </button>
+              )}
             </div>
             <div className="flex gap-1.5 flex-wrap mb-1">
               {(issue.components ?? []).map((c) => (
@@ -676,25 +761,13 @@ export function IssueDetail({ issue: initialIssue, onClose }: Props) {
                     <div key={c.id} className="flex gap-3">
                       <Avatar name={c.author?.name} size="sm" />
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-baseline gap-2 mb-0.5">
+                        <div className="flex items-baseline gap-2 mb-1">
                           <span className="text-sm font-medium">
                             {c.author?.name}
                           </span>
                           <span className="text-[11px] text-muted">
-                            {new Date(c.created_at).toLocaleString()}
+                            {formatDate(c.created_at, dateFormat, timeFormat)}
                           </span>
-                          {(c.author_id === user?.id) && (
-                            <div className="ml-auto flex gap-2">
-                              <button
-                                onClick={() => { setEditingCommentId(c.id); setEditCommentText(c.body); }}
-                                className="text-[11px] text-muted hover:text-brand transition"
-                              >Edit</button>
-                              <button
-                                onClick={() => handleDeleteComment(c.id)}
-                                className="text-[11px] text-muted hover:text-red-500 transition"
-                              >Delete</button>
-                            </div>
-                          )}
                         </div>
                         {editingCommentId === c.id ? (
                           <div className="space-y-2">
@@ -716,18 +789,34 @@ export function IssueDetail({ issue: initialIssue, onClose }: Props) {
                             </div>
                           </div>
                         ) : (
-                          <div className="text-sm whitespace-pre-wrap rounded-lg bg-surface-2/50 px-3 py-2">
-                            {c.body}
+                          <div>
+                            <div className="text-sm whitespace-pre-wrap rounded-lg bg-surface-2/50 px-3 py-2">
+                              {c.body}
+                            </div>
+                            {(c.author_id === user?.id) && (
+                              <div className="flex gap-2 mt-1 justify-end">
+                                <button
+                                  onClick={() => { setEditingCommentId(c.id); setEditCommentText(c.body); }}
+                                  className="text-[11px] text-muted hover:text-brand transition"
+                                >Edit</button>
+                                <button
+                                  onClick={() => handleDeleteComment(c.id)}
+                                  className="text-[11px] text-muted hover:text-red-500 transition"
+                                >Delete</button>
+                              </div>
+                            )}
                           </div>
                         )}
                       </div>
                     </div>
                   ))}
                 </div>
-                <CommentBox
-                  onSubmit={handleCommentSubmit}
-                  submitting={submitting}
-                />
+                {can("issue.comment") && (
+                  <CommentBox
+                    onSubmit={handleCommentSubmit}
+                    submitting={submitting}
+                  />
+                )}
               </div>
             )}
 
@@ -753,11 +842,11 @@ function buildPatch(field: string, value: unknown): Record<string, unknown> {
     case "due_date":
       return value == null || value === ""
         ? { clear_due: true }
-        : { due_date: value };
+        : { due_date: `${value}T00:00:00Z` };
     case "start_date":
       return value == null || value === ""
         ? { clear_start: true }
-        : { start_date: value };
+        : { start_date: `${value}T00:00:00Z` };
     case "version_id":
       return value == null
         ? { clear_version: true }

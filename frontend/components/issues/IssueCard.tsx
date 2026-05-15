@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import api from "@/lib/api";
+import { usePermissionsStore } from "@/store/permissions";
 import { Avatar } from "@/components/ui/Avatar";
 import { cn } from "@/lib/utils";
 import type { Issue, IssueType, IssuePriority } from "@/types";
@@ -101,6 +102,7 @@ export function IssueCard({ issue, onClick, className, dragging }: Props) {
   const type = typeIcons[issue.type] ?? typeIcons.task;
   const isOverdue = issue.due_date && new Date(issue.due_date) < new Date() && issue.status !== "done";
   const qc = useQueryClient();
+  const can = usePermissionsStore((s) => s.can);
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(issue.title);
   const [saving, setSaving] = useState(false);
@@ -167,8 +169,8 @@ export function IssueCard({ issue, onClick, className, dragging }: Props) {
         ) : (
           <p
             className="text-sm font-medium leading-snug line-clamp-2 group-hover:text-brand transition"
-            onDoubleClick={startEdit}
-            title="Double-click to edit"
+            onDoubleClick={can("issue.edit") ? startEdit : undefined}
+            title={can("issue.edit") ? "Double-click to edit" : undefined}
           >
             {issue.title}
           </p>
@@ -202,7 +204,7 @@ export function IssueCard({ issue, onClick, className, dragging }: Props) {
       </div>
 
       <div className="flex flex-col items-center gap-1.5 shrink-0">
-        {!editing && (
+        {!editing && can("issue.edit") && (
           <button
             type="button"
             onClick={startEdit}

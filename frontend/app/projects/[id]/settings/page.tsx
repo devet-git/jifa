@@ -1,7 +1,8 @@
-"use client";
+﻿"use client";
 
-import { use, useRef, useState } from "react";
+import { use, useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   DndContext,
@@ -18,7 +19,8 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import api from "@/lib/api";
-import { useProject } from "@/hooks/useProject";
+import { useProject, useUpdateProject } from "@/hooks/useProject";
+import { DATE_FORMATS, TIME_FORMATS, fmt, fmtTime, formatDate } from "@/lib/formatDate";
 import {
   useMembers,
   useAddMember,
@@ -54,6 +56,17 @@ import {
 import { useAudit } from "@/hooks/useAudit";
 import { useUsers } from "@/hooks/useUsers";
 import { useAuthStore } from "@/store/auth";
+import { toast } from "@/store/toast";
+import { showConfirm } from "@/store/confirm";
+import { usePermissionsStore } from "@/store/permissions";
+import { useMyPermissions, usePermissions } from "@/hooks/usePermissions";
+import {
+  useRoles,
+  useCreateRole,
+  useDeleteRole,
+  useRolePermissions,
+  useSetRolePermissions,
+} from "@/hooks/useRoles";
 import { Avatar } from "@/components/ui/Avatar";
 import { Button } from "@/components/ui/Button";
 import type {
@@ -62,7 +75,10 @@ import type {
   Component,
   IssuePriority,
   IssueType,
+  Permission,
+  Project,
   ProjectRole,
+  Role,
   StatusCategory,
   StatusDefinition,
   Webhook,
@@ -76,7 +92,8 @@ type Tab =
   | "components"
   | "webhooks"
   | "audit"
-  | "details";
+  | "details"
+  | "permissions";
 
 const STATUS_COLORS = [
   "#9ca3af",
@@ -178,6 +195,15 @@ const tabConfig: { key: Tab; label: string; icon: React.ReactNode }[] = [
     ),
   },
   {
+    key: "permissions",
+    label: "Permissions",
+    icon: (
+      <svg className="w-3.5 h-3.5" viewBox="0 0 20 20" fill="currentColor">
+        <path fillRule="evenodd" d="M5 9V7a5 5 0 0 1 10 0v2a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2zm8-2v2H7V7a3 3 0 0 1 6 0z" clipRule="evenodd" />
+      </svg>
+    ),
+  },
+  {
     key: "details",
     label: "Details",
     icon: (
@@ -194,31 +220,70 @@ export default function ProjectSettingsPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = use(params);
-  const [tab, setTab] = useState<Tab>("members");
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const tab = (searchParams.get("tab") as Tab) ?? "members";
+  const setTab = useCallback(
+    (t: Tab) => {
+      router.replace(`/projects/${id}/settings?tab=${t}`, { scroll: false });
+    },
+    [id, router],
+  );
 
   const { data: project } = useProject(id);
   const { data: members = [] } = useMembers(id);
+  const { data: roles = [] } = useRoles(id);
+  const { data: permissions = [] } = usePermissions(id);
+  const { data: myPermKeys } = useMyPermissions(id);
   const { user } = useAuthStore();
 
   const addMember = useAddMember(id);
   const updateRole = useUpdateMemberRole(id);
   const removeMember = useRemoveMember(id);
+  const update = useUpdateProject();
 
+  useEffect(() => {
+    usePermissionsStore.getState().clear();
+    if (myPermKeys) {
+      usePermissionsStore.getState().setPerms(Number(id), myPermKeys);
+    }
+  }, [id, myPermKeys]);
+
+  const getCan = usePermissionsStore((s) => s.can);
+  const roleById = Object.fromEntries(roles.map((r) => [r.id, r]));
   const myMembership = members.find((m) => m.user_id === user?.id);
-  const isAdmin = myMembership?.role === "admin";
+  const myRole = myMembership ? roleById[myMembership.role_id] : undefined;
+  const canManageMembers = getCan("member.role-change");
 
-  const [form, setForm] = useState<{ email: string; role: ProjectRole }>({
+  const [form, setForm] = useState<{ email: string; role_id: number }>({
     email: "",
-    role: "member",
+    role_id: 0,
   });
   const [error, setError] = useState<string | null>(null);
+
+  const memberRoleID = roles.find((r) => r.name === "Member")?.id ?? 0;
+
+  const visibleTabs = tabConfig.filter((t) => {
+    switch (t.key) {
+      case "members": return true;
+      case "workflow": return myPermKeys?.includes("workflow.edit");
+      case "boards": return myPermKeys?.some((k) => k.startsWith("board."));
+      case "components": return myPermKeys?.some((k) => k.startsWith("component."));
+      case "webhooks": return myPermKeys?.includes("webhook.manage");
+      case "audit": return myPermKeys?.includes("audit.view");
+      case "permissions": return myPermKeys?.includes("member.role-change");
+      case "details": return myPermKeys?.includes("project.edit");
+      default: return true;
+    }
+  });
 
   async function handleAdd(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
+    const role_id = form.role_id || memberRoleID;
     try {
-      await addMember.mutateAsync(form);
-      setForm({ email: "", role: "member" });
+      await addMember.mutateAsync({ email: form.email, role_id });
+      setForm({ email: "", role_id: 0 });
     } catch (err: any) {
       setError(err.response?.data?.error ?? "Failed to add member");
     }
@@ -228,20 +293,22 @@ export default function ProjectSettingsPage({
     <div className="flex flex-col h-full">
       {/* Header */}
       <div className="px-8 pt-6 pb-0 border-b border-border bg-surface">
-        <Link
-          href={`/projects/${id}`}
-          className="inline-flex items-center gap-1.5 text-xs text-muted hover:text-brand transition-colors mb-3"
-        >
-          <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-            <path d="m15 18-6-6 6-6" />
-          </svg>
-          {project?.name}
-        </Link>
+        <div className="flex items-center gap-2 mb-1">
+          <Link
+            href={`/projects/${id}`}
+            className="inline-flex items-center gap-1 text-xs text-muted hover:text-foreground transition-colors"
+          >
+            <svg className="w-3.5 h-3.5" viewBox="0 0 20 20" fill="currentColor">
+              <path fillRule="evenodd" d="M17 10a.75.75 0 0 1-.75.75H5.612l4.158 3.96a.75.75 0 1 1-1.04 1.08l-5.5-5.25a.75.75 0 0 1 0-1.08l5.5-5.25a.75.75 0 1 1 1.04 1.08L5.612 9.25H16.25A.75.75 0 0 1 17 10Z" clipRule="evenodd" />
+            </svg>
+            Back to project
+          </Link>
+        </div>
         <h1 className="text-xl font-bold tracking-tight text-foreground mb-4">
-          Project settings
+          Settings
         </h1>
         <div className="flex gap-0 -mb-px overflow-x-auto">
-          {tabConfig.map((t) => (
+          {visibleTabs.map((t) => (
             <button
               key={t.key}
               onClick={() => setTab(t.key)}
@@ -264,7 +331,7 @@ export default function ProjectSettingsPage({
       <div className="flex-1 p-8 overflow-auto">
         {tab === "members" && (
           <div className="max-w-2xl space-y-4 animate-fade-in">
-            {isAdmin && (
+            {canManageMembers && (
               <div className="surface-card p-5">
                 <h2 className="text-sm font-semibold text-foreground mb-3">
                   Add member
@@ -282,17 +349,20 @@ export default function ProjectSettingsPage({
                   />
                   <select
                     className="input w-auto"
-                    value={form.role}
+                    value={form.role_id}
                     onChange={(e) =>
                       setForm((f) => ({
                         ...f,
-                        role: e.target.value as ProjectRole,
+                        role_id: Number(e.target.value),
                       }))
                     }
                   >
-                    <option value="admin">Admin</option>
-                    <option value="member">Member</option>
-                    <option value="viewer">Viewer</option>
+                    <option value={0}>Default (Member)</option>
+                    {roles.map((r) => (
+                      <option key={r.id} value={r.id}>
+                        {r.name}
+                      </option>
+                    ))}
                   </select>
                   <Button type="submit" size="sm" disabled={addMember.isPending}>
                     {addMember.isPending ? "Adding…" : "Add"}
@@ -345,28 +415,30 @@ export default function ProjectSettingsPage({
                             {m.user?.email}
                           </p>
                         </div>
-                        {isAdmin && !isOwner ? (
+                        {canManageMembers && !isOwner ? (
                           <select
                             className="input w-auto text-xs py-1"
-                            value={m.role}
+                            value={m.role_id}
                             onChange={(e) =>
                               updateRole.mutate({
                                 memberId: m.id,
-                                role: e.target.value as ProjectRole,
+                                role_id: Number(e.target.value),
                               })
                             }
                           >
-                            <option value="admin">Admin</option>
-                            <option value="member">Member</option>
-                            <option value="viewer">Viewer</option>
+                            {roles.map((r) => (
+                              <option key={r.id} value={r.id}>
+                                {r.name}
+                              </option>
+                            ))}
                           </select>
                         ) : (
                           <RoleBadge role={m.role} />
                         )}
-                        {isAdmin && !isOwner && (
+                        {canManageMembers && !isOwner && (
                           <button
-                            onClick={() => {
-                              if (confirm("Remove this member?"))
+                            onClick={async () => {
+                              if (await showConfirm({ message: "Remove this member?" }))
                                 removeMember.mutate(m.id);
                             }}
                             className="text-xs text-[var(--danger)] hover:opacity-70 transition-opacity"
@@ -384,14 +456,22 @@ export default function ProjectSettingsPage({
         )}
 
         {tab === "components" && (
-          <ComponentsTab projectId={id} isAdmin={isAdmin} />
+          <ComponentsTab projectId={id} />
         )}
         {tab === "workflow" && (
-          <WorkflowTab projectId={id} isAdmin={isAdmin} />
+          <WorkflowTab projectId={id} />
         )}
         {tab === "boards" && <BoardsTab projectId={id} />}
         {tab === "webhooks" && <WebhooksTab projectId={id} />}
-        {tab === "audit" && <AuditTab projectId={id} />}
+        {tab === "audit" && <AuditTab projectId={id} dateFormat={project?.date_format} timeFormat={project?.time_format} />}
+
+        {tab === "permissions" && (
+          <PermissionsTab
+            projectId={id}
+            permissions={permissions}
+            roles={roles}
+          />
+        )}
 
         {tab === "details" && (
           <div className="max-w-2xl space-y-4 animate-fade-in">
@@ -400,7 +480,12 @@ export default function ProjectSettingsPage({
                 Project details
               </h2>
               <dl className="space-y-3">
-                <DetailRow label="Name" value={project?.name} />
+                <EditableField
+                  label="Name"
+                  value={project?.name ?? ""}
+                  placeholder="Project name"
+                  onSave={(v) => update.mutate({ id, name: v })}
+                />
                 <DetailRow
                   label="Key"
                   value={
@@ -409,16 +494,22 @@ export default function ProjectSettingsPage({
                     </code>
                   }
                 />
-                <DetailRow
+                <EditableField
                   label="Description"
-                  value={
-                    project?.description ?? (
-                      <span className="text-muted">—</span>
-                    )
-                  }
+                  value={project?.description ?? ""}
+                  placeholder="Project description"
+                  multiline
+                  onSave={(v) => update.mutate({ id, description: v })}
+                />
+                <EditableField
+                  label="Category"
+                  value={project?.category ?? ""}
+                  placeholder="e.g. Engineering, Marketing"
+                  onSave={(v) => update.mutate({ id, category: v || undefined })}
                 />
               </dl>
             </div>
+            <DateFormatSection project={project} projectId={id} />
             <ImportExportSection projectId={id} />
           </div>
         )}
@@ -477,7 +568,7 @@ function EmptyState({
   );
 }
 
-function AuditTab({ projectId }: { projectId: string }) {
+function AuditTab({ projectId, dateFormat, timeFormat }: { projectId: string; dateFormat?: string | null; timeFormat?: string | null }) {
   const { data: entries = [] } = useAudit(projectId);
 
   function exportCSV() {
@@ -538,7 +629,7 @@ function AuditTab({ projectId }: { projectId: string }) {
                     )}
                   </p>
                   <p className="text-xs text-muted mt-0.5">
-                    {new Date(e.created_at).toLocaleString()}
+                    {formatDate(e.created_at, dateFormat, timeFormat)}
                   </p>
                 </div>
               </li>
@@ -621,10 +712,10 @@ function BoardsTab({ projectId }: { projectId: string }) {
                 onFilter={(filter) =>
                   update.mutate({ id: b.id, name: b.name, filter })
                 }
-                onDelete={() => {
-                  if (confirm(`Delete board "${b.name}"?`))
-                    remove.mutate(b.id);
-                }}
+                    onDelete={async () => {
+                      if (await showConfirm({ message: `Delete board "${b.name}"?`, variant: "danger" }))
+                        remove.mutate(b.id);
+                    }}
               />
             ))}
           </ul>
@@ -813,11 +904,10 @@ function FilterChipRow<T extends string>({
 
 function WorkflowTab({
   projectId,
-  isAdmin,
 }: {
   projectId: string;
-  isAdmin: boolean;
 }) {
+  const can = usePermissionsStore((s) => s.can);
   const { data: statuses = [] } = useStatuses(projectId);
   const create = useCreateStatus(projectId);
   const update = useUpdateStatus(projectId);
@@ -869,7 +959,7 @@ function WorkflowTab({
 
   return (
     <div className="max-w-2xl space-y-4 animate-fade-in">
-      {isAdmin && (
+      {can("workflow.edit") && (
         <div className="surface-card p-5">
           <h2 className="text-sm font-semibold text-foreground mb-3">
             Add status
@@ -939,7 +1029,6 @@ function WorkflowTab({
                   <StatusRow
                     key={s.id}
                     s={s}
-                    isAdmin={isAdmin}
                     onRename={(name) =>
                       update.mutate({
                         id: s.id,
@@ -968,12 +1057,8 @@ function WorkflowTab({
                       })
                     }
                     onDelete={async () => {
-                      if (!confirm(`Delete status "${s.name}"?`)) return;
-                      try {
-                        await remove.mutateAsync(s.id);
-                      } catch (err: any) {
-                        alert(err.response?.data?.error ?? "Failed to delete");
-                      }
+                      if (!(await showConfirm({ message: `Delete status "${s.name}"?`, variant: "danger" }))) return;
+                      remove.mutate(s.id);
                     }}
                   />
                 ))}
@@ -988,19 +1073,18 @@ function WorkflowTab({
 
 function StatusRow({
   s,
-  isAdmin,
   onRename,
   onColor,
   onCategory,
   onDelete,
 }: {
   s: StatusDefinition;
-  isAdmin: boolean;
   onRename: (name: string) => void;
   onColor: (c: string) => void;
   onCategory: (c: StatusCategory) => void;
   onDelete: () => void;
 }) {
+  const can = usePermissionsStore((s) => s.can);
   const {
     attributes,
     listeners,
@@ -1027,7 +1111,7 @@ function StatusRow({
       }}
       className="px-5 py-3 flex items-center gap-3 bg-surface"
     >
-      {isAdmin && (
+      {can("workflow.edit") && (
         <button
           {...attributes}
           {...listeners}
@@ -1045,7 +1129,7 @@ function StatusRow({
         style={{ backgroundColor: s.color || "#94a3b8" }}
       />
       <div className="flex-1 min-w-0">
-        {editing ? (
+        {can("workflow.edit") && editing ? (
           <input
             autoFocus
             className="input py-1 text-sm"
@@ -1059,9 +1143,9 @@ function StatusRow({
           />
         ) : (
           <button
-            onClick={() => isAdmin && setEditing(true)}
+            onClick={() => can("workflow.edit") && setEditing(true)}
             className={`text-sm font-medium text-foreground text-left truncate ${
-              isAdmin ? "hover:text-brand transition-colors" : ""
+              can("workflow.edit") ? "hover:text-brand transition-colors" : ""
             }`}
           >
             {s.name}
@@ -1071,7 +1155,7 @@ function StatusRow({
           {s.key}
         </p>
       </div>
-      {isAdmin ? (
+      {can("workflow.edit") ? (
         <div className="flex items-center gap-2">
           <ColorPicker value={s.color ?? "#94a3b8"} onChange={onColor} />
           <select
@@ -1255,8 +1339,8 @@ function WebhooksTab({ projectId }: { projectId: string }) {
                     active: !h.active,
                   })
                 }
-                onDelete={() => {
-                  if (confirm(`Delete webhook to ${h.url}?`))
+                onDelete={async () => {
+                  if (await showConfirm({ message: `Delete webhook to ${h.url}?`, variant: "danger" }))
                     remove.mutate(h.id);
                 }}
               />
@@ -1312,6 +1396,75 @@ function WebhookRow({
         Remove
       </button>
     </li>
+  );
+}
+
+function DateFormatSection({
+  project,
+  projectId,
+}: {
+  project: Project | undefined;
+  projectId: string;
+}) {
+  const update = useUpdateProject();
+  const now = new Date();
+
+  function setFmt(field: "date_format" | "time_format", value: string) {
+    update.mutate({ id: projectId, [field]: value });
+  }
+
+  return (
+    <div className="surface-card p-5">
+      <h2 className="text-sm font-semibold text-foreground mb-4">
+        Date & time format
+      </h2>
+      <div className="space-y-4">
+        <div>
+          <label className="text-xs text-muted font-medium block mb-1.5">
+            Date format
+          </label>
+          <select
+            className="input"
+            value={project?.date_format ?? "MMM DD, YYYY"}
+            onChange={(e) => setFmt("date_format", e.target.value)}
+          >
+            {DATE_FORMATS.map((f) => (
+              <option key={f.value} value={f.value}>
+                {f.label}
+              </option>
+            ))}
+          </select>
+          <p className="text-xs text-muted mt-1.5">
+            Preview:{" "}
+            <span className="text-foreground font-medium">
+              {fmt(now, project?.date_format ?? "MMM DD, YYYY")}
+            </span>
+          </p>
+        </div>
+        <div>
+          <label className="text-xs text-muted font-medium block mb-1.5">
+            Time format
+          </label>
+          <select
+            className="input"
+            value={project?.time_format ?? "h:mm A"}
+            onChange={(e) => setFmt("time_format", e.target.value)}
+          >
+            {TIME_FORMATS.map((f) => (
+              <option key={f.value} value={f.value}>
+                {f.label}
+              </option>
+            ))}
+          </select>
+          <p className="text-xs text-muted mt-1.5">
+            Preview:{" "}
+            <span className="text-foreground font-medium">
+              {fmtTime(now, project?.time_format ?? "h:mm A")}
+            </span>
+          </p>
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -1439,11 +1592,10 @@ function ImportExportSection({ projectId }: { projectId: string }) {
 
 function ComponentsTab({
   projectId,
-  isAdmin,
 }: {
   projectId: string;
-  isAdmin: boolean;
 }) {
+  const can = usePermissionsStore((s) => s.can);
   const { data: components = [] } = useComponents(projectId);
   const { data: users = [] } = useUsers();
   const create = useCreateComponent(projectId);
@@ -1483,6 +1635,7 @@ function ComponentsTab({
 
   return (
     <div className="max-w-2xl space-y-4 animate-fade-in">
+      {can("component.create") && (
       <div className="surface-card p-4">
         <h2 className="text-sm font-semibold text-foreground mb-3">
           Add component
@@ -1516,6 +1669,7 @@ function ComponentsTab({
           </Button>
         </form>
       </div>
+      )}
 
       <div className="surface-card overflow-hidden">
         {components.length === 0 ? (
@@ -1543,13 +1697,14 @@ function ComponentsTab({
                     key={c.id}
                     c={c}
                     users={users}
-                    isAdmin={isAdmin}
+                    canEdit={can("component.edit")}
+                    canDelete={can("component.delete")}
                     onRename={(name) => update.mutate({ id: c.id, name })}
                     onLead={(leadId) =>
                       update.mutate({ id: c.id, name: c.name, lead_id: leadId })
                     }
-                    onDelete={() => {
-                      if (confirm(`Delete component "${c.name}"?`))
+                    onDelete={async () => {
+                      if (await showConfirm({ message: `Delete component "${c.name}"?`, variant: "danger" }))
                         remove.mutate(c.id);
                     }}
                   />
@@ -1566,14 +1721,16 @@ function ComponentsTab({
 function ComponentRow({
   c,
   users,
-  isAdmin,
+  canEdit,
+  canDelete,
   onRename,
   onLead,
   onDelete,
 }: {
   c: Component;
   users: { id: number; name: string }[];
-  isAdmin: boolean;
+  canEdit?: boolean;
+  canDelete?: boolean;
   onRename: (name: string) => void;
   onLead: (leadId: number | undefined) => void;
   onDelete: () => void;
@@ -1596,7 +1753,7 @@ function ComponentRow({
       style={{ transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.4 : 1 }}
       className="px-5 py-3.5 flex items-center gap-3 bg-surface"
     >
-      {isAdmin && (
+      {canEdit && (
         <button
           {...attributes}
           {...listeners}
@@ -1610,7 +1767,7 @@ function ComponentRow({
         </button>
       )}
       <div className="flex-1 min-w-0">
-        {editing ? (
+        {canEdit && editing ? (
           <input
             autoFocus
             className="input py-1 text-sm"
@@ -1624,8 +1781,10 @@ function ComponentRow({
           />
         ) : (
           <button
-            onClick={() => setEditing(true)}
-            className="text-sm font-medium text-foreground hover:text-brand transition-colors text-left truncate"
+            onClick={() => canEdit && setEditing(true)}
+            className={`text-sm font-medium text-left truncate ${
+              canEdit ? "text-foreground hover:text-brand transition-colors" : "text-muted"
+            }`}
           >
             {c.name}
           </button>
@@ -1634,21 +1793,23 @@ function ComponentRow({
           <p className="text-xs text-muted mt-0.5">Lead: {lead.name}</p>
         )}
       </div>
-      <select
-        className="input w-auto text-xs py-1"
-        value={c.lead_id ?? ""}
-        onChange={(e) =>
-          onLead(e.target.value ? Number(e.target.value) : undefined)
-        }
-      >
-        <option value="">No lead</option>
-        {users.map((u) => (
-          <option key={u.id} value={u.id}>
-            {u.name}
-          </option>
-        ))}
-      </select>
-      {isAdmin && (
+      {canEdit && (
+        <select
+          className="input w-auto text-xs py-1"
+          value={c.lead_id ?? ""}
+          onChange={(e) =>
+            onLead(e.target.value ? Number(e.target.value) : undefined)
+          }
+        >
+          <option value="">No lead</option>
+          {users.map((u) => (
+            <option key={u.id} value={u.id}>
+              {u.name}
+            </option>
+          ))}
+        </select>
+      )}
+      {canDelete && (
         <button
           onClick={onDelete}
           className="text-xs text-[var(--danger)] hover:opacity-70 transition-opacity"
@@ -1657,5 +1818,343 @@ function ComponentRow({
         </button>
       )}
     </li>
+  );
+}
+
+function EditableField({
+  label,
+  value,
+  placeholder,
+  multiline,
+  onSave,
+}: {
+  label: string;
+  value: string;
+  placeholder?: string;
+  multiline?: boolean;
+  onSave: (value: string) => void;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(value);
+
+  useEffect(() => {
+    setDraft(value);
+  }, [value]);
+
+  function save() {
+    setEditing(false);
+    const trimmed = draft.trim();
+    if (trimmed !== value) {
+      onSave(trimmed);
+    }
+  }
+
+  return (
+    <div className="flex gap-4 text-sm items-start">
+      <dt className="w-24 shrink-0 text-muted pt-1">{label}</dt>
+      <dd className="text-foreground font-medium flex-1 min-w-0">
+        {editing ? (
+          multiline ? (
+            <textarea
+              autoFocus
+              className="input py-1.5 text-sm w-full resize-y min-h-[60px]"
+              placeholder={placeholder}
+              value={draft}
+              onChange={(e) => setDraft(e.target.value)}
+              onBlur={save}
+              onKeyDown={(e) => {
+                if (e.key === "Escape") setEditing(false);
+              }}
+            />
+          ) : (
+            <div className="flex gap-2">
+              <input
+                autoFocus
+                className="input py-1 text-sm flex-1"
+                placeholder={placeholder}
+                value={draft}
+                onChange={(e) => setDraft(e.target.value)}
+                onBlur={save}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") save();
+                  if (e.key === "Escape") setEditing(false);
+                }}
+              />
+            </div>
+          )
+        ) : (
+          <button
+            onClick={() => setEditing(true)}
+            className="hover:text-brand transition-colors text-left truncate max-w-full"
+          >
+            {value || <span className="text-muted">—</span>}
+          </button>
+        )}
+      </dd>
+    </div>
+  );
+}
+
+function PermissionsTab({
+    projectId,
+    permissions,
+    roles,
+}: {
+    projectId: string;
+    permissions: Permission[];
+    roles: Role[];
+}) {
+  const [selectedRoleId, setSelectedRoleId] = useState<number | null>(null);
+  const [draft, setDraft] = useState<string>("");
+  const createRole = useCreateRole(projectId);
+  const deleteRole = useDeleteRole(projectId);
+  const setRolePerms = useSetRolePermissions(projectId);
+
+  const selectedRole = roles.find((r) => r.id === selectedRoleId);
+
+  const systemRoles = roles.filter((r) => r.is_system);
+  const customRoles = roles.filter((r) => !r.is_system);
+
+  async function handleCreate() {
+    if (!draft.trim()) return;
+    try {
+      await createRole.mutateAsync({ name: draft.trim() });
+      setDraft("");
+    } catch {}
+  }
+
+  async function handleDelete(role: Role) {
+    if (!(await showConfirm({ message: `Delete role "${role.name}"?`, variant: "danger" }))) return;
+    if (selectedRoleId === role.id) setSelectedRoleId(null);
+    deleteRole.mutate(role.id);
+  }
+
+  return (
+    <div className="max-w-2xl animate-fade-in space-y-4">
+      {/* Role pills */}
+      <div className="surface-card p-5">
+        <h2 className="text-sm font-semibold text-foreground mb-3">Roles</h2>
+        <div className="flex flex-wrap gap-2 mb-3">
+          {systemRoles.map((r) => (
+            <button
+              key={r.id}
+              onClick={() => setSelectedRoleId(r.id)}
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-all ${
+                selectedRoleId === r.id
+                  ? "border-brand bg-[var(--brand-soft)] text-brand"
+                  : "border-border text-muted hover:text-foreground hover:bg-surface-2"
+              }`}
+            >
+              {r.name}
+              <span className="ml-1 text-[10px] opacity-60">(system)</span>
+            </button>
+          ))}
+          {customRoles.map((r) => (
+            <button
+              key={r.id}
+              onClick={() => setSelectedRoleId(r.id)}
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-all ${
+                selectedRoleId === r.id
+                  ? "border-brand bg-[var(--brand-soft)] text-brand"
+                  : "border-border text-muted hover:text-foreground hover:bg-surface-2"
+              }`}
+            >
+              {r.name}
+              <span
+                role="button"
+                tabIndex={0}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleDelete(r);
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.stopPropagation();
+                    handleDelete(r);
+                  }
+                }}
+                className="ml-1.5 text-[var(--danger)] hover:opacity-70 cursor-pointer"
+                title="Delete role"
+              >
+                &times;
+              </span>
+            </button>
+          ))}
+        </div>
+        <div className="flex gap-2">
+          <input
+            placeholder="New role name"
+            className="input py-1 text-xs flex-1"
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") handleCreate();
+            }}
+          />
+          <Button size="sm" disabled={!draft.trim() || createRole.isPending} onClick={handleCreate}>
+            {createRole.isPending ? "Creating…" : "Create"}
+          </Button>
+        </div>
+      </div>
+
+      {/* Permission toggles */}
+      {selectedRole ? (
+        <RolePermissionEditor
+          key={selectedRoleId}
+          role={selectedRole}
+          projectId={projectId}
+          permissions={permissions}
+          setRolePerms={setRolePerms}
+          onDelete={() => handleDelete(selectedRole)}
+        />
+      ) : (
+        <div className="surface-card">
+          <EmptyState
+            icon={
+              <svg className="w-8 h-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+              </svg>
+            }
+            message="Select a role above to view and edit its permissions."
+          />
+        </div>
+      )}
+    </div>
+  );
+}
+
+function RolePermissionEditor({
+  role,
+  projectId,
+  permissions,
+  setRolePerms,
+  onDelete,
+}: {
+  role: Role;
+  projectId: string;
+  permissions: Permission[];
+  setRolePerms: ReturnType<typeof useSetRolePermissions>;
+  onDelete: () => void;
+}) {
+  const { data: assignedKeys = [], isLoading: permLoading } =
+    useRolePermissions(projectId, role.id);
+
+  const [added, setAdded] = useState<Set<string>>(new Set());
+  const [removed, setRemoved] = useState<Set<string>>(new Set());
+
+  const safePerms = permissions ?? [];
+  const groups = Array.from(new Set(safePerms.map((p) => p.group)));
+  const grouped = groups.map((g) => ({
+    key: g,
+    label: g.charAt(0).toUpperCase() + g.slice(1),
+    perms: safePerms.filter((p) => p.group === g),
+  }));
+
+  function isChecked(key: string) {
+    if (removed.has(key)) return false;
+    if (added.has(key)) return true;
+    return assignedKeys.includes(key);
+  }
+
+  function toggle(key: string) {
+    if (isChecked(key)) {
+      setRemoved((prev) => new Set(prev).add(key));
+      setAdded((prev) => {
+        const n = new Set(prev);
+        n.delete(key);
+        return n;
+      });
+    } else {
+      setAdded((prev) => new Set(prev).add(key));
+      setRemoved((prev) => {
+        const n = new Set(prev);
+        n.delete(key);
+        return n;
+      });
+    }
+  }
+
+  async function handleSave() {
+    const finalKeys = [
+      ...assignedKeys.filter((k) => !removed.has(k)),
+      ...added,
+    ];
+    try {
+      await setRolePerms.mutateAsync({
+        roleId: role.id,
+        permissions: finalKeys,
+      });
+      toast("Permissions saved", "success");
+      setAdded(new Set());
+      setRemoved(new Set());
+    } catch {}
+  }
+
+  return (
+    <div className="surface-card overflow-hidden">
+      <div className="px-5 py-3.5 border-b border-border flex items-center justify-between">
+        <h2 className="text-sm font-semibold text-foreground">
+          {role.name}
+          {role.is_system && (
+            <span className="ml-2 text-[10px] font-normal text-muted">system role</span>
+          )}
+        </h2>
+        {!role.is_system && (
+          <button
+            onClick={onDelete}
+            className="text-xs text-[var(--danger)] hover:opacity-70 transition-opacity"
+          >
+            Delete
+          </button>
+        )}
+      </div>
+      <div className="divide-y divide-border">
+        {grouped.map((g) => (
+          <div key={g.key} className="px-5 py-3.5">
+            <h3 className="text-xs font-semibold text-muted uppercase tracking-wider mb-2.5">
+              {g.label}
+            </h3>
+            <div className="space-y-2">
+              {g.perms.map((p) => (
+                <label
+                  key={p.key}
+                  className="flex items-center gap-3 cursor-pointer group"
+                >
+                  <input
+                    type="checkbox"
+                    checked={isChecked(p.key)}
+                    onChange={() => toggle(p.key)}
+                    disabled={permLoading}
+                    className="accent-[var(--brand)]"
+                  />
+                  <div className="flex-1 min-w-0">
+                    <span className="text-sm text-foreground group-hover:text-brand transition-colors">
+                      {p.name}
+                    </span>
+                    {p.description && (
+                      <p className="text-xs text-muted leading-snug">
+                        {p.description}
+                      </p>
+                    )}
+                  </div>
+                  <code className="text-[10px] font-mono text-muted shrink-0">
+                    {p.key}
+                  </code>
+                </label>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+      <div className="px-5 py-3.5 border-t border-border flex justify-end">
+        <Button
+          size="sm"
+          onClick={handleSave}
+          disabled={setRolePerms.isPending}
+        >
+          {setRolePerms.isPending ? "Saving…" : "Save permissions"}
+        </Button>
+      </div>
+    </div>
   );
 }

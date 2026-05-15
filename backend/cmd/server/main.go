@@ -31,6 +31,9 @@ func main() {
 	if err := database.SeedStatuses(db); err != nil {
 		log.Printf("status seed warning: %v", err)
 	}
+	if err := database.SeedPermissionsAndRoles(db); err != nil {
+		log.Printf("permission seed warning: %v", err)
+	}
 
 	go handlers.RunDigestScheduler(db)
 

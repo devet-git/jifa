@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { showConfirm } from "@/store/confirm";
 import { useUsers } from "@/hooks/useUsers";
 import { useBulkIssue, type BulkPatch } from "@/hooks/useBulkIssue";
 import type {
@@ -29,7 +30,7 @@ export function BulkActionBar({ selectedIds, sprints, onClear }: Props) {
   }
   async function handleDelete() {
     if (
-      !confirm(`Delete ${selectedIds.length} issue(s)? This cannot be undone.`)
+      !(await showConfirm({ message: `Delete ${selectedIds.length} issue(s)? This cannot be undone.`, variant: "danger" }))
     )
       return;
     await bulk.mutateAsync({ issue_ids: selectedIds, delete: true });

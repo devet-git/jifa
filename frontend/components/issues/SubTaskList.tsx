@@ -2,6 +2,8 @@
 import { useState } from "react";
 import api from "@/lib/api";
 import { useQueryClient } from "@tanstack/react-query";
+import { usePermissionsStore } from "@/store/permissions";
+import { PermissionGate } from "@/components/ui/PermissionGate";
 import type { Issue } from "@/types";
 
 interface Props {
@@ -9,6 +11,7 @@ interface Props {
 }
 
 export function SubTaskList({ issue }: Props) {
+  const can = usePermissionsStore((s) => s.can);
   const [adding, setAdding] = useState(false);
   const [title, setTitle] = useState("");
   const qc = useQueryClient();
@@ -50,12 +53,14 @@ export function SubTaskList({ issue }: Props) {
         <p className="text-xs text-gray-400 uppercase tracking-wide">
           Sub-tasks{subTasks.length > 0 && ` (${done}/${subTasks.length})`}
         </p>
-        <button
-          onClick={() => setAdding(true)}
-          className="text-xs text-blue-500 hover:underline"
-        >
-          + Add sub-task
-        </button>
+        <PermissionGate perm="issue.create" message="Bạn không có quyền tạo sub-task">
+          <button
+            onClick={() => can("issue.create") && setAdding(true)}
+            className="text-xs text-blue-500 hover:underline"
+          >
+            + Add sub-task
+          </button>
+        </PermissionGate>
       </div>
 
       {subTasks.length > 0 && (
@@ -73,8 +78,9 @@ export function SubTaskList({ issue }: Props) {
             <input
               type="checkbox"
               checked={sub.status === "done"}
-              onChange={() => toggleSubTask(sub)}
+              onChange={() => can("issue.edit") && toggleSubTask(sub)}
               className="rounded"
+              readOnly={!can("issue.edit")}
             />
             <span className={`text-sm flex-1 ${sub.status === "done" ? "line-through text-gray-400" : ""}`}>
               {sub.title}

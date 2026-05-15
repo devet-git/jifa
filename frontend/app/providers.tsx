@@ -1,13 +1,25 @@
 "use client";
 
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { MutationCache, QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { ShortcutsHelp } from "@/components/layout/ShortcutsHelp";
 import { GlobalHotkeys } from "@/components/layout/GlobalHotkeys";
+import { ToastContainer } from "@/components/ui/Toast";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { toast } from "@/store/toast";
 
 export function Providers({ children }: { children: React.ReactNode }) {
   const [queryClient] = useState(() => new QueryClient({
     defaultOptions: { queries: { staleTime: 60_000, retry: 1 } },
+    mutationCache: new MutationCache({
+      onError: (error, _vars, _ctx, mutation) => {
+        if (mutation.meta?.suppressErrorToast) return;
+        const msg = (error as any)?.response?.data?.error
+          ?? (error as any)?.message
+          ?? "Có lỗi xảy ra";
+        toast(msg, "error");
+      },
+    }),
   }));
 
   // Apply persisted theme as early as we can in client-rendered code. The
@@ -23,6 +35,8 @@ export function Providers({ children }: { children: React.ReactNode }) {
     <QueryClientProvider client={queryClient}>
       <GlobalHotkeys />
       <ShortcutsHelp />
+      <ToastContainer />
+      <ConfirmDialog />
       {children}
     </QueryClientProvider>
   );

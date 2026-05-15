@@ -7,6 +7,8 @@ import {
   useDeleteLink,
 } from "@/hooks/useIssueLinks";
 import { useIssues } from "@/hooks/useIssues";
+import { usePermissionsStore } from "@/store/permissions";
+import { PermissionGate } from "@/components/ui/PermissionGate";
 import type { Issue, IssueLinkType } from "@/types";
 
 interface Props {
@@ -20,6 +22,8 @@ const linkLabels: Record<IssueLinkType, { outgoing: string; incoming: string }> 
 };
 
 export function LinksPanel({ issue }: Props) {
+  const can = usePermissionsStore((s) => s.can);
+  const canManage = can("issue.manage-link");
   const { data: links = [] } = useIssueLinks(issue.id);
   const create = useCreateLink(issue.id);
   const remove = useDeleteLink(issue.id);
@@ -69,12 +73,14 @@ export function LinksPanel({ issue }: Props) {
     <div>
       <div className="flex items-center justify-between mb-2">
         <p className="text-xs text-gray-400 uppercase tracking-wide">Links</p>
-        <button
-          onClick={() => setShowAdd((v) => !v)}
-          className="text-xs text-blue-500 hover:underline"
-        >
-          {showAdd ? "Cancel" : "+ Add link"}
-        </button>
+        <PermissionGate perm="issue.manage-link" message="Bạn không có quyền quản lý liên kết">
+          <button
+            onClick={() => canManage && setShowAdd((v) => !v)}
+            className="text-xs text-blue-500 hover:underline"
+          >
+            {showAdd ? "Cancel" : "+ Add link"}
+          </button>
+        </PermissionGate>
       </div>
 
       {showAdd && (
@@ -138,12 +144,14 @@ export function LinksPanel({ issue }: Props) {
                 {r.other.key ?? `#${r.other.id}`}
               </span>
               <span className="flex-1 truncate">{r.other.title}</span>
-              <button
-                onClick={() => remove.mutate(r.linkId)}
-                className="text-xs text-gray-400 hover:text-red-500"
-              >
-                ×
-              </button>
+              <PermissionGate perm="issue.manage-link" message="Bạn không có quyền quản lý liên kết">
+                <button
+                  onClick={() => canManage && remove.mutate(r.linkId)}
+                  className="text-xs text-gray-400 hover:text-red-500"
+                >
+                  ×
+                </button>
+              </PermissionGate>
             </li>
           ))}
         </ul>

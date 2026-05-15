@@ -41,7 +41,7 @@ export function KanbanColumn({ status, issues, onIssueClick, boardKey = "default
   return (
     <div
       className={
-        "flex flex-col surface-card shrink-0 overflow-hidden transition-[width] " +
+        "flex flex-col surface-card shrink-0 overflow-hidden transition-[width] max-h-full min-h-[300px] " +
         (collapsed ? "w-12 min-w-[3rem]" : "w-72 min-w-[280px]")
       }
     >
@@ -113,7 +113,7 @@ export function KanbanColumn({ status, issues, onIssueClick, boardKey = "default
           </div>
           <div
             ref={setNodeRef}
-            className={`flex-1 px-3 pb-3 space-y-2 min-h-[200px] rounded-b-xl transition ${
+            className={`flex-1 overflow-y-auto min-h-0 px-3 pb-3 space-y-2 rounded-b-xl transition ${
               isOver ? "bg-brand-soft" : ""
             }`}
           >

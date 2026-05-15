@@ -1,7 +1,9 @@
 "use client";
 
 import { use, useState } from "react";
-import Link from "next/link";
+import { showConfirm } from "@/store/confirm";
+import { usePermissionsStore } from "@/store/permissions";
+
 import {
   DndContext,
   DragEndEvent,
@@ -16,7 +18,6 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { useProject } from "@/hooks/useProject";
 import {
   useVersions,
   useCreateVersion,
@@ -25,6 +26,7 @@ import {
   useDeleteVersion,
   useReorderVersions,
 } from "@/hooks/useVersions";
+import { PermissionGate } from "@/components/ui/PermissionGate";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import type { Version } from "@/types";
@@ -35,7 +37,7 @@ export default function VersionsPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = use(params);
-  const { data: project } = useProject(id);
+  const can = usePermissionsStore((s) => s.can);
   const { data: versions = [] } = useVersions(id);
   const createVersion = useCreateVersion(id);
   const action = useVersionAction(id);
@@ -82,20 +84,10 @@ export default function VersionsPage({
   }
 
   return (
-    <div className="flex flex-col h-full">
-      <div className="px-8 pt-7 pb-4 border-b border-border bg-surface">
-        <Link
-          href={`/projects/${id}`}
-          className="inline-flex items-center gap-1 text-xs text-muted hover:text-brand transition mb-2"
-        >
-          <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-            <path d="m15 18-6-6 6-6" />
-          </svg>
-          {project?.name}
-        </Link>
-        <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-bold tracking-tight">Versions</h1>
-          <Button size="sm" variant={showAdd ? "secondary" : "gradient"} onClick={() => setShowAdd((v) => !v)}>
+    <div className="h-full p-8 overflow-auto max-w-4xl mx-auto w-full">
+      <div className="flex justify-end mb-4">
+        <PermissionGate perm="version.create" message="Bạn không có quyền tạo phiên bản">
+          <Button size="sm" variant={showAdd ? "secondary" : "gradient"} onClick={() => setShowAdd((v) => !v)} disabled={!can("version.create")}>
             {showAdd ? "Cancel" : (
               <>
                 <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -105,10 +97,8 @@ export default function VersionsPage({
               </>
             )}
           </Button>
-        </div>
+        </PermissionGate>
       </div>
-
-      <div className="flex-1 p-8 overflow-auto max-w-4xl mx-auto w-full">
         {showAdd && (
           <form
             onSubmit={handleAdd}
@@ -167,7 +157,7 @@ export default function VersionsPage({
           <DndContext
             sensors={sensors}
             collisionDetection={closestCenter}
-            onDragEnd={handleDragEnd}
+            onDragEnd={can("version.edit") ? handleDragEnd : undefined}
           >
             <SortableContext
               items={versions.map((v) => v.id)}
@@ -178,6 +168,9 @@ export default function VersionsPage({
                   <VersionRow
                     key={v.id}
                     version={v}
+                    canEdit={can("version.edit")}
+                    canRelease={can("version.release")}
+                    canDelete={can("version.delete")}
                     onRelease={() =>
                       action.mutate({
                         id: v.id,
@@ -186,8 +179,8 @@ export default function VersionsPage({
                       })
                     }
                     onRename={(name) => update.mutate({ id: v.id, name })}
-                    onDelete={() => {
-                      if (confirm(`Delete version "${v.name}"?`))
+                    onDelete={async () => {
+                      if (await showConfirm({ message: `Delete version "${v.name}"?`, variant: "danger" }))
                         remove.mutate(v.id);
                     }}
                   />
@@ -197,17 +190,22 @@ export default function VersionsPage({
           </DndContext>
         )}
       </div>
-    </div>
   );
 }
 
 function VersionRow({
   version,
+  canEdit,
+  canRelease,
+  canDelete,
   onRelease,
   onRename,
   onDelete,
 }: {
   version: Version;
+  canEdit?: boolean;
+  canRelease?: boolean;
+  canDelete?: boolean;
   onRelease: () => void;
   onRename: (name: string) => void;
   onDelete: () => void;
@@ -232,18 +230,20 @@ function VersionRow({
       className="surface-card p-4"
     >
       <div className="flex items-center gap-3 mb-2">
-        <button
-          {...attributes}
-          {...listeners}
-          aria-label="Drag to reorder"
-          className="text-muted hover:text-foreground cursor-grab active:cursor-grabbing select-none transition-colors shrink-0"
-          title="Drag to reorder"
-        >
-          <svg className="w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
-            <path d="M7 2a2 2 0 1 0 .001 4.001A2 2 0 0 0 7 2zm0 6a2 2 0 1 0 .001 4.001A2 2 0 0 0 7 8zm0 6a2 2 0 1 0 .001 4.001A2 2 0 0 0 7 14zm6-8a2 2 0 1 0-.001-4.001A2 2 0 0 0 13 6zm0 2a2 2 0 1 0 .001 4.001A2 2 0 0 0 13 8zm0 6a2 2 0 1 0 .001 4.001A2 2 0 0 0 13 14z" />
-          </svg>
-        </button>
-        {editing ? (
+        {canEdit && (
+          <button
+            {...attributes}
+            {...listeners}
+            aria-label="Drag to reorder"
+            className="text-muted hover:text-foreground cursor-grab active:cursor-grabbing select-none transition-colors shrink-0"
+            title="Drag to reorder"
+          >
+            <svg className="w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
+              <path d="M7 2a2 2 0 1 0 .001 4.001A2 2 0 0 0 7 2zm0 6a2 2 0 1 0 .001 4.001A2 2 0 0 0 7 8zm0 6a2 2 0 1 0 .001 4.001A2 2 0 0 0 7 14zm6-8a2 2 0 1 0-.001-4.001A2 2 0 0 0 13 6zm0 2a2 2 0 1 0 .001 4.001A2 2 0 0 0 13 8zm0 6a2 2 0 1 0 .001 4.001A2 2 0 0 0 13 14z" />
+            </svg>
+          </button>
+        )}
+        {canEdit && editing ? (
           <input
             autoFocus
             className="input !py-1.5 font-semibold flex-1"
@@ -257,7 +257,7 @@ function VersionRow({
           />
         ) : (
           <button
-            onClick={() => setEditing(true)}
+            onClick={() => canEdit && setEditing(true)}
             className="font-semibold text-left flex-1 hover:bg-surface-2 rounded-md px-2 py-1 -mx-2 -my-1 transition truncate"
           >
             {version.name}
@@ -267,22 +267,28 @@ function VersionRow({
           type={version.status === "released" ? "status" : "sprint"}
           value={version.status === "released" ? "done" : version.status}
         />
-        <Button
-          size="sm"
-          variant={version.status === "released" ? "secondary" : "gradient"}
-          onClick={onRelease}
-        >
-          {version.status === "released" ? "Unrelease" : "Release"}
-        </Button>
-        <button
-          onClick={onDelete}
-          aria-label="Delete"
-          className="w-7 h-7 rounded-lg flex items-center justify-center text-muted hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition"
-        >
-          <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
-          </svg>
-        </button>
+        <PermissionGate perm="version.release" message="Bạn không có quyền phát hành phiên bản">
+          <Button
+            size="sm"
+            variant={version.status === "released" ? "secondary" : "gradient"}
+            onClick={onRelease}
+            disabled={!canRelease}
+          >
+            {version.status === "released" ? "Unrelease" : "Release"}
+          </Button>
+        </PermissionGate>
+        <PermissionGate perm="version.delete" message="Bạn không có quyền xóa phiên bản">
+          <button
+            onClick={onDelete}
+            aria-label="Delete"
+            disabled={!canDelete}
+            className="w-7 h-7 rounded-lg flex items-center justify-center text-muted hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition"
+          >
+            <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+            </svg>
+          </button>
+        </PermissionGate>
       </div>
       {version.description && (
         <p className="text-sm text-muted mb-2">{version.description}</p>

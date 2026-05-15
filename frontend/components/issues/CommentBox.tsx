@@ -107,13 +107,13 @@ export function CommentBox({
   }
 
   return (
-    <form onSubmit={submit} className="relative flex gap-2 items-end">
-      <div className="flex-1 relative">
+    <form onSubmit={submit} className="relative">
+      <div className="relative">
         <textarea
           ref={textareaRef}
           rows={2}
           placeholder={placeholder}
-          className="input resize-none"
+          className="input resize-none w-full"
           value={body}
           onChange={handleChange}
           onKeyDown={handleKeyDown}
@@ -145,18 +145,20 @@ export function CommentBox({
           </div>
         )}
       </div>
-      <Button
-        type="submit"
-        size="md"
-        variant="gradient"
-        disabled={submitting || !body.trim()}
-      >
-        <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="m22 2-7 20-4-9-9-4Z" />
-          <path d="M22 2 11 13" />
-        </svg>
-        Send
-      </Button>
+      <div className="flex justify-end mt-2">
+        <Button
+          type="submit"
+          size="sm"
+          variant="gradient"
+          disabled={submitting || !body.trim()}
+        >
+          <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="m22 2-7 20-4-9-9-4Z" />
+            <path d="M22 2 11 13" />
+          </svg>
+          Send
+        </Button>
+      </div>
     </form>
   );
 }

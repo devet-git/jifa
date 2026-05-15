@@ -2,6 +2,7 @@ import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { IssueCard } from "@/components/issues/IssueCard";
 import type { Issue } from "@/types";
+import { cn } from "@/lib/utils";
 
 interface Props {
   issue: Issue;
@@ -27,7 +28,7 @@ export function SortableIssueCard({ issue, onClick, selectMode, selected, onTogg
         ref={setNodeRef}
         style={style}
         {...attributes}
-        className="flex items-start gap-2 cursor-pointer"
+        className={cn("flex items-start gap-2 cursor-pointer", isDragging && "opacity-0")}
         onClick={() => onToggleSelect?.(issue.id)}
       >
         <input
@@ -45,7 +46,7 @@ export function SortableIssueCard({ issue, onClick, selectMode, selected, onTogg
   }
 
   return (
-    <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
+    <div ref={setNodeRef} style={style} {...attributes} {...listeners} className={isDragging ? "opacity-0" : ""}>
       <IssueCard issue={issue} onClick={onClick} dragging={isDragging} />
     </div>
   );

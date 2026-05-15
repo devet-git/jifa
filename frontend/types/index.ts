@@ -4,6 +4,23 @@ export type IssueStatus = "todo" | "in_progress" | "in_review" | "done";
 export type SprintStatus = "planned" | "active" | "completed";
 export type ProjectRole = "admin" | "member" | "viewer";
 
+export interface Permission {
+  id: number;
+  key: string;
+  name: string;
+  group: string;
+  description: string;
+}
+
+export interface Role {
+  id: number;
+  project_id: number | null;
+  name: string;
+  is_system: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface User {
   id: number;
   name: string;
@@ -21,6 +38,9 @@ export interface Project {
   owner_id: number;
   owner?: User;
   is_starred?: boolean;
+  date_format: string;
+  time_format: string;
+  category?: string;
   created_at: string;
 }
 
@@ -254,6 +274,8 @@ export interface Member {
   project_id: number;
   user_id: number;
   role: ProjectRole;
+  role_id: number;
+  role_model?: Role;
   user?: User;
   created_at: string;
 }

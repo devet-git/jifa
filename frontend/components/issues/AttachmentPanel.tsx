@@ -1,6 +1,9 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { showConfirm } from "@/store/confirm";
+import { usePermissionsStore } from "@/store/permissions";
+import { PermissionGate } from "@/components/ui/PermissionGate";
 import api from "@/lib/api";
 import {
   useAttachments,
@@ -16,6 +19,8 @@ interface Props {
 const MAX_BYTES = 25 * 1024 * 1024;
 
 export function AttachmentPanel({ issueId }: Props) {
+  const can = usePermissionsStore((s) => s.can);
+  const canManage = can("issue.manage-attachment");
   const { data: atts = [] } = useAttachments(issueId);
   const upload = useUploadAttachment(issueId);
   const remove = useDeleteAttachment(issueId);
@@ -50,13 +55,15 @@ export function AttachmentPanel({ issueId }: Props) {
         <p className="text-xs text-gray-400 uppercase tracking-wide">
           Attachments {atts.length > 0 && `(${atts.length})`}
         </p>
-        <button
-          onClick={() => inputRef.current?.click()}
-          className="text-xs text-blue-500 hover:underline"
-          disabled={upload.isPending}
-        >
-          {upload.isPending ? "Uploading…" : "+ Upload"}
-        </button>
+        <PermissionGate perm="issue.manage-attachment" message="Bạn không có quyền quản lý tệp đính kèm">
+          <button
+            onClick={() => canManage && inputRef.current?.click()}
+            className="text-xs text-blue-500 hover:underline"
+            disabled={upload.isPending}
+          >
+            {upload.isPending ? "Uploading…" : "+ Upload"}
+          </button>
+        </PermissionGate>
       </div>
 
       <input
@@ -70,21 +77,23 @@ export function AttachmentPanel({ issueId }: Props) {
         }}
       />
 
-      <div
-        onDragOver={(e) => {
-          e.preventDefault();
-          setDragOver(true);
-        }}
-        onDragLeave={() => setDragOver(false)}
-        onDrop={handleDrop}
-        className={`border-2 border-dashed rounded-lg p-3 mb-2 text-center text-xs transition ${
-          dragOver
-            ? "border-blue-400 bg-blue-50"
-            : "border-gray-200 text-gray-400"
-        }`}
-      >
-        Drop files here or click Upload (max 25 MB each)
-      </div>
+      {canManage && (
+        <div
+          onDragOver={(e) => {
+            e.preventDefault();
+            setDragOver(true);
+          }}
+          onDragLeave={() => setDragOver(false)}
+          onDrop={handleDrop}
+          className={`border-2 border-dashed rounded-lg p-3 mb-2 text-center text-xs transition ${
+            dragOver
+              ? "border-blue-400 bg-blue-50"
+              : "border-gray-200 text-gray-400"
+          }`}
+        >
+          Drop files here or click Upload (max 25 MB each)
+        </div>
+      )}
 
       {error && <p className="text-xs text-red-600 mb-2">{error}</p>}
 
@@ -95,8 +104,9 @@ export function AttachmentPanel({ issueId }: Props) {
               key={a.id}
               att={a}
               issueId={issueId}
-              onDelete={() => {
-                if (confirm(`Delete ${a.original_filename}?`))
+              canDelete={canManage}
+              onDelete={async () => {
+                if (await showConfirm({ message: `Delete ${a.original_filename}?`, variant: "danger" }))
                   remove.mutate(a.id);
               }}
             />
@@ -110,10 +120,12 @@ export function AttachmentPanel({ issueId }: Props) {
 function AttachmentTile({
   att,
   issueId,
+  canDelete,
   onDelete,
 }: {
   att: import("@/types").Attachment;
   issueId: number;
+  canDelete?: boolean;
   onDelete: () => void;
 }) {
   const isImage = att.mime_type?.startsWith("image/");
@@ -179,12 +191,14 @@ function AttachmentTile({
           </div>
         </div>
       </button>
-      <button
-        onClick={onDelete}
-        className="absolute top-1 right-1 bg-white/80 backdrop-blur rounded text-xs px-1 opacity-0 group-hover:opacity-100 transition text-red-600"
-      >
-        ×
-      </button>
+      <PermissionGate perm="issue.manage-attachment" message="Bạn không có quyền quản lý tệp đính kèm">
+        <button
+          onClick={onDelete}
+          className="absolute top-1 right-1 bg-white/80 backdrop-blur rounded text-xs px-1 opacity-0 group-hover:opacity-100 transition text-red-600"
+        >
+          ×
+        </button>
+      </PermissionGate>
     </li>
   );
 }

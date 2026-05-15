@@ -1,8 +1,10 @@
 "use client";
 
 import { useCallback, useMemo, useState, use } from "react";
+import Link from "next/link";
 import { BulkActionBar } from "@/components/backlog/BulkActionBar";
 import { useSprints } from "@/hooks/useSprints";
+import { useProject } from "@/hooks/useProject";
 import {
   DndContext,
   DragEndEvent,
@@ -23,6 +25,7 @@ import {
   useUpdateIssueStatus,
 } from "@/hooks/useIssues";
 import { useStatuses } from "@/hooks/useStatuses";
+import { ProjectFormatProvider } from "@/lib/projectFormat";
 import type { Issue } from "@/types";
 
 export default function BoardPage({
@@ -46,6 +49,7 @@ export default function BoardPage({
   const projectId = issues[0]?.project_id;
   const { data: statuses = [] } = useStatuses(projectId ?? 0);
   const { data: sprints = [] } = useSprints(projectId ?? 0);
+  const { data: project } = useProject(projectId ?? 0);
 
   const toggleSelect = useCallback((id: number) => {
     setSelectedIds((prev) => {
@@ -86,12 +90,11 @@ export default function BoardPage({
 
   function handleDragEnd(event: DragEndEvent) {
     const { active, over } = event;
-    setActiveIssue(null);
-    if (!over) return;
+    if (!over) { setActiveIssue(null); return; }
 
     const issueId = Number(active.id);
     const issue = issues.find((i) => i.id === issueId);
-    if (!issue) return;
+    if (!issue) { setActiveIssue(null); return; }
 
     const overId = String(over.id);
     const statusKeys = new Set(statuses.map((s) => s.key));
@@ -108,7 +111,7 @@ export default function BoardPage({
       afterId = undefined;
     } else {
       const overIssue = issues.find((i) => i.id === Number(overId));
-      if (!overIssue) return;
+      if (!overIssue) { setActiveIssue(null); return; }
       toStatus = overIssue.status;
       const colIssues = (columns[toStatus] ?? []).filter(
         (i) => i.id !== issueId,
@@ -119,19 +122,36 @@ export default function BoardPage({
     }
 
     const movedColumn = issue.status !== toStatus;
+    const promises: Promise<unknown>[] = [];
     if (movedColumn) {
-      updateStatus.mutate({ id: issueId, status: toStatus });
+      promises.push(updateStatus.mutateAsync({ id: issueId, status: toStatus }));
     }
-    rank.mutate({ id: issueId, before_id: beforeId, after_id: afterId });
+    promises.push(rank.mutateAsync({ id: issueId, before_id: beforeId, after_id: afterId }));
+
+    Promise.all(promises).finally(() => setActiveIssue(null));
   }
 
   const totalIssues = issues.length;
 
   return (
-    <div className="flex flex-col h-full">
-      <div className="px-8 py-4 border-b border-border bg-surface flex items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight inline-flex items-center gap-2 mr-4">
+    <div className="flex flex-col h-dvh overflow-hidden">
+      <div className="px-8 py-4 border-b border-border bg-surface">
+        <div className="flex items-center gap-2 mb-2">
+          {projectId && (
+            <Link
+              href={`/projects/${projectId}`}
+              className="inline-flex items-center gap-1 text-xs text-muted hover:text-foreground transition-colors"
+            >
+              <svg className="w-3.5 h-3.5" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M17 10a.75.75 0 0 1-.75.75H5.612l4.158 3.96a.75.75 0 1 1-1.04 1.08l-5.5-5.25a.75.75 0 0 1 0-1.08l5.5-5.25a.75.75 0 1 1 1.04 1.08L5.612 9.25H16.25A.75.75 0 0 1 17 10Z" clipRule="evenodd" />
+              </svg>
+              {project?.name ?? "Back to project"}
+            </Link>
+          )}
+        </div>
+        <div className="flex items-center justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight inline-flex items-center gap-2 mr-4">
             <svg className="w-6 h-6 text-brand" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
               <rect x="3" y="3" width="7" height="18" rx="1.5" />
               <rect x="14" y="3" width="7" height="11" rx="1.5" />
@@ -154,7 +174,7 @@ export default function BoardPage({
         </button>
       </div>
 
-      <div className="flex-1 overflow-x-auto p-6">
+      <div className="flex-1 min-h-0 overflow-x-auto overflow-y-hidden p-6">
         <DndContext
           sensors={sensors}
           collisionDetection={closestCorners}
@@ -200,11 +220,14 @@ export default function BoardPage({
       )}
 
       {selectedIssue && (
-        <IssueDetail
-          issue={selectedIssue}
-          onClose={() => setSelectedIssue(null)}
-        />
+        <ProjectFormatProvider dateFormat={project?.date_format} timeFormat={project?.time_format}>
+          <IssueDetail
+            issue={selectedIssue}
+            onClose={() => setSelectedIssue(null)}
+          />
+        </ProjectFormatProvider>
       )}
+      </div>
     </div>
   );
 }

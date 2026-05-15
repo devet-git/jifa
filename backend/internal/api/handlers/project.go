@@ -106,6 +106,14 @@ func (h *ProjectHandler) Create(c *gin.Context) {
 		OwnerID:     userID.(uint),
 	}
 
+	// Resolve the Admin system role ID
+	var adminRole models.Role
+	h.db.Where("is_system = true AND LOWER(name) = 'admin'").First(&adminRole)
+	adminRoleID := adminRole.ID
+	if adminRoleID == 0 {
+		adminRoleID = 1 // fallback
+	}
+
 	err := h.db.Transaction(func(tx *gorm.DB) error {
 		if err := tx.Create(&project).Error; err != nil {
 			return err
@@ -113,7 +121,7 @@ func (h *ProjectHandler) Create(c *gin.Context) {
 		if err := tx.Create(&models.Member{
 			ProjectID: project.ID,
 			UserID:    userID.(uint),
-			Role:      models.RoleAdmin,
+			RoleID:    adminRoleID,
 		}).Error; err != nil {
 			return err
 		}
@@ -142,20 +150,44 @@ func (h *ProjectHandler) Get(c *gin.Context) {
 	c.JSON(http.StatusOK, project)
 }
 
+type updateProjectDTO struct {
+	Name        *string `json:"name"`
+	Key         *string `json:"key"`
+	Description *string `json:"description"`
+	DateFormat  *string `json:"date_format"`
+	TimeFormat  *string `json:"time_format"`
+	Category    *string `json:"category"`
+}
+
 func (h *ProjectHandler) Update(c *gin.Context) {
 	var project models.Project
 	if err := h.db.First(&project, c.Param("projectId")).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "project not found"})
 		return
 	}
-	var dto projectDTO
+	var dto updateProjectDTO
 	if err := c.ShouldBindJSON(&dto); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	project.Name = dto.Name
-	project.Key = dto.Key
-	project.Description = dto.Description
+	if dto.Name != nil {
+		project.Name = *dto.Name
+	}
+	if dto.Key != nil {
+		project.Key = *dto.Key
+	}
+	if dto.Description != nil {
+		project.Description = *dto.Description
+	}
+	if dto.DateFormat != nil {
+		project.DateFormat = *dto.DateFormat
+	}
+	if dto.TimeFormat != nil {
+		project.TimeFormat = *dto.TimeFormat
+	}
+	if dto.Category != nil {
+		project.Category = *dto.Category
+	}
 	h.db.Save(&project)
 	c.JSON(http.StatusOK, project)
 }

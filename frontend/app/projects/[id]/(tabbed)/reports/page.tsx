@@ -1,8 +1,6 @@
 "use client";
 
 import { use, useMemo, useState } from "react";
-import Link from "next/link";
-import { useProject } from "@/hooks/useProject";
 import { useSprints } from "@/hooks/useSprints";
 import {
   useVelocity,
@@ -27,7 +25,6 @@ export default function ReportsPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = use(params);
-  const { data: project } = useProject(id);
   const { data: sprints = [] } = useSprints(id);
   const { data: velocity = [] } = useVelocity(id);
 
@@ -51,21 +48,7 @@ export default function ReportsPage({
   const effectiveSprintId = selectedSprint ?? activeSprint?.id ?? burndownCandidates[0]?.id;
 
   return (
-    <div className="flex flex-col h-full">
-      <div className="px-8 pt-7 pb-4 border-b border-border bg-surface">
-        <Link
-          href={`/projects/${id}`}
-          className="inline-flex items-center gap-1 text-xs text-muted hover:text-brand transition mb-2"
-        >
-          <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-            <path d="m15 18-6-6 6-6" />
-          </svg>
-          {project?.name}
-        </Link>
-        <h1 className="text-2xl font-bold tracking-tight">Reports</h1>
-      </div>
-
-      <div className="flex-1 p-8 overflow-auto space-y-6 max-w-5xl mx-auto w-full">
+    <div className="h-full p-8 overflow-auto space-y-6 max-w-5xl mx-auto w-full">
         <section className="surface-card p-6">
           <div className="flex items-center justify-between mb-4">
             <div>
@@ -163,6 +146,5 @@ export default function ReportsPage({
           <ControlChart data={controlChart} />
         </section>
       </div>
-    </div>
   );
 }

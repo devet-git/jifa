@@ -2,6 +2,8 @@
 
 import { useActivity } from "@/hooks/useActivity";
 import { Avatar } from "@/components/ui/Avatar";
+import { formatDate } from "@/lib/formatDate";
+import { useProjectFormat } from "@/lib/projectFormat";
 
 interface Props {
   issueId: number;
@@ -28,6 +30,7 @@ function displayValue(field: string, raw: string) {
 
 export function ActivityFeed({ issueId }: Props) {
   const { data: entries = [] } = useActivity(issueId);
+  const { dateFormat, timeFormat } = useProjectFormat();
 
   if (entries.length === 0) {
     return <p className="text-xs text-gray-400">No activity yet.</p>;
@@ -49,7 +52,7 @@ export function ActivityFeed({ issueId }: Props) {
               {displayValue(a.field, a.new_value)}
             </p>
             <p className="text-xs text-gray-400 mt-0.5">
-              {new Date(a.created_at).toLocaleString("en-US")}
+              {formatDate(a.created_at, dateFormat, timeFormat)}
             </p>
           </div>
         </li>

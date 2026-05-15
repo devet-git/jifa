@@ -25,6 +25,16 @@ export function useCreateProject() {
   });
 }
 
+export function useUpdateProject() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, ...data }: { id: number | string } & Omit<Partial<Project>, "id">) =>
+      api.put(`/projects/${id}`, data).then((r) => r.data),
+    onSuccess: (_data, vars) =>
+      qc.invalidateQueries({ queryKey: ["projects", vars.id] }),
+  });
+}
+
 export function useToggleProjectStar() {
   const qc = useQueryClient();
   return useMutation({
@@ -49,5 +59,6 @@ export function useToggleProjectStar() {
       if (ctx?.prev) qc.setQueryData(["projects"], ctx.prev);
     },
     onSettled: () => qc.invalidateQueries({ queryKey: ["projects"] }),
+    meta: { suppressErrorToast: true },
   });
 }

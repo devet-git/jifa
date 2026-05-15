@@ -15,9 +15,9 @@ import {
 } from "@dnd-kit/core";
 import { SortableContext, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { useProject } from "@/hooks/useProject";
 import { useIssues, useRankIssue } from "@/hooks/useIssues";
 import { useSprints } from "@/hooks/useSprints";
+import { usePermissionsStore } from "@/store/permissions";
 import { Badge } from "@/components/ui/Badge";
 import type { Issue, Sprint } from "@/types";
 
@@ -29,13 +29,15 @@ export default function PlanningPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = use(params);
-  const { data: project } = useProject(id);
+  const can = usePermissionsStore((s) => s.can);
   const { data: backlog = [] } = useIssues({ project_id: id, sprint_id: null });
   const { data: sprints = [] } = useSprints(id);
   const rank = useRankIssue();
 
   const [activeIssue, setActiveIssue] = useState<Issue | null>(null);
   const [overCol, setOverCol] = useState<string | null>(null);
+
+  const canDrag = can("issue.edit");
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
@@ -97,80 +99,103 @@ export default function PlanningPage({
   ];
 
   return (
-    <div className="flex flex-col h-full">
-      <div className="px-8 pt-7 pb-4 border-b border-border bg-surface shrink-0">
-        <Link
-          href={`/projects/${id}`}
-          className="inline-flex items-center gap-1 text-xs text-muted hover:text-brand transition mb-2"
-        >
-          <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-            <path d="m15 18-6-6 6-6" />
-          </svg>
-          {project?.name}
-        </Link>
-        <h1 className="text-2xl font-bold tracking-tight">Sprint Planning</h1>
-        <p className="text-xs text-muted mt-1">
-          Drag issues from the backlog into sprints to plan your work.
-        </p>
-      </div>
-
-      <div className="flex-1 overflow-auto p-6">
-        <DndContext
-          sensors={sensors}
-          onDragStart={onDragStart}
-          onDragOver={onDragOver}
-          onDragEnd={onDragEnd}
-        >
-          <SortableContext items={allIssueIds} strategy={verticalListSortingStrategy}>
-            <div className="flex gap-4 h-full items-start">
-              {/* Backlog column */}
-              <PlanningColumn
-                colId={BACKLOG_COL}
-                title="Backlog"
-                subtitle={`${backlog.length} issue${backlog.length !== 1 ? "s" : ""}`}
-                issues={backlog}
-                isOver={overCol === BACKLOG_COL}
-              />
-
-              {/* Sprint columns */}
-              {planningSpints.map((sprint) => {
-                const issues = sprintIssues.get(sprint.id) ?? [];
-                const colId = `sprint:${sprint.id}`;
-                return (
-                  <PlanningColumn
-                    key={sprint.id}
-                    colId={colId}
-                    title={sprint.name}
-                    subtitle={`${issues.length} issue${issues.length !== 1 ? "s" : ""}`}
-                    sprint={sprint}
-                    issues={issues}
-                    isOver={overCol === colId}
+    <div className="h-full overflow-auto p-6">
+        <div className="flex gap-4 h-full items-start">
+            {canDrag ? (
+              <DndContext
+                sensors={sensors}
+                onDragStart={onDragStart}
+                onDragOver={onDragOver}
+                onDragEnd={onDragEnd}
+              >
+                <SortableContext items={allIssueIds} strategy={verticalListSortingStrategy}>
+                  <ColumnsContent
+                    backlog={backlog}
+                    planningSpints={planningSpints}
+                    sprintIssues={sprintIssues}
+                    id={id}
+                    overCol={overCol}
+                    canDrag={canDrag}
                   />
-                );
-              })}
-
-              {planningSpints.length === 0 && (
-                <div className="surface-card p-8 text-center text-sm text-muted max-w-sm">
-                  No planned or active sprints. Create a sprint in the{" "}
-                  <Link href={`/projects/${id}`} className="text-brand hover:underline">
-                    Sprints tab
-                  </Link>{" "}
-                  to start planning.
-                </div>
-              )}
-            </div>
-          </SortableContext>
-
-          <DragOverlay>
-            {activeIssue && (
-              <div className="surface-card shadow-lg p-2.5 rounded-lg text-sm font-medium opacity-95 w-60">
-                {activeIssue.title}
-              </div>
+                  <DragOverlay>
+                    {activeIssue && (
+                      <div className="surface-card shadow-lg p-2.5 rounded-lg text-sm font-medium opacity-95 w-60">
+                        {activeIssue.title}
+                      </div>
+                    )}
+                  </DragOverlay>
+                </SortableContext>
+              </DndContext>
+            ) : (
+              <ColumnsContent
+                backlog={backlog}
+                planningSpints={planningSpints}
+                sprintIssues={sprintIssues}
+                id={id}
+                overCol={overCol}
+                canDrag={canDrag}
+              />
             )}
-          </DragOverlay>
-        </DndContext>
-      </div>
+        </div>
     </div>
+  );
+}
+
+function ColumnsContent({
+  backlog,
+  planningSpints,
+  sprintIssues,
+  id,
+  overCol,
+  canDrag,
+}: {
+  backlog: Issue[];
+  planningSpints: Sprint[];
+  sprintIssues: Map<number, Issue[]>;
+  id: string;
+  overCol: string | null;
+  canDrag?: boolean;
+}) {
+  return (
+    <>
+      {/* Backlog column */}
+      <PlanningColumn
+        colId={BACKLOG_COL}
+        title="Backlog"
+        subtitle={`${backlog.length} issue${backlog.length !== 1 ? "s" : ""}`}
+        issues={backlog}
+        isOver={overCol === BACKLOG_COL}
+        canDrag={canDrag}
+      />
+
+      {/* Sprint columns */}
+      {planningSpints.map((sprint) => {
+        const issues = sprintIssues.get(sprint.id) ?? [];
+        const colId = `sprint:${sprint.id}`;
+        return (
+          <PlanningColumn
+            key={sprint.id}
+            colId={colId}
+            title={sprint.name}
+            subtitle={`${issues.length} issue${issues.length !== 1 ? "s" : ""}`}
+            sprint={sprint}
+            issues={issues}
+            isOver={overCol === colId}
+            canDrag={canDrag}
+          />
+        );
+      })}
+
+      {planningSpints.length === 0 && (
+        <div className="surface-card p-8 text-center text-sm text-muted max-w-sm">
+          No planned or active sprints. Create a sprint in the{" "}
+          <Link href={`/projects/${id}`} className="text-brand hover:underline">
+            Sprints tab
+          </Link>{" "}
+          to start planning.
+        </div>
+      )}
+    </>
   );
 }
 
@@ -181,6 +206,7 @@ function PlanningColumn({
   sprint,
   issues,
   isOver,
+  canDrag,
 }: {
   colId: string;
   title: string;
@@ -188,6 +214,7 @@ function PlanningColumn({
   sprint?: Sprint;
   issues: Issue[];
   isOver: boolean;
+  canDrag?: boolean;
 }) {
   const { setNodeRef } = useDroppable({ id: colId });
 
@@ -211,7 +238,7 @@ function PlanningColumn({
         }`}
       >
         {issues.map((issue) => (
-          <PlanningIssueRow key={issue.id} issue={issue} />
+          <PlanningIssueRow key={issue.id} issue={issue} canDrag={canDrag} />
         ))}
         {issues.length === 0 && (
           <p className="text-xs text-muted text-center py-6 italic">
@@ -223,15 +250,9 @@ function PlanningColumn({
   );
 }
 
-function PlanningIssueRow({ issue }: { issue: Issue }) {
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-    isDragging,
-  } = useSortable({ id: issue.id });
+function PlanningIssueRow({ issue, canDrag }: { issue: Issue; canDrag?: boolean }) {
+  const sortable = useSortable({ id: issue.id, disabled: !canDrag });
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = sortable;
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -243,9 +264,8 @@ function PlanningIssueRow({ issue }: { issue: Issue }) {
     <div
       ref={setNodeRef}
       style={style}
-      {...attributes}
-      {...listeners}
-      className="surface-card p-2.5 rounded-lg cursor-grab active:cursor-grabbing flex items-start gap-2 text-xs hover:shadow-sm transition-shadow"
+      {...(canDrag ? { ...attributes, ...listeners } : {})}
+      className="surface-card p-2.5 rounded-lg flex items-start gap-2 text-xs hover:shadow-sm transition-shadow"
     >
       <span className="font-mono text-[10px] text-muted shrink-0 mt-0.5 w-14 truncate">
         {issue.key ?? `#${issue.id}`}
