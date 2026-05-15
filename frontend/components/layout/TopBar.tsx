@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useSearch } from "@/hooks/useSearch";
@@ -16,6 +16,15 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/Popover";
+import {
+  CommandDialog,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+  CommandSeparator,
+} from "@/components/ui/Command";
 import type { Notification } from "@/types";
 
 export function TopBar() {
@@ -31,41 +40,40 @@ export function TopBar() {
 function SearchBox() {
   const [q, setQ] = useState("");
   const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
   const { data } = useSearch(q);
 
+  /* Global ⌘K / Ctrl+K opens the command palette. */
   useEffect(() => {
-    function onClick(e: MouseEvent) {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
-    }
     function onKey(e: KeyboardEvent) {
       const isMac = navigator.platform.toUpperCase().includes("MAC");
       if ((isMac ? e.metaKey : e.ctrlKey) && e.key.toLowerCase() === "k") {
         e.preventDefault();
-        inputRef.current?.focus();
-        setOpen(true);
+        setOpen((v) => !v);
       }
-      if (e.key === "Escape") setOpen(false);
     }
-    document.addEventListener("mousedown", onClick);
     document.addEventListener("keydown", onKey);
-    return () => {
-      document.removeEventListener("mousedown", onClick);
-      document.removeEventListener("keydown", onKey);
-    };
+    return () => document.removeEventListener("keydown", onKey);
   }, []);
 
   const issues = data?.issues ?? [];
   const projects = data?.projects ?? [];
-  const hasResults = issues.length > 0 || projects.length > 0;
+
+  function go(href: string) {
+    router.push(href);
+    setOpen(false);
+    setQ("");
+  }
 
   return (
-    <div ref={ref} className="relative w-[420px] max-w-full">
-      <div className="relative flex items-center bg-surface border border-border rounded-[10px] hover:border-[var(--border-strong)] focus-within:border-brand focus-within:shadow-[0_0_0_4px_color-mix(in_srgb,var(--brand)_18%,transparent)] transition">
+    <>
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className="relative flex items-center w-[420px] max-w-full bg-surface border border-border rounded-[10px] hover:border-[var(--border-strong)] transition text-left px-3 py-2 outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
+      >
         <svg
-          className="ml-3 mr-2 w-4 h-4 text-muted shrink-0"
+          className="mr-2 w-4 h-4 text-muted shrink-0"
           viewBox="0 0 24 24"
           fill="none"
           stroke="currentColor"
@@ -76,81 +84,68 @@ function SearchBox() {
           <circle cx="11" cy="11" r="7" />
           <path d="m20 20-3.5-3.5" />
         </svg>
-        <input
-          ref={inputRef}
-          type="text"
-          placeholder="Search issues, projects…"
-          className="flex-1 min-w-0 bg-transparent text-sm py-2 pr-2 outline-none placeholder:text-[var(--muted-2)]"
-          value={q}
-          onChange={(e) => {
-            setQ(e.target.value);
-            setOpen(true);
-          }}
-          onFocus={() => setOpen(true)}
-        />
-        <div className="flex items-center gap-1 pr-2.5 pointer-events-none">
+        <span className="flex-1 text-sm text-muted-2 truncate">
+          Search issues, projects…
+        </span>
+        <span className="flex items-center gap-1 shrink-0 ml-2">
           <span className="kbd">⌘</span>
           <span className="kbd">K</span>
-        </div>
-      </div>
+        </span>
+      </button>
 
-      {open && q.trim() && (
-        <div className="absolute left-0 right-0 mt-2 surface-elevated max-h-96 overflow-auto z-40 animate-slide-down">
-          {!hasResults ? (
-            <p className="px-4 py-6 text-center text-xs text-muted">
-              No results for <span className="font-medium">&ldquo;{q}&rdquo;</span>
-            </p>
-          ) : (
-            <>
-              {issues.length > 0 && (
-                <div className="py-1">
-                  <p className="px-3 pt-2 pb-1 text-[10px] uppercase tracking-wider text-muted">
-                    Issues
-                  </p>
-                  {issues.map((i) => (
-                    <button
-                      key={i.id}
-                      onClick={() => {
-                        router.push(`/projects/${i.project_id}`);
-                        setOpen(false);
-                      }}
-                      className="w-full text-left px-3 py-2 hover:bg-surface-2 flex items-center gap-3 text-sm transition"
-                    >
-                      <span className="font-mono text-[11px] text-muted bg-surface-2 px-1.5 py-0.5 rounded shrink-0">
-                        {i.key ?? `#${i.id}`}
-                      </span>
-                      <span className="truncate">{i.title}</span>
-                    </button>
-                  ))}
-                </div>
-              )}
-              {projects.length > 0 && (
-                <div className="py-1 border-t border-border">
-                  <p className="px-3 pt-2 pb-1 text-[10px] uppercase tracking-wider text-muted">
-                    Projects
-                  </p>
-                  {projects.map((p) => (
-                    <button
-                      key={p.id}
-                      onClick={() => {
-                        router.push(`/projects/${p.id}`);
-                        setOpen(false);
-                      }}
-                      className="w-full text-left px-3 py-2 hover:bg-surface-2 flex items-center gap-3 text-sm transition"
-                    >
-                      <span className="font-mono text-[11px] bg-brand-soft text-brand-strong rounded px-1.5 py-0.5 shrink-0">
-                        {p.key}
-                      </span>
-                      <span className="truncate">{p.name}</span>
-                    </button>
-                  ))}
-                </div>
-              )}
-            </>
+      <CommandDialog
+        open={open}
+        onOpenChange={(o) => {
+          setOpen(o);
+          if (!o) setQ("");
+        }}
+      >
+        <CommandInput
+          placeholder="Search issues, projects…"
+          value={q}
+          onValueChange={setQ}
+          autoFocus
+        />
+        <CommandList>
+          <CommandEmpty>
+            {q.trim() ? "No results found." : "Type to search…"}
+          </CommandEmpty>
+          {issues.length > 0 && (
+            <CommandGroup heading="Issues">
+              {issues.map((i) => (
+                <CommandItem
+                  key={i.id}
+                  value={`${i.key ?? `#${i.id}`} ${i.title}`}
+                  onSelect={() => go(`/projects/${i.project_id}`)}
+                >
+                  <span className="font-mono text-[11px] text-muted bg-surface-2 px-1.5 py-0.5 rounded shrink-0">
+                    {i.key ?? `#${i.id}`}
+                  </span>
+                  <span className="truncate">{i.title}</span>
+                </CommandItem>
+              ))}
+            </CommandGroup>
           )}
-        </div>
-      )}
-    </div>
+          {issues.length > 0 && projects.length > 0 && <CommandSeparator />}
+          {projects.length > 0 && (
+            <CommandGroup heading="Projects">
+              {projects.map((p) => (
+                <CommandItem
+                  key={p.id}
+                  value={`${p.key} ${p.name}`}
+                  onSelect={() => go(`/projects/${p.id}`)}
+                >
+                  <span className="font-mono text-[11px] bg-brand-soft text-brand-strong rounded px-1.5 py-0.5 shrink-0">
+                    {p.key}
+                  </span>
+                  <span className="truncate">{p.name}</span>
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          )}
+        </CommandList>
+      </CommandDialog>
+    </>
   );
 }
 

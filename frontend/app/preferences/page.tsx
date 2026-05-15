@@ -15,6 +15,7 @@ import { Avatar } from "@/components/ui/Avatar";
 import { Button } from "@/components/ui/Button";
 import { DatePicker } from "@/components/ui/DatePicker";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/Tabs";
+import { Switch } from "@/components/ui/Switch";
 import type { ApiToken, NotificationPrefs } from "@/types";
 
 type Row = {
@@ -548,7 +549,7 @@ function NotificationsTab() {
         </div>
         <div />
         <div className="flex justify-center">
-          <Toggle checked={Boolean(prefs?.email_digest)} onChange={(v) => setPref("email_digest", v)} />
+          <Switch checked={Boolean(prefs?.email_digest)} onCheckedChange={(v) => setPref("email_digest", v)} />
         </div>
       </div>
 
@@ -563,8 +564,8 @@ function NotificationsTab() {
             <p className="font-medium text-sm">{row.label}</p>
             <p className="text-xs text-muted mt-0.5">{row.description}</p>
           </div>
-          <div className="flex justify-center"><Toggle checked={Boolean(prefs?.[row.inApp])} onChange={(v) => setPref(row.inApp, v)} /></div>
-          <div className="flex justify-center"><Toggle checked={Boolean(prefs?.[row.email])} onChange={(v) => setPref(row.email, v)} /></div>
+          <div className="flex justify-center"><Switch checked={Boolean(prefs?.[row.inApp])} onCheckedChange={(v) => setPref(row.inApp, v)} /></div>
+          <div className="flex justify-center"><Switch checked={Boolean(prefs?.[row.email])} onCheckedChange={(v) => setPref(row.email, v)} /></div>
         </div>
       ))}
     </div>
@@ -823,18 +824,3 @@ function ConfigBlock({
   );
 }
 
-// ---------------------------------------------------------------------------
-// Toggle
-// ---------------------------------------------------------------------------
-
-function Toggle({ checked, onChange }: { checked: boolean; onChange: (v: boolean) => void }) {
-  return (
-    <button
-      onClick={() => onChange(!checked)}
-      className={`w-10 h-6 rounded-full relative transition-colors ${checked ? "gradient-brand" : "bg-surface-3"}`}
-      aria-pressed={checked}
-    >
-      <span className={`absolute top-0.5 w-5 h-5 bg-white rounded-full shadow-md transition-all ${checked ? "left-[18px]" : "left-0.5"}`} />
-    </button>
-  );
-}
