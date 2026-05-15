@@ -33,6 +33,15 @@ import { DatePicker } from "@/components/ui/DatePicker";
 import { Progress } from "@/components/ui/Progress";
 import { Tooltip } from "@/components/ui/Tooltip";
 import { Skeleton } from "@/components/ui/Skeleton";
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuLabel,
+  ContextMenuSeparator,
+  ContextMenuTrigger,
+} from "@/components/ui/ContextMenu";
+import { Pencil, Rocket, RotateCcw, Trash2 } from "lucide-react";
 import type { Version } from "@/types";
 
 export default function VersionsPage({
@@ -235,6 +244,8 @@ function VersionRow({
   }
 
   return (
+    <ContextMenu>
+      <ContextMenuTrigger asChild>
     <li
       ref={setNodeRef}
       style={{ transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.4 : 1 }}
@@ -335,5 +346,31 @@ function VersionRow({
         indicatorClassName="bg-gradient-to-r from-emerald-500 to-teal-500"
       />
     </li>
+      </ContextMenuTrigger>
+      <ContextMenuContent>
+        <ContextMenuLabel>{version.name}</ContextMenuLabel>
+        {canEdit && (
+          <ContextMenuItem onSelect={() => setEditing(true)}>
+            <Pencil />
+            Rename
+          </ContextMenuItem>
+        )}
+        {canRelease && (
+          <ContextMenuItem onSelect={onRelease}>
+            {version.status === "released" ? <RotateCcw /> : <Rocket />}
+            {version.status === "released" ? "Unrelease" : "Release"}
+          </ContextMenuItem>
+        )}
+        {canDelete && (
+          <>
+            <ContextMenuSeparator />
+            <ContextMenuItem danger onSelect={onDelete}>
+              <Trash2 />
+              Delete version
+            </ContextMenuItem>
+          </>
+        )}
+      </ContextMenuContent>
+    </ContextMenu>
   );
 }

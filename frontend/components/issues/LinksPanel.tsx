@@ -17,6 +17,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/Select";
+import { IssueHoverCard } from "@/components/ui/IssueHoverCard";
 import type { Issue, IssueLinkType } from "@/types";
 
 interface Props {
@@ -145,7 +146,9 @@ export function LinksPanel({ issue }: Props) {
         <p className="text-xs text-gray-400">No linked issues.</p>
       ) : (
         <ul className="space-y-1">
-          {rows.map((r) => (
+          {rows.map((r) => {
+            const fullIssue = issues.find((i) => i.id === r.other.id);
+            return (
             <li
               key={r.linkId}
               className="flex items-center gap-2 text-sm border rounded px-2 py-1"
@@ -153,9 +156,11 @@ export function LinksPanel({ issue }: Props) {
               <span className="text-xs text-gray-500 w-24 shrink-0">
                 {r.label}
               </span>
-              <span className="text-xs font-mono text-gray-400 shrink-0">
-                {r.other.key ?? `#${r.other.id}`}
-              </span>
+              <IssueHoverCard issue={fullIssue} side="right" align="start">
+                <span className="text-xs font-mono text-gray-400 shrink-0 cursor-default">
+                  {r.other.key ?? `#${r.other.id}`}
+                </span>
+              </IssueHoverCard>
               <span className="flex-1 truncate">{r.other.title}</span>
               <PermissionGate perm="issue.manage-link" message="Bạn không có quyền quản lý liên kết">
                 <button
@@ -166,7 +171,8 @@ export function LinksPanel({ issue }: Props) {
                 </button>
               </PermissionGate>
             </li>
-          ))}
+            );
+          })}
         </ul>
       )}
     </div>
