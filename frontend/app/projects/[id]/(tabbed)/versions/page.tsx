@@ -32,6 +32,7 @@ import { Button } from "@/components/ui/Button";
 import { DatePicker } from "@/components/ui/DatePicker";
 import { Progress } from "@/components/ui/Progress";
 import { Tooltip } from "@/components/ui/Tooltip";
+import { Skeleton } from "@/components/ui/Skeleton";
 import type { Version } from "@/types";
 
 export default function VersionsPage({

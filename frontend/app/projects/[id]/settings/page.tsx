@@ -77,6 +77,7 @@ import {
 import { Avatar } from "@/components/ui/Avatar";
 import { UserHoverCard } from "@/components/ui/UserHoverCard";
 import { Button } from "@/components/ui/Button";
+import { Skeleton } from "@/components/ui/Skeleton";
 import {
   Select,
   SelectContent,
@@ -2670,27 +2671,42 @@ function RolePermissionEditor({
                   className="shrink-0 p-1 rounded text-[var(--brand)] hover:bg-[var(--brand-soft)] transition-colors disabled:opacity-30"
                   title="Save"
                 >
-                  <Checkbox
-                    checked={isChecked(p.key)}
-                    onCheckedChange={() => toggle(p.key)}
-                    disabled={permLoading}
-                  />
-                  <div className="flex-1 min-w-0">
-                    <span className="text-sm text-foreground group-hover:text-brand transition-colors">
-                      {p.name}
-                    </span>
-                    {p.description && (
-                      <p className="text-xs text-muted leading-snug">
-                        {p.description}
-                      </p>
-                    )}
-                  </div>
-                  <code className="text-[10px] font-mono text-muted shrink-0">
-                    {p.key}
-                  </code>
-                </label>
-              ))}
-            </div>
+                  <svg
+                    className="w-3.5 h-3.5"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <polyline points="20 6 9 17 4 12" />
+                  </svg>
+                </button>
+                <button
+                  onClick={cancelRename}
+                  className="shrink-0 p-1 rounded text-muted hover:text-foreground hover:bg-surface-2 transition-colors"
+                  title="Cancel"
+                >
+                  <svg
+                    className="w-3.5 h-3.5"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <line x1="18" y1="6" x2="6" y2="18" />
+                    <line x1="6" y1="6" x2="18" y2="18" />
+                  </svg>
+                </button>
+              </div>
+            ) : (
+              <h2 className="text-sm font-semibold text-foreground truncate">
+                {role.name}
+              </h2>
+            )}
           </div>
           <div className="flex items-center gap-2 shrink-0">
             {!readOnly && !editingName && (

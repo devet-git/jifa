@@ -18,6 +18,7 @@ import { WorkloadChart } from "@/components/reports/WorkloadChart";
 import { CFDChart } from "@/components/reports/CFDChart";
 import { TimeInStatusChart } from "@/components/reports/TimeInStatusChart";
 import { ControlChart } from "@/components/reports/ControlChart";
+import { Skeleton } from "@/components/ui/Skeleton";
 import {
   Select,
   SelectContent,

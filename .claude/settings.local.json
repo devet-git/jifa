@@ -22,7 +22,8 @@
       "Bash(git -C \"D:\\\\Projects\\\\jifa\\\\.claude\\\\worktrees\\\\remaining-features\" diff --stat HEAD)",
       "Bash(xargs grep -l \"wiki\\\\|Wiki\\\\|page\\\\|Page\")",
       "mcp__gitnexus__query",
-      "Bash(npm install *)"
+      "Bash(npm install *)",
+      "Bash(git show *)"
     ]
   },
   "outputStyle": "default"

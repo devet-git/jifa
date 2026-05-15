@@ -5,6 +5,7 @@ import { useIssues } from "@/hooks/useIssues";
 import { usePermissionsStore } from "@/store/permissions";
 import { IssueDetail } from "@/components/issues/IssueDetail";
 import { Progress } from "@/components/ui/Progress";
+import { SkeletonCard } from "@/components/ui/Skeleton";
 import type { Issue, IssueStatus } from "@/types";
 
 export default function EpicsPage({

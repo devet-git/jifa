@@ -52,7 +52,6 @@ import { ActivityFeed } from "@/components/issues/ActivityFeed";
 import { CommentBox } from "@/components/issues/CommentBox";
 import { AttachmentPanel } from "@/components/issues/AttachmentPanel";
 import { TimeTrackingPanel } from "@/components/issues/TimeTrackingPanel";
-import { DatePicker } from "@/components/ui/DatePicker";
 import { formatDate } from "@/lib/formatDate";
 import { useProjectFormat } from "@/lib/projectFormat";
 import api from "@/lib/api";
