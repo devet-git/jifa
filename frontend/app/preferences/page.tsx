@@ -16,7 +16,7 @@ import { Button } from "@/components/ui/Button";
 import { DatePicker } from "@/components/ui/DatePicker";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/Tabs";
 import { Switch } from "@/components/ui/Switch";
-import { Alert } from "@/components/ui/Alert";
+import { Alert, AlertTitle, AlertDescription } from "@/components/ui/Alert";
 import type { ApiToken, NotificationPrefs } from "@/types";
 
 type Row = {
@@ -448,16 +448,27 @@ function TokensTab() {
       </div>
 
       {newToken && (
-        <div className="mx-6 mt-5 p-4 rounded-xl bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/25 space-y-2">
-          <div className="flex items-center justify-between">
+        <Alert variant="warning" className="mx-6 mt-5">
+          <div className="flex items-center justify-between mb-2">
             <div>
-              <p className="text-xs font-semibold text-amber-800 dark:text-amber-300">Token created — copy it now</p>
-              <p className="text-xs text-amber-700 dark:text-amber-400 mt-0.5">You won&apos;t be able to see this token again.</p>
+              <AlertTitle className="text-xs font-semibold">
+                Token created — copy it now
+              </AlertTitle>
+              <AlertDescription className="text-xs mt-0.5">
+                You won&apos;t be able to see this token again.
+              </AlertDescription>
             </div>
-            <button onClick={() => setNewToken(null)} className="text-xs text-amber-700 dark:text-amber-400 hover:text-amber-800 dark:hover:text-amber-200 transition">Dismiss</button>
+            <button
+              onClick={() => setNewToken(null)}
+              className="text-xs opacity-80 hover:opacity-100 transition"
+            >
+              Dismiss
+            </button>
           </div>
-          <code className="block text-xs font-mono bg-white dark:bg-amber-950 border border-amber-200 dark:border-amber-500/25 px-3 py-2 rounded-lg select-all break-all">{newToken.token}</code>
-        </div>
+          <code className="block text-xs font-mono bg-white dark:bg-amber-950 border border-amber-200 dark:border-amber-500/25 px-3 py-2 rounded-lg select-all break-all">
+            {newToken.token}
+          </code>
+        </Alert>
       )}
 
       <form onSubmit={handleCreate} className="flex items-end gap-3 px-6 py-4 border-b border-border">

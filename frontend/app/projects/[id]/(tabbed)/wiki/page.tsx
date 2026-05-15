@@ -13,6 +13,7 @@ import {
   useDeleteWikiPage,
 } from "@/hooks/useWiki";
 import { Avatar } from "@/components/ui/Avatar";
+import { UserHoverCard } from "@/components/ui/UserHoverCard";
 import { MarkdownEditor, MarkdownBody } from "@/components/ui/MarkdownEditor";
 import type { WikiPage } from "@/types";
 
@@ -421,7 +422,9 @@ function WikiPageView({
       {/* Author & date */}
       {page.author && (
         <div className="flex items-center gap-2.5 mb-7 text-xs text-muted">
-          <Avatar name={page.author.name} size="sm" />
+          <UserHoverCard user={page.author} side="bottom" align="start">
+            <Avatar name={page.author.name} size="sm" />
+          </UserHoverCard>
           <span className="font-medium text-foreground">{page.author.name}</span>
           <span>·</span>
           <span>Updated {timeAgo(page.updated_at)}</span>

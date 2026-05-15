@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useJQL } from "@/hooks/useJQL";
 import { Badge } from "@/components/ui/Badge";
 import { Avatar } from "@/components/ui/Avatar";
+import { UserHoverCard } from "@/components/ui/UserHoverCard";
 import { Alert } from "@/components/ui/Alert";
 
 const EXAMPLES = [
@@ -132,7 +133,11 @@ export default function AdvancedSearchPage() {
                     {i.title}
                   </span>
                   <Badge type="status" value={i.status} showDot />
-                  {i.assignee && <Avatar name={i.assignee.name} size="sm" />}
+                  {i.assignee && (
+                    <UserHoverCard user={i.assignee} side="left">
+                      <Avatar name={i.assignee.name} size="sm" />
+                    </UserHoverCard>
+                  )}
                 </Link>
               </li>
             ))}

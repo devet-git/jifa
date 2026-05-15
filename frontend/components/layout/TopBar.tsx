@@ -11,6 +11,7 @@ import {
   useMarkAllRead,
 } from "@/hooks/useNotifications";
 import { Avatar } from "@/components/ui/Avatar";
+import { UserHoverCard } from "@/components/ui/UserHoverCard";
 import {
   Popover,
   PopoverContent,
@@ -271,7 +272,9 @@ function NotificationRow({
         isUnread ? "bg-brand-soft/40" : ""
       }`}
     >
-      <Avatar name={n.actor?.name ?? "?"} size="sm" />
+      <UserHoverCard user={n.actor} side="left" align="start">
+        <Avatar name={n.actor?.name ?? "?"} size="sm" />
+      </UserHoverCard>
       <div className="flex-1 min-w-0">
         <p className="text-sm leading-snug">
           <span className="font-medium">{n.actor?.name ?? "Someone"}</span>{" "}

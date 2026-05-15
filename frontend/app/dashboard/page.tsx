@@ -11,6 +11,7 @@ import { useRecentlyViewed } from "@/hooks/useJQL";
 import { CreateProjectModal } from "@/components/projects/CreateProjectModal";
 import { Button } from "@/components/ui/Button";
 import { Avatar } from "@/components/ui/Avatar";
+import { UserHoverCard } from "@/components/ui/UserHoverCard";
 import { Badge } from "@/components/ui/Badge";
 import type { Issue } from "@/types";
 
@@ -177,7 +178,9 @@ export default function DashboardPage() {
             <ul className="divide-y divide-border">
               {recentNotifs.slice(0, 6).map((n) => (
                 <li key={n.id} className="px-4 py-3 flex gap-3 text-xs">
-                  <Avatar name={n.actor?.name ?? "?"} size="sm" />
+                  <UserHoverCard user={n.actor} side="right" align="start">
+                    <Avatar name={n.actor?.name ?? "?"} size="sm" />
+                  </UserHoverCard>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm leading-snug">
                       <span className="font-medium">

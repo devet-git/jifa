@@ -13,6 +13,7 @@ import {
 import { usePermissionsStore } from "@/store/permissions";
 import { PermissionGate } from "@/components/ui/PermissionGate";
 import { Avatar } from "@/components/ui/Avatar";
+import { UserHoverCard } from "@/components/ui/UserHoverCard";
 import { Progress } from "@/components/ui/Progress";
 import { formatDate } from "@/lib/formatDate";
 import { useProjectFormat } from "@/lib/projectFormat";
@@ -181,7 +182,9 @@ export function TimeTrackingPanel({ issue }: Props) {
               key={l.id}
               className="flex items-center gap-2 text-sm border rounded px-2 py-1"
             >
-              <Avatar name={l.user?.name} size="sm" />
+              <UserHoverCard user={l.user} side="top">
+                <Avatar name={l.user?.name} size="sm" />
+              </UserHoverCard>
               <span className="font-semibold">{formatDuration(l.minutes)}</span>
               <span className="text-gray-500 flex-1 truncate">
                 {l.description || <em className="text-gray-400">—</em>}
