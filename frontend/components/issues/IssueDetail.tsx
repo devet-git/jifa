@@ -35,6 +35,11 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/DropdownMenu";
+import {
+  Sheet,
+  SheetContent,
+  SheetTitle,
+} from "@/components/ui/Sheet";
 import { MarkdownEditor, MarkdownBody } from "@/components/ui/MarkdownEditor";
 import { SubTaskList } from "@/components/issues/SubTaskList";
 import { LinksPanel } from "@/components/issues/LinksPanel";
@@ -188,15 +193,15 @@ export function IssueDetail({ issue: initialIssue, onClose }: Props) {
   ];
 
   return (
-    <div className="fixed inset-0 z-40 flex animate-fade-in">
-      <div
-        className="flex-1 bg-slate-900/40 backdrop-blur-sm"
-        onClick={onClose}
-      />
-      <div
-        className="w-full max-w-2xl bg-surface shadow-2xl overflow-y-auto flex flex-col border-l border-border"
-        style={{ animation: "slideDown 220ms ease-out both" }}
+    <Sheet open onOpenChange={(o) => !o && onClose()}>
+      <SheetContent
+        side="right"
+        className="!max-w-2xl w-full overflow-y-auto flex flex-col !p-0"
+        hideClose
       >
+        <SheetTitle className="sr-only">
+          {issue.title || `Issue ${issue.key ?? issue.id}`}
+        </SheetTitle>
         {/* Header */}
         <div className="flex items-start justify-between p-6 border-b border-border sticky top-0 bg-surface/95 backdrop-blur z-10">
           <div className="flex-1 min-w-0">
@@ -833,8 +838,8 @@ export function IssueDetail({ issue: initialIssue, onClose }: Props) {
             {tab === "links" && <LinksPanel issue={issue} />}
           </div>
         </div>
-      </div>
-    </div>
+      </SheetContent>
+    </Sheet>
   );
 }
 
