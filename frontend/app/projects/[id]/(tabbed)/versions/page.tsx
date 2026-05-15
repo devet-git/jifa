@@ -29,6 +29,7 @@ import {
 import { PermissionGate } from "@/components/ui/PermissionGate";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
+import { DatePicker } from "@/components/ui/DatePicker";
 import type { Version } from "@/types";
 
 export default function VersionsPage({
@@ -125,13 +126,10 @@ export default function VersionsPage({
             />
             <div className="flex items-center gap-2">
               <label className="text-xs text-muted">Planned release</label>
-              <input
-                type="date"
-                className="input !py-1.5 !text-xs !w-auto"
+              <DatePicker
+                className="!py-1.5 !text-xs !w-auto"
                 value={draft.release_date}
-                onChange={(e) =>
-                  setDraft((d) => ({ ...d, release_date: e.target.value }))
-                }
+                onChange={(v) => setDraft((d) => ({ ...d, release_date: v }))}
               />
               <div className="flex-1" />
               <Button type="submit" size="sm" variant="gradient" disabled={createVersion.isPending}>

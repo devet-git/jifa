@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Modal } from "@/components/ui/Modal";
 import { Button } from "@/components/ui/Button";
+import { DatePicker } from "@/components/ui/DatePicker";
 import { useCreateSprint } from "@/hooks/useSprints";
 
 interface Props {
@@ -67,26 +68,18 @@ export function CreateSprintModal({ open, onClose, projectId }: Props) {
             <label className="block text-xs font-medium mb-1.5 text-muted">
               Start date
             </label>
-            <input
-              type="date"
-              className="input"
+            <DatePicker
               value={form.start_date}
-              onChange={(e) =>
-                setForm((f) => ({ ...f, start_date: e.target.value }))
-              }
+              onChange={(v) => setForm((f) => ({ ...f, start_date: v }))}
             />
           </div>
           <div>
             <label className="block text-xs font-medium mb-1.5 text-muted">
               End date
             </label>
-            <input
-              type="date"
-              className="input"
+            <DatePicker
               value={form.end_date}
-              onChange={(e) =>
-                setForm((f) => ({ ...f, end_date: e.target.value }))
-              }
+              onChange={(v) => setForm((f) => ({ ...f, end_date: v }))}
             />
           </div>
         </div>
