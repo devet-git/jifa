@@ -20,6 +20,10 @@ interface DatePickerProps {
   max?: string;
   disabled?: boolean;
   required?: boolean;
+  /** Optional id forwarded to the trigger button (FormField wiring). */
+  id?: string;
+  "aria-describedby"?: string;
+  "aria-invalid"?: boolean;
 }
 
 function parseValue(value: string | undefined): Date | undefined {
@@ -45,6 +49,9 @@ export function DatePicker({
   max,
   disabled,
   required,
+  id,
+  "aria-describedby": ariaDescribedBy,
+  "aria-invalid": ariaInvalid,
 }: DatePickerProps) {
   const [open, setOpen] = React.useState(false);
 
@@ -66,12 +73,16 @@ export function DatePicker({
       <PopoverTrigger asChild>
         <button
           type="button"
+          id={id}
           disabled={disabled}
           aria-required={required}
+          aria-describedby={ariaDescribedBy}
+          aria-invalid={ariaInvalid}
           className={cn(
             "input cursor-pointer flex items-center justify-between gap-2 text-left",
             !selected && "text-muted/60",
             disabled && "opacity-50 cursor-not-allowed",
+            ariaInvalid && "border-red-500 focus:border-red-500",
             className,
           )}
         >
