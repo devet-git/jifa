@@ -89,23 +89,25 @@ export function KanbanColumn({ status, issues, onIssueClick, boardKey = "default
               {issues.length}
             </span>
             {selectMode && (
-              <Checkbox
-                title="Select all in column"
-                checked={
-                  issues.length > 0 &&
-                  issues.every((i) => selectedIds?.has(i.id))
-                }
-                onCheckedChange={() => {
-                  const allSelected =
+              <Tooltip content="Select all in column">
+                <Checkbox
+                  aria-label="Select all in column"
+                  checked={
                     issues.length > 0 &&
-                    issues.every((i) => selectedIds?.has(i.id));
-                  issues.forEach((i) => {
-                    const isSelected = selectedIds?.has(i.id) ?? false;
-                    if (allSelected ? isSelected : !isSelected)
-                      onToggleSelect?.(i.id);
-                  });
-                }}
-              />
+                    issues.every((i) => selectedIds?.has(i.id))
+                  }
+                  onCheckedChange={() => {
+                    const allSelected =
+                      issues.length > 0 &&
+                      issues.every((i) => selectedIds?.has(i.id));
+                    issues.forEach((i) => {
+                      const isSelected = selectedIds?.has(i.id) ?? false;
+                      if (allSelected ? isSelected : !isSelected)
+                        onToggleSelect?.(i.id);
+                    });
+                  }}
+                />
+              </Tooltip>
             )}
             <Tooltip content="Collapse column">
               <button
