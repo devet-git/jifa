@@ -42,6 +42,7 @@ import {
 } from "@/components/ui/Sheet";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/Tabs";
 import { Checkbox } from "@/components/ui/Checkbox";
+import { UserHoverCard } from "@/components/ui/UserHoverCard";
 import { MarkdownEditor, MarkdownBody } from "@/components/ui/MarkdownEditor";
 import { cn } from "@/lib/utils";
 import { SubTaskList } from "@/components/issues/SubTaskList";
@@ -456,10 +457,12 @@ export function IssueDetail({ issue: initialIssue, onClose }: Props) {
               <p className="text-[11px] text-muted uppercase tracking-wider mb-1.5 font-medium">
                 Reporter
               </p>
-              <div className="flex items-center gap-2 text-sm">
-                <Avatar name={issue.reporter?.name} size="sm" />
-                <span className="truncate">{issue.reporter?.name}</span>
-              </div>
+              <UserHoverCard user={issue.reporter} side="left">
+                <div className="flex items-center gap-2 text-sm cursor-default">
+                  <Avatar name={issue.reporter?.name} size="sm" />
+                  <span className="truncate">{issue.reporter?.name}</span>
+                </div>
+              </UserHoverCard>
             </div>
             <div>
               <p className="text-[11px] text-muted uppercase tracking-wider mb-1.5 font-medium">

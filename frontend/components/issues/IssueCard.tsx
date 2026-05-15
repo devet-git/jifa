@@ -3,6 +3,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import api from "@/lib/api";
 import { usePermissionsStore } from "@/store/permissions";
 import { Avatar } from "@/components/ui/Avatar";
+import { UserHoverCard } from "@/components/ui/UserHoverCard";
 import { cn } from "@/lib/utils";
 import type { Issue, IssueType, IssuePriority } from "@/types";
 
@@ -225,11 +226,13 @@ export function IssueCard({ issue, onClick, className, dragging }: Props) {
           {priorityArrow[issue.priority]}
         </span>
         {issue.assignee && (
-          <Avatar
-            name={issue.assignee.name}
-            src={issue.assignee.avatar}
-            size="xs"
-          />
+          <UserHoverCard user={issue.assignee} side="top">
+            <Avatar
+              name={issue.assignee.name}
+              src={issue.assignee.avatar}
+              size="xs"
+            />
+          </UserHoverCard>
         )}
       </div>
     </div>

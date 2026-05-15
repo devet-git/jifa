@@ -2,6 +2,7 @@
 
 import { useActivity } from "@/hooks/useActivity";
 import { Avatar } from "@/components/ui/Avatar";
+import { UserHoverCard } from "@/components/ui/UserHoverCard";
 import { formatDate } from "@/lib/formatDate";
 import { useProjectFormat } from "@/lib/projectFormat";
 
@@ -40,7 +41,9 @@ export function ActivityFeed({ issueId }: Props) {
     <ul className="space-y-3">
       {entries.map((a) => (
         <li key={a.id} className="flex gap-3 text-sm">
-          <Avatar name={a.user?.name} size="sm" />
+          <UserHoverCard user={a.user} side="right" align="start">
+            <Avatar name={a.user?.name} size="sm" />
+          </UserHoverCard>
           <div className="flex-1">
             <p>
               <span className="font-medium">{a.user?.name ?? "Someone"}</span>{" "}
