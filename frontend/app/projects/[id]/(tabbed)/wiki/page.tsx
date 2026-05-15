@@ -15,6 +15,7 @@ import {
 import { Avatar } from "@/components/ui/Avatar";
 import { UserHoverCard } from "@/components/ui/UserHoverCard";
 import { Spinner } from "@/components/ui/Spinner";
+import { Tooltip } from "@/components/ui/Tooltip";
 import { MarkdownEditor, MarkdownBody } from "@/components/ui/MarkdownEditor";
 import type { WikiPage } from "@/types";
 
@@ -153,15 +154,21 @@ export default function WikiListPage({
                     </span>
                   </div>
                   {can("wiki.delete") && (
-                  <span
-                    onClick={(e) => { e.stopPropagation(); handleDelete(p.id); }}
-                    className="opacity-0 group-hover:opacity-100 transition text-muted hover:text-red-500 p-0.5 rounded cursor-pointer"
-                    title="Delete page"
-                  >
-                    <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M18 6 6 18M6 6l12 12" />
-                    </svg>
-                  </span>
+                    <Tooltip content="Delete page">
+                      <span
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDelete(p.id);
+                        }}
+                        aria-label="Delete page"
+                        role="button"
+                        className="opacity-0 group-hover:opacity-100 transition text-muted hover:text-red-500 p-0.5 rounded cursor-pointer"
+                      >
+                        <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M18 6 6 18M6 6l12 12" />
+                        </svg>
+                      </span>
+                    </Tooltip>
                   )}
                 </div>
               </button>
@@ -405,15 +412,17 @@ function WikiPageView({
             </button>
             )}
             {can("wiki.delete") && (
-            <button
-              onClick={handleDelete}
-              title="Delete page"
-              className="text-xs px-2.5 py-1.5 rounded-lg ring-1 ring-border text-muted hover:text-red-500 hover:ring-red-500/30 transition"
-            >
-              <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-              </svg>
-            </button>
+              <Tooltip content="Delete page">
+                <button
+                  onClick={handleDelete}
+                  aria-label="Delete page"
+                  className="text-xs px-2.5 py-1.5 rounded-lg ring-1 ring-border text-muted hover:text-red-500 hover:ring-red-500/30 transition"
+                >
+                  <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                  </svg>
+                </button>
+              </Tooltip>
             )}
           </div>
         </div>
