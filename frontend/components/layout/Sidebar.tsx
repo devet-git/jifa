@@ -132,9 +132,23 @@ export function Sidebar() {
 
       <div className="px-5 py-5 border-b border-white/5 relative">
         <Link href="/dashboard" className="flex items-center gap-2.5">
-          <span className="w-8 h-8 rounded-lg gradient-brand flex items-center justify-center font-bold text-white shadow-lg shadow-indigo-600/30">
-            J
-          </span>
+          <svg
+            width="32" height="32" viewBox="0 0 40 40" fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+            className="shrink-0 rounded-lg shadow-lg shadow-indigo-600/30"
+          >
+            <defs>
+              <linearGradient id="jf-sidebar" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0%" stopColor="#6366f1"/>
+                <stop offset="100%" stopColor="#8b5cf6"/>
+              </linearGradient>
+            </defs>
+            <rect width="40" height="40" rx="9" fill="url(#jf-sidebar)"/>
+            <g stroke="white" strokeWidth="3.4" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M9.5,32 L9.5,8 L29,8 L29,26 C29,34 18,35 16,29"/>
+              <line x1="9.5" y1="20" x2="20" y2="20"/>
+            </g>
+          </svg>
           <span className="text-lg font-bold tracking-tight text-white">
             Jifa
           </span>
