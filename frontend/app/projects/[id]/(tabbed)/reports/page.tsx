@@ -18,7 +18,13 @@ import { WorkloadChart } from "@/components/reports/WorkloadChart";
 import { CFDChart } from "@/components/reports/CFDChart";
 import { TimeInStatusChart } from "@/components/reports/TimeInStatusChart";
 import { ControlChart } from "@/components/reports/ControlChart";
-import { Skeleton } from "@/components/ui/Skeleton";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/Select";
 
 export default function ReportsPage({
   params,
@@ -85,22 +91,21 @@ export default function ReportsPage({
                 Remaining story points per day against the ideal line.
               </p>
             </div>
-            <select
-              className="input !py-1.5 !text-xs !w-auto"
-              value={effectiveSprintId ?? ""}
-              onChange={(e) =>
-                setSelectedSprint(
-                  e.target.value ? Number(e.target.value) : undefined,
-                )
-              }
+            <Select
+              value={effectiveSprintId ? String(effectiveSprintId) : undefined}
+              onValueChange={(v) => setSelectedSprint(v ? Number(v) : undefined)}
             >
-              <option value="">— Select sprint —</option>
-              {burndownCandidates.map((s) => (
-                <option key={s.id} value={s.id}>
-                  {s.name} ({s.status})
-                </option>
-              ))}
-            </select>
+              <SelectTrigger className="!py-1.5 !text-xs !w-auto min-w-[180px]">
+                <SelectValue placeholder="— Select sprint —" />
+              </SelectTrigger>
+              <SelectContent>
+                {burndownCandidates.map((s) => (
+                  <SelectItem key={s.id} value={String(s.id)}>
+                    {s.name} ({s.status})
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
           {effectiveSprintId ? (
             <BurndownChart data={burndown} />

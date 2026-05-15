@@ -2,7 +2,19 @@ import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import api from "@/lib/api";
 import { usePermissionsStore } from "@/store/permissions";
+import { toast } from "@/store/toast";
 import { Avatar } from "@/components/ui/Avatar";
+import { UserHoverCard } from "@/components/ui/UserHoverCard";
+import { Tooltip } from "@/components/ui/Tooltip";
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuLabel,
+  ContextMenuSeparator,
+  ContextMenuTrigger,
+} from "@/components/ui/ContextMenu";
+import { Copy, ExternalLink, Hash, Type as TypeIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Issue, IssueType, IssuePriority } from "@/types";
 
@@ -130,7 +142,23 @@ export function IssueCard({ issue, onClick, className, dragging }: Props) {
     }
   }
 
+  function copy(text: string, label: string) {
+    if (typeof navigator !== "undefined" && navigator.clipboard) {
+      navigator.clipboard.writeText(text).then(
+        () => toast(`${label} copied`, "success"),
+        () => toast(`Couldn't copy ${label.toLowerCase()}`, "error"),
+      );
+    }
+  }
+
+  const issueLink =
+    typeof window !== "undefined"
+      ? `${window.location.origin}/projects/${issue.project_id}#issue-${issue.id}`
+      : "";
+
   return (
+    <ContextMenu>
+      <ContextMenuTrigger asChild>
     <div
       onClick={onClick}
       className={cn(
@@ -205,33 +233,63 @@ export function IssueCard({ issue, onClick, className, dragging }: Props) {
 
       <div className="flex flex-col items-center gap-1.5 shrink-0">
         {!editing && can("issue.edit") && (
-          <button
-            type="button"
-            onClick={startEdit}
-            aria-label="Edit title"
-            title="Edit title"
-            className="opacity-0 group-hover:opacity-100 w-4 h-4 text-muted hover:text-brand transition"
-          >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M12 20h9" />
-              <path d="M16.5 3.5a2.121 2.121 0 1 1 3 3L7 19l-4 1 1-4 12.5-12.5z" />
-            </svg>
-          </button>
+          <Tooltip content="Edit title">
+            <button
+              type="button"
+              onClick={startEdit}
+              aria-label="Edit title"
+              className="opacity-0 group-hover:opacity-100 w-4 h-4 text-muted hover:text-brand transition"
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M12 20h9" />
+                <path d="M16.5 3.5a2.121 2.121 0 1 1 3 3L7 19l-4 1 1-4 12.5-12.5z" />
+              </svg>
+            </button>
+          </Tooltip>
         )}
-        <span
-          className={cn("w-3.5 h-3.5", priorityColor[issue.priority])}
-          title={`Priority: ${issue.priority}`}
-        >
-          {priorityArrow[issue.priority]}
-        </span>
+        <Tooltip content={`Priority: ${issue.priority}`}>
+          <span
+            className={cn("w-3.5 h-3.5 cursor-default", priorityColor[issue.priority])}
+          >
+            {priorityArrow[issue.priority]}
+          </span>
+        </Tooltip>
         {issue.assignee && (
-          <Avatar
-            name={issue.assignee.name}
-            src={issue.assignee.avatar}
-            size="xs"
-          />
+          <UserHoverCard user={issue.assignee} side="top">
+            <Avatar
+              name={issue.assignee.name}
+              src={issue.assignee.avatar}
+              size="xs"
+            />
+          </UserHoverCard>
         )}
       </div>
     </div>
+      </ContextMenuTrigger>
+      <ContextMenuContent>
+        <ContextMenuLabel>{issue.key ?? `#${issue.id}`}</ContextMenuLabel>
+        {onClick && (
+          <ContextMenuItem onSelect={onClick}>
+            <ExternalLink />
+            Open issue
+          </ContextMenuItem>
+        )}
+        <ContextMenuSeparator />
+        {issue.key && (
+          <ContextMenuItem onSelect={() => copy(issue.key!, "Issue key")}>
+            <Hash />
+            Copy issue key
+          </ContextMenuItem>
+        )}
+        <ContextMenuItem onSelect={() => copy(issue.title, "Title")}>
+          <TypeIcon />
+          Copy title
+        </ContextMenuItem>
+        <ContextMenuItem onSelect={() => copy(issueLink, "Link")}>
+          <Copy />
+          Copy link
+        </ContextMenuItem>
+      </ContextMenuContent>
+    </ContextMenu>
   );
 }

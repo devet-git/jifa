@@ -13,6 +13,8 @@ import {
   useDeleteWikiPage,
 } from "@/hooks/useWiki";
 import { Avatar } from "@/components/ui/Avatar";
+import { UserHoverCard } from "@/components/ui/UserHoverCard";
+import { Spinner } from "@/components/ui/Spinner";
 import { MarkdownEditor, MarkdownBody } from "@/components/ui/MarkdownEditor";
 import type { WikiPage } from "@/types";
 
@@ -359,9 +361,7 @@ function WikiPageView({
               className="gradient-brand text-white text-sm font-semibold px-5 py-2 rounded-lg disabled:opacity-60 transition inline-flex items-center gap-1.5"
             >
               {updatePage.isPending ? (
-                <svg className="w-3.5 h-3.5 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M21 12a9 9 0 1 1-6.219-8.56" strokeLinecap="round" />
-                </svg>
+                <Spinner className="w-3.5 h-3.5" />
               ) : (
                 <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" />
@@ -421,7 +421,9 @@ function WikiPageView({
       {/* Author & date */}
       {page.author && (
         <div className="flex items-center gap-2.5 mb-7 text-xs text-muted">
-          <Avatar name={page.author.name} size="sm" />
+          <UserHoverCard user={page.author} side="bottom" align="start">
+            <Avatar name={page.author.name} size="sm" />
+          </UserHoverCard>
           <span className="font-medium text-foreground">{page.author.name}</span>
           <span>·</span>
           <span>Updated {timeAgo(page.updated_at)}</span>

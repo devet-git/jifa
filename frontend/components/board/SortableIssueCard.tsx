@@ -1,6 +1,7 @@
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { IssueCard } from "@/components/issues/IssueCard";
+import { Checkbox } from "@/components/ui/Checkbox";
 import type { Issue } from "@/types";
 import { cn } from "@/lib/utils";
 
@@ -31,12 +32,11 @@ export function SortableIssueCard({ issue, onClick, selectMode, selected, onTogg
         className={cn("flex items-start gap-2 cursor-pointer", isDragging && "opacity-0")}
         onClick={() => onToggleSelect?.(issue.id)}
       >
-        <input
-          type="checkbox"
+        <Checkbox
           checked={!!selected}
-          onChange={() => onToggleSelect?.(issue.id)}
-          className="mt-2.5 w-3.5 h-3.5 accent-[var(--brand)] shrink-0"
+          onCheckedChange={() => onToggleSelect?.(issue.id)}
           onClick={(e) => e.stopPropagation()}
+          className="mt-2.5 shrink-0"
         />
         <div className="flex-1 pointer-events-none">
           <IssueCard issue={issue} onClick={() => {}} dragging={false} />

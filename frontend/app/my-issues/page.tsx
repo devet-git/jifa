@@ -7,6 +7,7 @@ import { useAuthStore } from "@/store/auth";
 import { IssueCard } from "@/components/issues/IssueCard";
 import { IssueDetail } from "@/components/issues/IssueDetail";
 import { Badge } from "@/components/ui/Badge";
+import { Checkbox } from "@/components/ui/Checkbox";
 import type { Issue, IssueStatus } from "@/types";
 
 const STATUSES: IssueStatus[] = ["todo", "in_progress", "in_review", "done"];
@@ -52,11 +53,9 @@ export default function MyIssuesPage() {
           </p>
         </div>
         <label className="inline-flex items-center gap-2 text-xs text-muted cursor-pointer surface-card px-3 py-2">
-          <input
-            type="checkbox"
+          <Checkbox
             checked={hideDone}
-            onChange={(e) => setHideDone(e.target.checked)}
-            className="accent-indigo-600"
+            onCheckedChange={(v) => setHideDone(v === true)}
           />
           Hide done
         </label>

@@ -1,31 +1,33 @@
-import { create } from "zustand";
+import { toast as sonnerToast } from "sonner";
 
 export type ToastType = "success" | "error" | "info" | "warning";
 
-interface Toast {
-  id: string;
-  message: string;
-  type: ToastType;
-}
-
-export const useToastStore = create<{ toasts: Toast[] }>(() => ({
-  toasts: [],
-}));
-
+/**
+ * Drop-in replacement that delegates to Sonner. Existing callers do
+ * `toast("Saved", "success")` — kept identical so we don't have to touch
+ * every call site during the UI library migration.
+ */
 export function toast(message: string, type: ToastType = "info") {
-  const id = Math.random().toString(36).slice(2, 10);
-  useToastStore.setState((s) => ({
-    toasts: [...s.toasts, { id, message, type }],
-  }));
-  setTimeout(() => {
-    useToastStore.setState((s) => ({
-      toasts: s.toasts.filter((t) => t.id !== id),
-    }));
-  }, 4000);
+  switch (type) {
+    case "success":
+      sonnerToast.success(message);
+      return;
+    case "error":
+      sonnerToast.error(message);
+      return;
+    case "warning":
+      sonnerToast.warning(message);
+      return;
+    default:
+      sonnerToast(message);
+  }
 }
 
-export function dismissToast(id: string) {
-  useToastStore.setState((s) => ({
-    toasts: s.toasts.filter((t) => t.id !== id),
-  }));
+/**
+ * Dismiss is rarely used by call sites but kept as a no-op so any stale
+ * imports compile. Pass no id to dismiss all toasts.
+ */
+export function dismissToast(id?: string) {
+  if (id) sonnerToast.dismiss(id);
+  else sonnerToast.dismiss();
 }

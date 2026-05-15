@@ -9,6 +9,14 @@ import {
 import { useIssues } from "@/hooks/useIssues";
 import { usePermissionsStore } from "@/store/permissions";
 import { PermissionGate } from "@/components/ui/PermissionGate";
+import { Button } from "@/components/ui/Button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/Select";
 import type { Issue, IssueLinkType } from "@/types";
 
 interface Props {
@@ -88,43 +96,48 @@ export function LinksPanel({ issue }: Props) {
           onSubmit={handleAdd}
           className="mb-3 flex gap-2 items-center text-sm"
         >
-          <select
+          <Select
             value={draft.type}
-            onChange={(e) =>
-              setDraft((d) => ({
-                ...d,
-                type: e.target.value as IssueLinkType,
-              }))
+            onValueChange={(v) =>
+              setDraft((d) => ({ ...d, type: v as IssueLinkType }))
             }
-            className="border rounded px-2 py-1 text-xs"
           >
-            <option value="blocks">Blocks</option>
-            <option value="relates">Relates to</option>
-            <option value="duplicates">Duplicates</option>
-          </select>
-          <select
-            value={draft.target_id}
-            onChange={(e) =>
-              setDraft((d) => ({ ...d, target_id: e.target.value }))
+            <SelectTrigger className="w-32 !py-1.5 !text-xs">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="blocks">Blocks</SelectItem>
+              <SelectItem value="relates">Relates to</SelectItem>
+              <SelectItem value="duplicates">Duplicates</SelectItem>
+            </SelectContent>
+          </Select>
+          <Select
+            value={draft.target_id || undefined}
+            onValueChange={(v) =>
+              setDraft((d) => ({ ...d, target_id: v }))
             }
-            className="flex-1 border rounded px-2 py-1 text-xs"
           >
-            <option value="">Select an issue…</option>
-            {issues
-              .filter((i) => i.id !== issue.id)
-              .map((i) => (
-                <option key={i.id} value={i.id}>
-                  {i.key ?? `#${i.id}`} — {i.title}
-                </option>
-              ))}
-          </select>
-          <button
+            <SelectTrigger className="flex-1 !py-1.5 !text-xs">
+              <SelectValue placeholder="Select an issue…" />
+            </SelectTrigger>
+            <SelectContent>
+              {issues
+                .filter((i) => i.id !== issue.id)
+                .map((i) => (
+                  <SelectItem key={i.id} value={String(i.id)}>
+                    {i.key ?? `#${i.id}`} — {i.title}
+                  </SelectItem>
+                ))}
+            </SelectContent>
+          </Select>
+          <Button
             type="submit"
-            className="text-xs bg-blue-600 text-white rounded px-2 py-1 disabled:opacity-50"
+            size="sm"
             disabled={!draft.target_id || create.isPending}
+            loading={create.isPending}
           >
             Add
-          </button>
+          </Button>
         </form>
       )}
 

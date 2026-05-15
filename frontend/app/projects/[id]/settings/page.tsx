@@ -75,8 +75,17 @@ import {
   useSetRolePermissions,
 } from "@/hooks/useRoles";
 import { Avatar } from "@/components/ui/Avatar";
+import { UserHoverCard } from "@/components/ui/UserHoverCard";
 import { Button } from "@/components/ui/Button";
-import { Skeleton } from "@/components/ui/Skeleton";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/Select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/Tabs";
+import { Checkbox } from "@/components/ui/Checkbox";
 import type {
   BacklogFilterState,
   Board,
@@ -346,7 +355,11 @@ export default function ProjectSettingsPage({
   }
 
   return (
-    <div className="flex flex-col h-full">
+    <Tabs
+      value={tab}
+      onValueChange={(v) => setTab(v as Tab)}
+      className="flex flex-col h-full"
+    >
       {/* Header */}
       <div className="px-8 pt-6 pb-0 border-b border-border bg-surface">
         <div className="flex items-center gap-2 mb-1">
@@ -371,29 +384,23 @@ export default function ProjectSettingsPage({
         <h1 className="text-xl font-bold tracking-tight text-foreground mb-4">
           Settings
         </h1>
-        <div className="flex gap-0 -mb-px overflow-x-auto">
+        <TabsList className="!bg-transparent !rounded-none !p-0 gap-0 -mb-px overflow-x-auto justify-start w-full">
           {visibleTabs.map((t) => (
-            <button
+            <TabsTrigger
               key={t.key}
-              onClick={() => setTab(t.key)}
-              className={`inline-flex items-center gap-1.5 px-3.5 py-2.5 text-sm font-medium border-b-2 transition-all whitespace-nowrap cursor-pointer ${
-                tab === t.key
-                  ? "border-brand text-brand"
-                  : "border-transparent text-muted hover:text-foreground hover:border-border"
-              }`}
+              value={t.key}
+              className="!rounded-none !bg-transparent !shadow-none inline-flex items-center gap-1.5 px-3.5 py-2.5 text-sm font-medium border-b-2 border-transparent transition-all whitespace-nowrap data-[state=active]:border-brand data-[state=active]:text-brand data-[state=active]:!bg-transparent data-[state=active]:!shadow-none hover:border-border"
             >
-              <span className={tab === t.key ? "text-brand" : "text-muted"}>
-                {t.icon}
-              </span>
+              {t.icon}
               {t.label}
-            </button>
+            </TabsTrigger>
           ))}
-        </div>
+        </TabsList>
       </div>
 
       {/* Content */}
       <div className="flex-1 p-8 overflow-auto">
-        {tab === "members" && (
+        <TabsContent value="members" className="!mt-0">
           <div className="max-w-2xl space-y-4 animate-fade-in">
             {canManageMembers && (
               <div className="surface-card p-5">
@@ -411,28 +418,25 @@ export default function ProjectSettingsPage({
                       setForm((f) => ({ ...f, email: e.target.value }))
                     }
                   />
-                  <select
-                    className="input w-auto"
-                    value={form.role_id}
-                    onChange={(e) =>
-                      setForm((f) => ({
-                        ...f,
-                        role_id: Number(e.target.value),
-                      }))
+                  <Select
+                    value={String(form.role_id)}
+                    onValueChange={(v) =>
+                      setForm((f) => ({ ...f, role_id: Number(v) }))
                     }
                   >
-                    <option value={0}>Default (Member)</option>
-                    {roles.map((r) => (
-                      <option key={r.id} value={r.id}>
-                        {r.name}
-                      </option>
-                    ))}
-                  </select>
-                  <Button
-                    type="submit"
-                    size="sm"
-                    disabled={addMember.isPending}
-                  >
+                    <SelectTrigger className="w-auto min-w-[180px]">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="0">Default (Member)</SelectItem>
+                      {roles.map((r) => (
+                        <SelectItem key={r.id} value={String(r.id)}>
+                          {r.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Button type="submit" size="sm" disabled={addMember.isPending}>
                     {addMember.isPending ? "Adding…" : "Add"}
                   </Button>
                 </form>
@@ -479,7 +483,9 @@ export default function ProjectSettingsPage({
                         key={m.id}
                         className="px-5 py-3.5 flex items-center gap-3"
                       >
-                        <Avatar name={m.user?.name} size="md" />
+                        <UserHoverCard user={m.user} side="right" align="start">
+                          <Avatar name={m.user?.name} size="md" />
+                        </UserHoverCard>
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-medium text-foreground truncate">
                             {m.user?.name}
@@ -494,22 +500,26 @@ export default function ProjectSettingsPage({
                           </p>
                         </div>
                         {canManageMembers && !isOwner ? (
-                          <select
-                            className="input w-auto text-xs py-1"
-                            value={m.role_id}
-                            onChange={(e) =>
+                          <Select
+                            value={String(m.role_id)}
+                            onValueChange={(v) =>
                               updateRole.mutate({
                                 memberId: m.id,
-                                role_id: Number(e.target.value),
+                                role_id: Number(v),
                               })
                             }
                           >
-                            {roles.map((r) => (
-                              <option key={r.id} value={r.id}>
-                                {r.name}
-                              </option>
-                            ))}
-                          </select>
+                            <SelectTrigger className="w-auto !text-xs !py-1 min-w-[140px]">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {roles.map((r) => (
+                                <SelectItem key={r.id} value={String(r.id)}>
+                                  {r.name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
                         ) : (
                           <RoleBadge role={m.role} />
                         )}
@@ -535,29 +545,37 @@ export default function ProjectSettingsPage({
               )}
             </div>
           </div>
-        )}
+        </TabsContent>
 
-        {tab === "components" && <ComponentsTab projectId={id} />}
-        {tab === "workflow" && <WorkflowTab projectId={id} />}
-        {tab === "boards" && <BoardsTab projectId={id} />}
-        {tab === "webhooks" && <WebhooksTab projectId={id} />}
-        {tab === "audit" && (
+        <TabsContent value="components" className="!mt-0">
+          <ComponentsTab projectId={id} />
+        </TabsContent>
+        <TabsContent value="workflow" className="!mt-0">
+          <WorkflowTab projectId={id} />
+        </TabsContent>
+        <TabsContent value="boards" className="!mt-0">
+          <BoardsTab projectId={id} />
+        </TabsContent>
+        <TabsContent value="webhooks" className="!mt-0">
+          <WebhooksTab projectId={id} />
+        </TabsContent>
+        <TabsContent value="audit" className="!mt-0">
           <AuditTab
             projectId={id}
             dateFormat={project?.date_format}
             timeFormat={project?.time_format}
           />
-        )}
+        </TabsContent>
 
-        {tab === "permissions" && (
+        <TabsContent value="permissions" className="!mt-0">
           <PermissionsTab
             projectId={id}
             permissions={permissions}
             roles={roles}
           />
-        )}
+        </TabsContent>
 
-        {tab === "details" && (
+        <TabsContent value="details" className="!mt-0">
           <div className="max-w-2xl space-y-4 animate-fade-in">
             <div className="surface-card p-5">
               <h2 className="text-sm font-semibold text-foreground mb-4">
@@ -598,9 +616,9 @@ export default function ProjectSettingsPage({
             <DateFormatSection project={project} projectId={id} />
             <ImportExportSection projectId={id} />
           </div>
-        )}
+        </TabsContent>
       </div>
-    </div>
+    </Tabs>
   );
 }
 
@@ -731,7 +749,9 @@ function AuditTab({
           <ul className="divide-y divide-border">
             {entries.map((e) => (
               <li key={e.id} className="px-5 py-3.5 flex gap-3">
-                <Avatar name={e.actor?.name ?? "?"} size="sm" />
+                <UserHoverCard user={e.actor} side="right" align="start">
+                  <Avatar name={e.actor?.name ?? "?"} size="sm" />
+                </UserHoverCard>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm">
                     <span className="font-medium text-foreground">
@@ -1101,20 +1121,21 @@ function WorkflowTab({ projectId }: { projectId: string }) {
                   setDraft((d) => ({ ...d, name: e.target.value }))
                 }
               />
-              <select
-                className="input w-auto"
+              <Select
                 value={draft.category}
-                onChange={(e) =>
-                  setDraft((d) => ({
-                    ...d,
-                    category: e.target.value as StatusCategory,
-                  }))
+                onValueChange={(v) =>
+                  setDraft((d) => ({ ...d, category: v as StatusCategory }))
                 }
               >
-                <option value="todo">To Do</option>
-                <option value="in_progress">In Progress</option>
-                <option value="done">Done</option>
-              </select>
+                <SelectTrigger className="w-auto min-w-[140px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todo">To Do</SelectItem>
+                  <SelectItem value="in_progress">In Progress</SelectItem>
+                  <SelectItem value="done">Done</SelectItem>
+                </SelectContent>
+              </Select>
               <ColorPicker
                 value={draft.color}
                 onChange={(c) => setDraft((d) => ({ ...d, color: c }))}
@@ -1298,15 +1319,19 @@ function StatusRow({
       {can("workflow.edit") ? (
         <div className="flex items-center gap-2">
           <ColorPicker value={s.color ?? "#94a3b8"} onChange={onColor} />
-          <select
-            className="input w-auto text-xs py-1"
+          <Select
             value={s.category}
-            onChange={(e) => onCategory(e.target.value as StatusCategory)}
+            onValueChange={(v) => onCategory(v as StatusCategory)}
           >
-            <option value="todo">To Do</option>
-            <option value="in_progress">In Progress</option>
-            <option value="done">Done</option>
-          </select>
+            <SelectTrigger className="w-auto !text-xs !py-1 min-w-[120px]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todo">To Do</SelectItem>
+              <SelectItem value="in_progress">In Progress</SelectItem>
+              <SelectItem value="done">Done</SelectItem>
+            </SelectContent>
+          </Select>
           <button
             onClick={onDelete}
             className="text-xs text-[var(--danger)] hover:opacity-70 transition-opacity"
@@ -1580,17 +1605,21 @@ function DateFormatSection({
           <label className="text-xs text-muted font-medium block mb-1.5">
             Date format
           </label>
-          <select
-            className="input"
+          <Select
             value={project?.date_format ?? "MMM DD, YYYY"}
-            onChange={(e) => setFmt("date_format", e.target.value)}
+            onValueChange={(v) => setFmt("date_format", v)}
           >
-            {DATE_FORMATS.map((f) => (
-              <option key={f.value} value={f.value}>
-                {f.label}
-              </option>
-            ))}
-          </select>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {DATE_FORMATS.map((f) => (
+                <SelectItem key={f.value} value={f.value}>
+                  {f.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
           <p className="text-xs text-muted mt-1.5">
             Preview:{" "}
             <span className="text-foreground font-medium">
@@ -1602,17 +1631,21 @@ function DateFormatSection({
           <label className="text-xs text-muted font-medium block mb-1.5">
             Time format
           </label>
-          <select
-            className="input"
+          <Select
             value={project?.time_format ?? "h:mm A"}
-            onChange={(e) => setFmt("time_format", e.target.value)}
+            onValueChange={(v) => setFmt("time_format", v)}
           >
-            {TIME_FORMATS.map((f) => (
-              <option key={f.value} value={f.value}>
-                {f.label}
-              </option>
-            ))}
-          </select>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {TIME_FORMATS.map((f) => (
+                <SelectItem key={f.value} value={f.value}>
+                  {f.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
           <p className="text-xs text-muted mt-1.5">
             Preview:{" "}
             <span className="text-foreground font-medium">
@@ -1805,39 +1838,43 @@ function ComponentsTab({ projectId }: { projectId: string }) {
   return (
     <div className="max-w-2xl space-y-4 animate-fade-in">
       {can("component.create") && (
-        <div className="surface-card p-4">
-          <h2 className="text-sm font-semibold text-foreground mb-3">
-            Add component
-          </h2>
-          <form onSubmit={handleAdd} className="flex gap-2">
-            <input
-              required
-              placeholder="Component name"
-              className="input flex-1"
-              value={draft.name}
-              onChange={(e) =>
-                setDraft((d) => ({ ...d, name: e.target.value }))
-              }
-            />
-            <select
-              className="input w-auto"
-              value={draft.lead_id}
-              onChange={(e) =>
-                setDraft((d) => ({ ...d, lead_id: e.target.value }))
-              }
-            >
-              <option value="">No lead</option>
+      <div className="surface-card p-4">
+        <h2 className="text-sm font-semibold text-foreground mb-3">
+          Add component
+        </h2>
+        <form onSubmit={handleAdd} className="flex gap-2">
+          <input
+            required
+            placeholder="Component name"
+            className="input flex-1"
+            value={draft.name}
+            onChange={(e) =>
+              setDraft((d) => ({ ...d, name: e.target.value }))
+            }
+          />
+          <Select
+            value={draft.lead_id || "__none__"}
+            onValueChange={(v) =>
+              setDraft((d) => ({ ...d, lead_id: v === "__none__" ? "" : v }))
+            }
+          >
+            <SelectTrigger className="w-auto min-w-[160px]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="__none__">No lead</SelectItem>
               {users.map((u) => (
-                <option key={u.id} value={u.id}>
+                <SelectItem key={u.id} value={String(u.id)}>
                   {u.name}
-                </option>
+                </SelectItem>
               ))}
-            </select>
-            <Button type="submit" size="sm" disabled={create.isPending}>
-              Add
-            </Button>
-          </form>
-        </div>
+            </SelectContent>
+          </Select>
+          <Button type="submit" size="sm" disabled={create.isPending}>
+            Add
+          </Button>
+        </form>
+      </div>
       )}
 
       <div className="surface-card overflow-hidden">
@@ -1990,20 +2027,22 @@ function ComponentRow({
         )}
       </div>
       {canEdit && (
-        <select
-          className="input w-auto text-xs py-1"
-          value={c.lead_id ?? ""}
-          onChange={(e) =>
-            onLead(e.target.value ? Number(e.target.value) : undefined)
-          }
+        <Select
+          value={c.lead_id != null ? String(c.lead_id) : "__none__"}
+          onValueChange={(v) => onLead(v === "__none__" ? undefined : Number(v))}
         >
-          <option value="">No lead</option>
-          {users.map((u) => (
-            <option key={u.id} value={u.id}>
-              {u.name}
-            </option>
-          ))}
-        </select>
+          <SelectTrigger className="w-auto !text-xs !py-1 min-w-[140px]">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="__none__">No lead</SelectItem>
+            {users.map((u) => (
+              <SelectItem key={u.id} value={String(u.id)}>
+                {u.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       )}
       {canDelete && (
         <button
@@ -2631,74 +2670,27 @@ function RolePermissionEditor({
                   className="shrink-0 p-1 rounded text-[var(--brand)] hover:bg-[var(--brand-soft)] transition-colors disabled:opacity-30"
                   title="Save"
                 >
-                  <svg
-                    className="w-3.5 h-3.5"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2.5"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <polyline points="20 6 9 17 4 12" />
-                  </svg>
-                </button>
-                <button
-                  onClick={cancelRename}
-                  className="shrink-0 p-1 rounded text-muted hover:text-foreground hover:bg-surface-2 transition-colors"
-                  title="Cancel"
-                >
-                  <svg
-                    className="w-3.5 h-3.5"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <line x1="18" y1="6" x2="6" y2="18" />
-                    <line x1="6" y1="6" x2="18" y2="18" />
-                  </svg>
-                </button>
-              </div>
-            ) : (
-              <h2 className="text-sm font-semibold text-foreground truncate">
-                {role.name}
-              </h2>
-            )}
-            {readOnly ? (
-              <span className="shrink-0 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium bg-amber-50 text-amber-700 dark:bg-amber-500/10 dark:text-amber-400 border border-amber-200 dark:border-amber-500/20">
-                <svg
-                  className="w-3 h-3"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2.5"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
-                  <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-                </svg>
-                System — read only
-              </span>
-            ) : (
-              <span className="shrink-0 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/20">
-                <svg
-                  className="w-3 h-3"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2.5"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <polyline points="20 6 9 17 4 12" />
-                </svg>
-                Editable
-              </span>
-            )}
+                  <Checkbox
+                    checked={isChecked(p.key)}
+                    onCheckedChange={() => toggle(p.key)}
+                    disabled={permLoading}
+                  />
+                  <div className="flex-1 min-w-0">
+                    <span className="text-sm text-foreground group-hover:text-brand transition-colors">
+                      {p.name}
+                    </span>
+                    {p.description && (
+                      <p className="text-xs text-muted leading-snug">
+                        {p.description}
+                      </p>
+                    )}
+                  </div>
+                  <code className="text-[10px] font-mono text-muted shrink-0">
+                    {p.key}
+                  </code>
+                </label>
+              ))}
+            </div>
           </div>
           <div className="flex items-center gap-2 shrink-0">
             {!readOnly && !editingName && (

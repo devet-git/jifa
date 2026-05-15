@@ -4,7 +4,8 @@ import { MutationCache, QueryClient, QueryClientProvider } from "@tanstack/react
 import { useEffect, useState } from "react";
 import { ShortcutsHelp } from "@/components/layout/ShortcutsHelp";
 import { GlobalHotkeys } from "@/components/layout/GlobalHotkeys";
-import { ToastContainer } from "@/components/ui/Toast";
+import { Toaster } from "@/components/ui/Sonner";
+import { TooltipProvider } from "@/components/ui/Tooltip";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { toast } from "@/store/toast";
 
@@ -33,11 +34,13 @@ export function Providers({ children }: { children: React.ReactNode }) {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <GlobalHotkeys />
-      <ShortcutsHelp />
-      <ToastContainer />
-      <ConfirmDialog />
-      {children}
+      <TooltipProvider delayDuration={200} skipDelayDuration={300}>
+        <GlobalHotkeys />
+        <ShortcutsHelp />
+        <Toaster />
+        <ConfirmDialog />
+        {children}
+      </TooltipProvider>
     </QueryClientProvider>
   );
 }

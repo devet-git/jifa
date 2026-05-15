@@ -8,6 +8,7 @@ import {
   useMarkRead,
 } from "@/hooks/useNotifications";
 import { Avatar } from "@/components/ui/Avatar";
+import { UserHoverCard } from "@/components/ui/UserHoverCard";
 import { Button } from "@/components/ui/Button";
 import { SkeletonRow } from "@/components/ui/Skeleton";
 
@@ -100,7 +101,9 @@ export default function NotificationsPage() {
                   !n.read_at ? "bg-brand-soft/40" : ""
                 }`}
               >
-                <Avatar name={n.actor?.name ?? "?"} size="md" />
+                <UserHoverCard user={n.actor} side="right" align="start">
+                  <Avatar name={n.actor?.name ?? "?"} size="md" />
+                </UserHoverCard>
                 <div className="flex-1 min-w-0">
                   <p className="leading-snug">
                     <span className="font-medium">

@@ -1,6 +1,8 @@
 "use client";
 
 import { Modal } from "@/components/ui/Modal";
+import { Progress } from "@/components/ui/Progress";
+import { Spinner } from "@/components/ui/Spinner";
 import { useSprintRetro } from "@/hooks/useSprints";
 import type { Issue } from "@/types";
 
@@ -17,10 +19,7 @@ export function SprintRetroModal({ open, onClose, sprintId }: Props) {
     <Modal open={open} onClose={onClose} title="Sprint Retrospective" size="xl">
       {isLoading && (
         <div className="flex items-center justify-center py-12">
-          <svg className="w-6 h-6 animate-spin text-brand" viewBox="0 0 24 24" fill="none">
-            <circle cx="12" cy="12" r="10" stroke="currentColor" strokeOpacity="0.25" strokeWidth="3" />
-            <path d="M4 12a8 8 0 0 1 8-8" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
-          </svg>
+          <Spinner className="w-6 h-6 text-brand" />
         </div>
       )}
       {data && (
@@ -38,16 +37,18 @@ export function SprintRetroModal({ open, onClose, sprintId }: Props) {
                   {data.delivered_points} / {data.committed_points}
                 </span>
               </div>
-              <div className="h-2 bg-surface rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-green-500 rounded-full transition-all"
-                  style={{
-                    width: data.committed_points > 0
-                      ? `${Math.min(100, (data.delivered_points / data.committed_points) * 100)}%`
-                      : "0%",
-                  }}
-                />
-              </div>
+              <Progress
+                value={
+                  data.committed_points > 0
+                    ? Math.min(
+                        100,
+                        (data.delivered_points / data.committed_points) * 100,
+                      )
+                    : 0
+                }
+                className="!bg-surface"
+                indicatorClassName="bg-green-500"
+              />
             </div>
             <div className="text-right">
               <p className="text-xs text-muted">Issues</p>

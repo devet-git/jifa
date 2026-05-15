@@ -6,6 +6,12 @@ import StarterKit from "@tiptap/starter-kit";
 import Placeholder from "@tiptap/extension-placeholder";
 import LinkExtension from "@tiptap/extension-link";
 import ImageExtension from "@tiptap/extension-image";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/Popover";
+import { Tooltip } from "@/components/ui/Tooltip";
 import { mdToHtml, htmlToMd } from "@/lib/convertMd";
 import type { Editor } from "@tiptap/react";
 
@@ -82,16 +88,6 @@ function Toolbar({ editor }: { editor: Editor }) {
   const [linkUrl, setLinkUrl] = useState("");
   const [showImageInput, setShowImageInput] = useState(false);
   const [imageUrl, setImageUrl] = useState("");
-  const linkRef = useRef<HTMLInputElement>(null);
-  const imgRef = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    if (showLinkInput) setTimeout(() => linkRef.current?.focus(), 0);
-  }, [showLinkInput]);
-
-  useEffect(() => {
-    if (showImageInput) setTimeout(() => imgRef.current?.focus(), 0);
-  }, [showImageInput]);
 
   function confirmLink() {
     if (linkUrl.trim()) {
@@ -109,19 +105,29 @@ function Toolbar({ editor }: { editor: Editor }) {
     setImageUrl("");
   }
 
-  const btn = (active: boolean, onClick: () => void, title: string, children: React.ReactNode) => (
-    <button
-      type="button"
-      onMouseDown={(e) => { e.preventDefault(); onClick(); }}
-      title={title}
-      className={`w-7 h-7 flex items-center justify-center rounded text-xs font-medium transition ${
-        active
-          ? "bg-brand-soft text-brand"
-          : "text-muted hover:text-foreground hover:bg-surface-2"
-      }`}
-    >
-      {children}
-    </button>
+  const btn = (
+    active: boolean,
+    onClick: () => void,
+    title: string,
+    children: React.ReactNode,
+  ) => (
+    <Tooltip content={title}>
+      <button
+        type="button"
+        onMouseDown={(e) => {
+          e.preventDefault();
+          onClick();
+        }}
+        aria-label={title}
+        className={`w-7 h-7 flex items-center justify-center rounded text-xs font-medium transition ${
+          active
+            ? "bg-brand-soft text-brand"
+            : "text-muted hover:text-foreground hover:bg-surface-2"
+        }`}
+      >
+        {children}
+      </button>
+    </Tooltip>
   );
 
   return (
@@ -164,76 +170,116 @@ function Toolbar({ editor }: { editor: Editor }) {
         <span className="text-xs font-mono font-bold">{`</>`}</span>
       )}
       <div className="w-px h-5 bg-border mx-1" />
-      <div className="relative">
-        {btn(editor.isActive("link"), () => { setLinkUrl(""); setShowLinkInput(true); }, "Insert link",
-          <svg viewBox="0 0 16 16" fill="currentColor" className="w-3.5 h-3.5"><path d="M6.354 5.5H4a3 3 0 0 0 0 6h3a3 3 0 0 0 2.83-4H9c-.086 0-.17.01-.25.031A2 2 0 0 1 7 10.5H4a2 2 0 1 1 0-4h1.535c.218-.376.495-.714.82-1z"/><path d="M9 5.5a3 3 0 0 0-2.83 4h1.098A2 2 0 0 1 9 6.5h3a2 2 0 1 1 0 4h-1.535a4.02 4.02 0 0 1-.82 1H12a3 3 0 1 0 0-6H9z"/></svg>
-        )}
-        {showLinkInput && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30" onClick={() => setShowLinkInput(false)}>
-            <div className="bg-surface border border-border rounded-xl p-4 shadow-xl w-80" onClick={(e) => e.stopPropagation()}>
-              <p className="text-sm font-medium text-foreground mb-2">Insert link</p>
-              <input
-                ref={linkRef}
-                className="input w-full text-sm"
-                placeholder="https://..."
-                value={linkUrl}
-                onChange={(e) => setLinkUrl(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") confirmLink();
-                  if (e.key === "Escape") setShowLinkInput(false);
-                }}
-              />
-              <div className="flex gap-2 mt-3 justify-end">
-                <button
-                  type="button"
-                  onClick={() => setShowLinkInput(false)}
-                  className="text-xs text-muted hover:text-foreground px-2 py-1 rounded transition"
-                >Cancel</button>
-                <button
-                  type="button"
-                  onClick={confirmLink}
-                  className="text-xs gradient-brand text-white rounded px-3 py-1 font-medium transition"
-                >Save</button>
-              </div>
-            </div>
+      <Popover
+        open={showLinkInput}
+        onOpenChange={(o) => {
+          setShowLinkInput(o);
+          if (o) setLinkUrl("");
+        }}
+      >
+        <PopoverTrigger
+          type="button"
+          onMouseDown={(e) => e.preventDefault()}
+          aria-label="Insert link"
+          className={`w-7 h-7 flex items-center justify-center rounded text-xs font-medium transition outline-none ${
+            editor.isActive("link")
+              ? "bg-brand-soft text-brand"
+              : "text-muted hover:text-foreground hover:bg-surface-2"
+          }`}
+        >
+          <svg viewBox="0 0 16 16" fill="currentColor" className="w-3.5 h-3.5">
+            <path d="M6.354 5.5H4a3 3 0 0 0 0 6h3a3 3 0 0 0 2.83-4H9c-.086 0-.17.01-.25.031A2 2 0 0 1 7 10.5H4a2 2 0 1 1 0-4h1.535c.218-.376.495-.714.82-1z" />
+            <path d="M9 5.5a3 3 0 0 0-2.83 4h1.098A2 2 0 0 1 9 6.5h3a2 2 0 1 1 0 4h-1.535a4.02 4.02 0 0 1-.82 1H12a3 3 0 1 0 0-6H9z" />
+          </svg>
+        </PopoverTrigger>
+        <PopoverContent align="start" className="w-80">
+          <p className="text-sm font-medium text-foreground mb-2 px-1">
+            Insert link
+          </p>
+          <input
+            autoFocus
+            className="input w-full text-sm"
+            placeholder="https://..."
+            value={linkUrl}
+            onChange={(e) => setLinkUrl(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                confirmLink();
+              }
+            }}
+          />
+          <div className="flex gap-2 mt-3 justify-end px-1">
+            <button
+              type="button"
+              onClick={() => setShowLinkInput(false)}
+              className="text-xs text-muted hover:text-foreground px-2 py-1 rounded transition"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={confirmLink}
+              className="text-xs gradient-brand text-white rounded px-3 py-1 font-medium transition"
+            >
+              Save
+            </button>
           </div>
-        )}
-      </div>
-      <div className="relative">
-        {btn(false, () => { setImageUrl(""); setShowImageInput(true); }, "Insert image",
-          <svg viewBox="0 0 16 16" fill="currentColor" className="w-3.5 h-3.5"><path d="M6.002 5.5a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0z"/><path d="M2.002 1a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V3a2 2 0 0 0-2-2h-12zm12 1a1 1 0 0 1 1 1v6.5l-3.777-1.947a.5.5 0 0 0-.577.093l-3.71 3.71-2.66-1.772a.5.5 0 0 0-.63.062L1.002 12V3a1 1 0 0 1 1-1h12z"/></svg>
-        )}
-        {showImageInput && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30" onClick={() => setShowImageInput(false)}>
-            <div className="bg-surface border border-border rounded-xl p-4 shadow-xl w-80" onClick={(e) => e.stopPropagation()}>
-              <p className="text-sm font-medium text-foreground mb-2">Insert image</p>
-              <input
-                ref={imgRef}
-                className="input w-full text-sm"
-                placeholder="https://example.com/image.png"
-                value={imageUrl}
-                onChange={(e) => setImageUrl(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") confirmImage();
-                  if (e.key === "Escape") setShowImageInput(false);
-                }}
-              />
-              <div className="flex gap-2 mt-3 justify-end">
-                <button
-                  type="button"
-                  onClick={() => setShowImageInput(false)}
-                  className="text-xs text-muted hover:text-foreground px-2 py-1 rounded transition"
-                >Cancel</button>
-                <button
-                  type="button"
-                  onClick={confirmImage}
-                  className="text-xs gradient-brand text-white rounded px-3 py-1 font-medium transition"
-                >Save</button>
-              </div>
-            </div>
+        </PopoverContent>
+      </Popover>
+      <Popover
+        open={showImageInput}
+        onOpenChange={(o) => {
+          setShowImageInput(o);
+          if (o) setImageUrl("");
+        }}
+      >
+        <PopoverTrigger
+          type="button"
+          onMouseDown={(e) => e.preventDefault()}
+          aria-label="Insert image"
+          className="w-7 h-7 flex items-center justify-center rounded text-xs font-medium text-muted hover:text-foreground hover:bg-surface-2 transition outline-none"
+        >
+          <svg viewBox="0 0 16 16" fill="currentColor" className="w-3.5 h-3.5">
+            <path d="M6.002 5.5a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0z" />
+            <path d="M2.002 1a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V3a2 2 0 0 0-2-2h-12zm12 1a1 1 0 0 1 1 1v6.5l-3.777-1.947a.5.5 0 0 0-.577.093l-3.71 3.71-2.66-1.772a.5.5 0 0 0-.63.062L1.002 12V3a1 1 0 0 1 1-1h12z" />
+          </svg>
+        </PopoverTrigger>
+        <PopoverContent align="start" className="w-80">
+          <p className="text-sm font-medium text-foreground mb-2 px-1">
+            Insert image
+          </p>
+          <input
+            autoFocus
+            className="input w-full text-sm"
+            placeholder="https://example.com/image.png"
+            value={imageUrl}
+            onChange={(e) => setImageUrl(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                confirmImage();
+              }
+            }}
+          />
+          <div className="flex gap-2 mt-3 justify-end px-1">
+            <button
+              type="button"
+              onClick={() => setShowImageInput(false)}
+              className="text-xs text-muted hover:text-foreground px-2 py-1 rounded transition"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={confirmImage}
+              className="text-xs gradient-brand text-white rounded px-3 py-1 font-medium transition"
+            >
+              Save
+            </button>
           </div>
-        )}
-      </div>
+        </PopoverContent>
+      </Popover>
     </div>
   );
 }

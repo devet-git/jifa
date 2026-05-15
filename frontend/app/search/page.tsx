@@ -5,6 +5,9 @@ import Link from "next/link";
 import { useJQL } from "@/hooks/useJQL";
 import { Badge } from "@/components/ui/Badge";
 import { Avatar } from "@/components/ui/Avatar";
+import { UserHoverCard } from "@/components/ui/UserHoverCard";
+import { Alert } from "@/components/ui/Alert";
+import { Spinner } from "@/components/ui/Spinner";
 
 const EXAMPLES = [
   `assignee = me AND status != done`,
@@ -66,13 +69,9 @@ export default function AdvancedSearchPage() {
           </button>
         </div>
         {errMsg && (
-          <div className="mt-3 flex items-start gap-2 p-2 rounded-md bg-red-50 border border-red-200 text-red-700 text-xs dark:bg-red-500/10 dark:border-red-500/30 dark:text-red-300">
-            <svg className="w-3.5 h-3.5 mt-0.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="12" cy="12" r="10" />
-              <path d="M12 8v4M12 16h.01" />
-            </svg>
+          <Alert variant="destructive" className="mt-3 !text-xs !py-2">
             Syntax error: {errMsg}
-          </div>
+          </Alert>
         )}
       </div>
 
@@ -104,10 +103,7 @@ export default function AdvancedSearchPage() {
           </h2>
           {isFetching && (
             <span className="text-xs text-muted inline-flex items-center gap-1.5">
-              <svg className="w-3 h-3 animate-spin" viewBox="0 0 24 24" fill="none">
-                <circle cx="12" cy="12" r="10" stroke="currentColor" strokeOpacity="0.25" strokeWidth="3" />
-                <path d="M4 12a8 8 0 0 1 8-8" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
-              </svg>
+              <Spinner className="w-3 h-3" />
               Searching…
             </span>
           )}
@@ -135,7 +131,11 @@ export default function AdvancedSearchPage() {
                     {i.title}
                   </span>
                   <Badge type="status" value={i.status} showDot />
-                  {i.assignee && <Avatar name={i.assignee.name} size="sm" />}
+                  {i.assignee && (
+                    <UserHoverCard user={i.assignee} side="left">
+                      <Avatar name={i.assignee.name} size="sm" />
+                    </UserHoverCard>
+                  )}
                 </Link>
               </li>
             ))}
