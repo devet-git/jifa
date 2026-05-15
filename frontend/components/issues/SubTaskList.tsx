@@ -4,6 +4,7 @@ import api from "@/lib/api";
 import { useQueryClient } from "@tanstack/react-query";
 import { usePermissionsStore } from "@/store/permissions";
 import { PermissionGate } from "@/components/ui/PermissionGate";
+import { Checkbox } from "@/components/ui/Checkbox";
 import type { Issue } from "@/types";
 
 interface Props {
@@ -75,12 +76,12 @@ export function SubTaskList({ issue }: Props) {
       <div className="space-y-1">
         {subTasks.map((sub) => (
           <div key={sub.id} className="flex items-center gap-2 py-1 px-2 rounded hover:bg-gray-50">
-            <input
-              type="checkbox"
+            <Checkbox
               checked={sub.status === "done"}
-              onChange={() => can("issue.edit") && toggleSubTask(sub)}
-              className="rounded"
-              readOnly={!can("issue.edit")}
+              onCheckedChange={() =>
+                can("issue.edit") && toggleSubTask(sub)
+              }
+              disabled={!can("issue.edit")}
             />
             <span className={`text-sm flex-1 ${sub.status === "done" ? "line-through text-gray-400" : ""}`}>
               {sub.title}

@@ -77,6 +77,7 @@ import {
   SelectValue,
 } from "@/components/ui/Select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/Tabs";
+import { Checkbox } from "@/components/ui/Checkbox";
 import type {
   BacklogFilterState,
   Board,
@@ -2168,12 +2169,10 @@ function RolePermissionEditor({
                   key={p.key}
                   className="flex items-center gap-3 cursor-pointer group"
                 >
-                  <input
-                    type="checkbox"
+                  <Checkbox
                     checked={isChecked(p.key)}
-                    onChange={() => toggle(p.key)}
+                    onCheckedChange={() => toggle(p.key)}
                     disabled={permLoading}
-                    className="accent-[var(--brand)]"
                   />
                   <div className="flex-1 min-w-0">
                     <span className="text-sm text-foreground group-hover:text-brand transition-colors">

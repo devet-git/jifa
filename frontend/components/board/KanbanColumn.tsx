@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useDroppable } from "@dnd-kit/core";
 import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { SortableIssueCard } from "./SortableIssueCard";
+import { Checkbox } from "@/components/ui/Checkbox";
 import type { Issue, StatusDefinition } from "@/types";
 
 interface Props {
@@ -85,16 +86,20 @@ export function KanbanColumn({ status, issues, onIssueClick, boardKey = "default
               {issues.length}
             </span>
             {selectMode && (
-              <input
-                type="checkbox"
-                className="w-3.5 h-3.5 accent-[var(--brand)]"
+              <Checkbox
                 title="Select all in column"
-                checked={issues.length > 0 && issues.every((i) => selectedIds?.has(i.id))}
-                onChange={() => {
-                  const allSelected = issues.length > 0 && issues.every((i) => selectedIds?.has(i.id));
+                checked={
+                  issues.length > 0 &&
+                  issues.every((i) => selectedIds?.has(i.id))
+                }
+                onCheckedChange={() => {
+                  const allSelected =
+                    issues.length > 0 &&
+                    issues.every((i) => selectedIds?.has(i.id));
                   issues.forEach((i) => {
                     const isSelected = selectedIds?.has(i.id) ?? false;
-                    if (allSelected ? isSelected : !isSelected) onToggleSelect?.(i.id);
+                    if (allSelected ? isSelected : !isSelected)
+                      onToggleSelect?.(i.id);
                   });
                 }}
               />

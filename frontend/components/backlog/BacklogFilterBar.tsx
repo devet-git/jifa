@@ -6,6 +6,7 @@ import { useLabels } from "@/hooks/useLabels";
 import { useFilters, useCreateFilter, useDeleteFilter } from "@/hooks/useFilters";
 import { Avatar } from "@/components/ui/Avatar";
 import { Button } from "@/components/ui/Button";
+import { Checkbox } from "@/components/ui/Checkbox";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -329,10 +330,9 @@ function DropdownMulti({
                 key={opt.id}
                 className="flex items-center gap-2 px-3 py-1.5 cursor-pointer hover:bg-surface-2 text-sm transition"
               >
-                <input
-                  type="checkbox"
+                <Checkbox
                   checked={checked}
-                  onChange={() => onToggle(opt.id)}
+                  onCheckedChange={() => onToggle(opt.id)}
                 />
                 {opt.avatar && <Avatar name={opt.avatar} size="sm" />}
                 {opt.color && (

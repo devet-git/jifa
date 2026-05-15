@@ -20,6 +20,7 @@ import { CSS } from "@dnd-kit/utilities";
 import { IssueCard } from "@/components/issues/IssueCard";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
+import { Checkbox } from "@/components/ui/Checkbox";
 import { useRankIssue } from "@/hooks/useIssues";
 import { BacklogFilterBar } from "@/components/backlog/BacklogFilterBar";
 import { BulkActionBar } from "@/components/backlog/BulkActionBar";
@@ -283,10 +284,9 @@ function SectionBlock({
           {section.issues.map((issue) =>
             selectMode ? (
               <div key={issue.id} className="flex items-center gap-2">
-                <input
-                  type="checkbox"
+                <Checkbox
                   checked={selectedIds.has(issue.id)}
-                  onChange={() => onToggleSelected(issue.id)}
+                  onCheckedChange={() => onToggleSelected(issue.id)}
                   className="shrink-0"
                 />
                 <div className="flex-1 min-w-0">

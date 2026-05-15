@@ -41,6 +41,7 @@ import {
   SheetTitle,
 } from "@/components/ui/Sheet";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/Tabs";
+import { Checkbox } from "@/components/ui/Checkbox";
 import { MarkdownEditor, MarkdownBody } from "@/components/ui/MarkdownEditor";
 import { cn } from "@/lib/utils";
 import { SubTaskList } from "@/components/issues/SubTaskList";
@@ -660,11 +661,9 @@ export function IssueDetail({ issue: initialIssue, onClose }: Props) {
                     key={l.id}
                     className="flex items-center gap-2 cursor-pointer py-1 px-2 rounded hover:bg-surface-2 transition"
                   >
-                    <input
-                      type="checkbox"
+                    <Checkbox
                       checked={currentLabelIds.includes(l.id)}
-                      onChange={() => toggleLabel(l.id)}
-                      className="accent-indigo-600"
+                      onCheckedChange={() => toggleLabel(l.id)}
                     />
                     <span
                       className="w-3 h-3 rounded-full inline-block shrink-0 ring-1 ring-black/10"
@@ -720,11 +719,9 @@ export function IssueDetail({ issue: initialIssue, onClose }: Props) {
                     key={c.id}
                     className="flex items-center gap-2 cursor-pointer py-1 px-2 rounded hover:bg-surface-2 transition"
                   >
-                    <input
-                      type="checkbox"
+                    <Checkbox
                       checked={currentComponentIds.includes(c.id)}
-                      onChange={() => toggleComponent(c.id)}
-                      className="accent-indigo-600"
+                      onCheckedChange={() => toggleComponent(c.id)}
                     />
                     <span className="text-sm">{c.name}</span>
                   </label>
