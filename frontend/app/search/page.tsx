@@ -6,6 +6,7 @@ import { useJQL } from "@/hooks/useJQL";
 import { Badge } from "@/components/ui/Badge";
 import { Avatar } from "@/components/ui/Avatar";
 import { UserHoverCard } from "@/components/ui/UserHoverCard";
+import { IssueHoverCard } from "@/components/ui/IssueHoverCard";
 import { Alert } from "@/components/ui/Alert";
 import { Spinner } from "@/components/ui/Spinner";
 
@@ -124,9 +125,11 @@ export default function AdvancedSearchPage() {
                   href={`/projects/${i.project_id}`}
                   className="px-4 py-2.5 flex items-center gap-3 text-sm hover:bg-surface-2 transition group"
                 >
-                  <span className="font-mono text-[11px] text-muted bg-surface-2 px-2 py-1 rounded shrink-0 w-20 text-center">
-                    {i.key ?? `#${i.id}`}
-                  </span>
+                  <IssueHoverCard issue={i} side="right" align="start">
+                    <span className="font-mono text-[11px] text-muted bg-surface-2 px-2 py-1 rounded shrink-0 w-20 text-center">
+                      {i.key ?? `#${i.id}`}
+                    </span>
+                  </IssueHoverCard>
                   <span className="flex-1 truncate group-hover:text-brand transition">
                     {i.title}
                   </span>
