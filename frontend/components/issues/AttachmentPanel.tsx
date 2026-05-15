@@ -12,6 +12,8 @@ import {
 } from "@/hooks/useAttachments";
 import { Avatar } from "@/components/ui/Avatar";
 import { UserHoverCard } from "@/components/ui/UserHoverCard";
+import { Trash2 } from "lucide-react";
+import { FilePreview, FileIcon } from "@/components/ui/FilePreview";
 
 interface Props {
   issueId: number;
@@ -28,6 +30,9 @@ export function AttachmentPanel({ issueId }: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [dragOver, setDragOver] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [preview, setPreview] = useState<{
+    attachment: import("@/types").Attachment;
+  } | null>(null);
 
   async function uploadAll(files: FileList | File[]) {
     setError(null);
@@ -87,9 +92,9 @@ export function AttachmentPanel({ issueId }: Props) {
           onDragLeave={() => setDragOver(false)}
           onDrop={handleDrop}
           className={`border-2 border-dashed rounded-lg p-3 mb-2 text-center text-xs transition ${
-            dragOver
-              ? "border-blue-400 bg-blue-50"
-              : "border-gray-200 text-gray-400"
+           dragOver
+               ? "border-brand bg-brand-soft"
+               : "border-border text-muted"
           }`}
         >
           Drop files here or click Upload (max 25 MB each)
@@ -110,9 +115,19 @@ export function AttachmentPanel({ issueId }: Props) {
                 if (await showConfirm({ message: `Delete ${a.original_filename}?`, variant: "danger" }))
                   remove.mutate(a.id);
               }}
+              onPreview={() => setPreview({ attachment: a })}
             />
           ))}
         </ul>
+      )}
+
+      {preview && (
+        <FilePreview
+          open
+          onClose={() => setPreview(null)}
+          attachment={preview.attachment}
+          issueId={issueId}
+        />
       )}
     </div>
   );
@@ -123,49 +138,45 @@ function AttachmentTile({
   issueId,
   canDelete,
   onDelete,
+  onPreview,
 }: {
   att: import("@/types").Attachment;
   issueId: number;
   canDelete?: boolean;
   onDelete: () => void;
+  onPreview: () => void;
 }) {
   const isImage = att.mime_type?.startsWith("image/");
   const [blobUrl, setBlobUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  // Fetch the bytes through the authed axios instance, then expose them as
-  // an object URL. Direct <img src> would fail because the API requires a
-  // Bearer token.
   async function ensureUrl() {
-    if (blobUrl || loading) return blobUrl;
+    if (blobUrl) return blobUrl;
+    if (loading) return null;
     setLoading(true);
+    let url: string | null = null;
     try {
       const res = await api.get(
         `/issues/${issueId}/attachments/${att.id}`,
         { responseType: "blob" },
       );
-      const url = URL.createObjectURL(res.data);
+      url = URL.createObjectURL(res.data);
       setBlobUrl(url);
-      return url;
-    } finally {
-      setLoading(false);
+    } catch {
+      url = null;
     }
+    setLoading(false);
+    return url;
   }
 
-  // Trigger eager fetch for image previews when they enter the panel.
   if (isImage && !blobUrl && !loading) {
     void ensureUrl();
-  }
-
-  async function handleClick() {
-    const url = (await ensureUrl()) ?? blobUrl;
-    if (url) window.open(url, "_blank");
   }
 
   return (
     <li className="bg-white border rounded-lg overflow-hidden group relative">
       <button
-        onClick={handleClick}
+        onClick={onPreview}
         className="block w-full text-left"
         title={att.original_filename}
       >
@@ -178,8 +189,8 @@ function AttachmentTile({
             />
           </div>
         ) : (
-          <div className="h-24 bg-gray-50 flex items-center justify-center text-2xl text-gray-400">
-            📎
+          <div className="h-24 bg-gray-50 flex items-center justify-center text-gray-400">
+            <FileIcon mime={att.mime_type ?? ""} filename={att.original_filename} className="w-8 h-8" />
           </div>
         )}
         <div className="px-2 py-1.5">
@@ -188,7 +199,7 @@ function AttachmentTile({
           </p>
           <div className="flex items-center gap-1.5 mt-0.5 text-[10px] text-gray-400">
             <UserHoverCard user={att.uploader} side="top">
-              <Avatar name={att.uploader?.name} size="sm" />
+              <Avatar name={att.uploader?.name} src={att.uploader?.avatar} size="sm" />
             </UserHoverCard>
             <span>{humanSize(att.size)}</span>
           </div>
@@ -197,9 +208,9 @@ function AttachmentTile({
       <PermissionGate perm="issue.manage-attachment" message="Bạn không có quyền quản lý tệp đính kèm">
         <button
           onClick={onDelete}
-          className="absolute top-1 right-1 bg-white/80 backdrop-blur rounded text-xs px-1 opacity-0 group-hover:opacity-100 transition text-red-600"
+          className="absolute top-1.5 right-1.5 w-7 h-7 flex items-center justify-center bg-white/80 dark:bg-surface/80 backdrop-blur rounded-md opacity-0 group-hover:opacity-100 transition text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-500/10"
         >
-          ×
+          <Trash2 className="w-3.5 h-3.5" />
         </button>
       </PermissionGate>
     </li>

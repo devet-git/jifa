@@ -41,6 +41,12 @@ import {
   useReorderComponents,
 } from "@/hooks/useComponents";
 import {
+  useLabels,
+  useCreateLabel,
+  useUpdateLabel,
+  useDeleteLabel,
+} from "@/hooks/useLabels";
+import {
   useWebhooks,
   useCreateWebhook,
   useUpdateWebhook,
@@ -81,6 +87,7 @@ import { Skeleton } from "@/components/ui/Skeleton";
 import { Checkbox } from "@/components/ui/Checkbox";
 import { Spinner } from "@/components/ui/Spinner";
 import { Tooltip } from "@/components/ui/Tooltip";
+import { UserSearchSelect } from "@/components/ui/UserSearchSelect";
 import {
   Select,
   SelectContent,
@@ -89,6 +96,7 @@ import {
   SelectValue,
 } from "@/components/ui/Select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/Tabs";
+import { Trash2, X, Users, Settings, GitBranch, LayoutDashboard, Puzzle, Tag, Webhook as WebhookIcon, ClipboardList, Shield, Lock, Plus, Search, Check, Pencil, ArrowLeft, Download, AlertTriangle, List, Upload } from "lucide-react";
 import type {
   BacklogFilterState,
   Board,
@@ -111,6 +119,7 @@ type Tab =
   | "workflow"
   | "boards"
   | "components"
+  | "labels"
   | "webhooks"
   | "audit"
   | "details";
@@ -163,99 +172,15 @@ const categoryLabels: Record<StatusCategory, string> = {
 };
 
 const tabConfig: { key: Tab; label: string; icon: React.ReactNode }[] = [
-  {
-    key: "members",
-    label: "Members",
-    icon: (
-      <svg className="w-3.5 h-3.5" viewBox="0 0 20 20" fill="currentColor">
-        <path d="M9 6a3 3 0 1 1-6 0 3 3 0 0 1 6 0zM17 6a3 3 0 1 1-6 0 3 3 0 0 1 6 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 0 0-1.5-4.33A5 5 0 0 1 19 16v1h-6.07zM6 11a5 5 0 0 1 5 5v1H1v-1a5 5 0 0 1 5-5z" />
-      </svg>
-    ),
-  },
-  {
-    key: "permissions",
-    label: "Permissions",
-    icon: (
-      <svg className="w-3.5 h-3.5" viewBox="0 0 20 20" fill="currentColor">
-        <path
-          fillRule="evenodd"
-          d="M5 9V7a5 5 0 0 1 10 0v2a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2zm8-2v2H7V7a3 3 0 0 1 6 0z"
-          clipRule="evenodd"
-        />
-      </svg>
-    ),
-  },
-  {
-    key: "workflow",
-    label: "Workflow",
-    icon: (
-      <svg className="w-3.5 h-3.5" viewBox="0 0 20 20" fill="currentColor">
-        <path
-          fillRule="evenodd"
-          d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 0 1-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 0 1 .947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 0 1 2.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 0 1 2.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 0 1 .947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 0 1-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 0 1-2.287-.947zM10 13a3 3 0 1 0 0-6 3 3 0 0 0 0 6z"
-          clipRule="evenodd"
-        />
-      </svg>
-    ),
-  },
-  {
-    key: "boards",
-    label: "Boards",
-    icon: (
-      <svg className="w-3.5 h-3.5" viewBox="0 0 20 20" fill="currentColor">
-        <path d="M2 4a1 1 0 0 1 1-1h14a1 1 0 0 1 1 1v2a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V4zM2 10a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v6a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1v-6zm10 0a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v6a1 1 0 0 1-1 1h-4a1 1 0 0 1-1-1v-6z" />
-      </svg>
-    ),
-  },
-  {
-    key: "components",
-    label: "Components",
-    icon: (
-      <svg className="w-3.5 h-3.5" viewBox="0 0 20 20" fill="currentColor">
-        <path d="M7 3a1 1 0 0 0 0 2h6a1 1 0 1 0 0-2H7zM4 7a1 1 0 0 1 1-1h10a1 1 0 1 1 0 2H5a1 1 0 0 1-1-1zM2 11a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-4z" />
-      </svg>
-    ),
-  },
-  {
-    key: "webhooks",
-    label: "Webhooks",
-    icon: (
-      <svg className="w-3.5 h-3.5" viewBox="0 0 20 20" fill="currentColor">
-        <path
-          fillRule="evenodd"
-          d="M12.316 3.051a1 1 0 0 1 .633 1.265l-4 12a1 1 0 1 1-1.898-.632l4-12a1 1 0 0 1 1.265-.633zM5.707 6.293a1 1 0 0 1 0 1.414L3.414 10l2.293 2.293a1 1 0 1 1-1.414 1.414l-3-3a1 1 0 0 1 0-1.414l3-3a1 1 0 0 1 1.414 0zm8.586 0a1 1 0 0 1 1.414 0l3 3a1 1 0 0 1 0 1.414l-3 3a1 1 0 1 1-1.414-1.414L16.586 10l-2.293-2.293a1 1 0 0 1 0-1.414z"
-          clipRule="evenodd"
-        />
-      </svg>
-    ),
-  },
-  {
-    key: "audit",
-    label: "Audit",
-    icon: (
-      <svg className="w-3.5 h-3.5" viewBox="0 0 20 20" fill="currentColor">
-        <path
-          fillRule="evenodd"
-          d="M4 4a2 2 0 0 1 2-2h4.586A2 2 0 0 1 12 2.586L15.414 6A2 2 0 0 1 16 7.414V16a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4zm2 6a1 1 0 0 1 1-1h6a1 1 0 1 1 0 2H7a1 1 0 0 1-1-1zm1 3a1 1 0 1 0 0 2h6a1 1 0 1 0 0-2H7z"
-          clipRule="evenodd"
-        />
-      </svg>
-    ),
-  },
-
-  {
-    key: "details",
-    label: "Details",
-    icon: (
-      <svg className="w-3.5 h-3.5" viewBox="0 0 20 20" fill="currentColor">
-        <path
-          fillRule="evenodd"
-          d="M18 10a8 8 0 1 1-16 0 8 8 0 0 1 16 0zm-7-4a1 1 0 1 1-2 0 1 1 0 0 1 2 0zM9 9a1 1 0 0 0 0 2v3a1 1 0 0 0 1 1h1a1 1 0 1 0 0-2v-3a1 1 0 0 0-1-1H9z"
-          clipRule="evenodd"
-        />
-      </svg>
-    ),
-  },
+  { key: "members", label: "Members", icon: <Users className="w-3.5 h-3.5" /> },
+  { key: "details", label: "Details", icon: <Settings className="w-3.5 h-3.5" /> },
+  { key: "workflow", label: "Workflow", icon: <GitBranch className="w-3.5 h-3.5" /> },
+  { key: "boards", label: "Boards", icon: <LayoutDashboard className="w-3.5 h-3.5" /> },
+  { key: "components", label: "Components", icon: <Puzzle className="w-3.5 h-3.5" /> },
+  { key: "labels", label: "Labels", icon: <Tag className="w-3.5 h-3.5" /> },
+  { key: "webhooks", label: "Webhooks", icon: <WebhookIcon className="w-3.5 h-3.5" /> },
+  { key: "audit", label: "Audit", icon: <ClipboardList className="w-3.5 h-3.5" /> },
+  { key: "permissions", label: "Permissions", icon: <Shield className="w-3.5 h-3.5" /> },
 ];
 
 export default function ProjectSettingsPage({
@@ -319,6 +244,8 @@ export default function ProjectSettingsPage({
         return myPermKeys?.some((k) => k.startsWith("board."));
       case "components":
         return myPermKeys?.some((k) => k.startsWith("component."));
+      case "labels":
+        return myPermKeys?.includes("issue.edit");
       case "webhooks":
         return myPermKeys?.includes("webhook.manage");
       case "audit":
@@ -370,17 +297,7 @@ export default function ProjectSettingsPage({
             href={`/projects/${id}`}
             className="inline-flex items-center gap-1 text-xs text-muted hover:text-foreground transition-colors"
           >
-            <svg
-              className="w-3.5 h-3.5"
-              viewBox="0 0 20 20"
-              fill="currentColor"
-            >
-              <path
-                fillRule="evenodd"
-                d="M17 10a.75.75 0 0 1-.75.75H5.612l4.158 3.96a.75.75 0 1 1-1.04 1.08l-5.5-5.25a.75.75 0 0 1 0-1.08l5.5-5.25a.75.75 0 1 1 1.04 1.08L5.612 9.25H16.25A.75.75 0 0 1 17 10Z"
-                clipRule="evenodd"
-              />
-            </svg>
+            <ArrowLeft className="w-3.5 h-3.5" />
             Back to project
           </Link>
         </div>
@@ -461,19 +378,7 @@ export default function ProjectSettingsPage({
               {members.length === 0 ? (
                 <EmptyState
                   icon={
-                    <svg
-                      className="w-8 h-8"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="1.5"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        d="M15 19.128a9.38 9.38 0 0 0 2.625.372 9.337 9.337 0 0 0 4.121-.952 4.125 4.125 0 0 0-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 0 1 8.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0 1 11.964-3.07M12 6.375a3.375 3.375 0 1 1-6.75 0 3.375 3.375 0 0 1 6.75 0Zm8.25 2.25a2.625 2.625 0 1 1-5.25 0 2.625 2.625 0 0 1 5.25 0Z"
-                      />
-                    </svg>
+                    <Users className="w-8 h-8" />
                   }
                   message="No members yet."
                 />
@@ -527,19 +432,17 @@ export default function ProjectSettingsPage({
                           <RoleBadge role={m.role} />
                         )}
                         {canManageMembers && !isOwner && (
-                          <button
-                            onClick={async () => {
-                              if (
-                                await showConfirm({
-                                  message: "Remove this member?",
-                                })
-                              )
-                                removeMember.mutate(m.id);
-                            }}
-                            className="text-xs text-[var(--danger)] hover:opacity-70 transition-opacity"
-                          >
-                            Remove
-                          </button>
+                          <Tooltip content="Remove member">
+                            <button
+                              onClick={async () => {
+                                if (await showConfirm({ message: "Remove this member?" }))
+                                  removeMember.mutate(m.id);
+                              }}
+                              className="w-7 h-7 flex items-center justify-center rounded text-muted hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </Tooltip>
                         )}
                       </li>
                     );
@@ -552,6 +455,9 @@ export default function ProjectSettingsPage({
 
         <TabsContent value="components" className="!mt-0">
           <ComponentsTab projectId={id} />
+        </TabsContent>
+        <TabsContent value="labels" className="!mt-0">
+          <LabelsTab projectId={id} />
         </TabsContent>
         <TabsContent value="workflow" className="!mt-0">
           <WorkflowTab projectId={id} />
@@ -712,19 +618,7 @@ function AuditTab({
           onClick={exportCSV}
           className="inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg border border-border bg-surface hover:bg-surface-2 transition text-foreground"
         >
-          <svg
-            className="w-3.5 h-3.5"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-            <polyline points="7 10 12 15 17 10" />
-            <line x1="12" y1="15" x2="12" y2="3" />
-          </svg>
+          <Download className="w-3.5 h-3.5" />
           Export CSV
         </button>
       </div>
@@ -732,19 +626,7 @@ function AuditTab({
         {entries.length === 0 ? (
           <EmptyState
             icon={
-              <svg
-                className="w-8 h-8"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.5"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 0 0 2.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 0 0-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 0 0 .75-.75 2.25 2.25 0 0 0-.1-.664m-5.8 0A2.251 2.251 0 0 1 13.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25Z"
-                />
-              </svg>
+              <ClipboardList className="w-8 h-8" />
             }
             message="No audit entries yet."
           />
@@ -830,19 +712,7 @@ function BoardsTab({ projectId }: { projectId: string }) {
         {boards.length === 0 ? (
           <EmptyState
             icon={
-              <svg
-                className="w-8 h-8"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.5"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M3.75 6A2.25 2.25 0 0 1 6 3.75h2.25A2.25 2.25 0 0 1 10.5 6v2.25a2.25 2.25 0 0 1-2.25 2.25H6a2.25 2.25 0 0 1-2.25-2.25V6ZM3.75 15.75A2.25 2.25 0 0 1 6 13.5h2.25a2.25 2.25 0 0 1 2.25 2.25V18a2.25 2.25 0 0 1-2.25 2.25H6A2.25 2.25 0 0 1 3.75 18v-2.25ZM13.5 6a2.25 2.25 0 0 1 2.25-2.25H18A2.25 2.25 0 0 1 20.25 6v2.25A2.25 2.25 0 0 1 18 10.5h-2.25a2.25 2.25 0 0 1-2.25-2.25V6ZM13.5 15.75a2.25 2.25 0 0 1 2.25-2.25H18a2.25 2.25 0 0 1 2.25 2.25V18A2.25 2.25 0 0 1 18 20.25h-2.25A2.25 2.25 0 0 1 13.5 18v-2.25Z"
-                />
-              </svg>
+              <LayoutDashboard className="w-8 h-8" />
             }
             message="No boards yet. Add one to create a saved Kanban view."
           />
@@ -956,12 +826,14 @@ function BoardRow({
         >
           {showFilter ? "Hide filter" : "Edit filter"}
         </button>
-        <button
-          onClick={onDelete}
-          className="text-xs text-[var(--danger)] hover:opacity-70 transition-opacity"
-        >
-          Remove
-        </button>
+        <Tooltip content="Remove board">
+          <button
+            onClick={onDelete}
+            className="w-7 h-7 flex items-center justify-center rounded text-muted hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition"
+          >
+            <Trash2 className="w-3.5 h-3.5" />
+          </button>
+        </Tooltip>
       </div>
       {showFilter && (
         <BoardFilterEditor
@@ -1156,19 +1028,7 @@ function WorkflowTab({ projectId }: { projectId: string }) {
         {statuses.length === 0 ? (
           <EmptyState
             icon={
-              <svg
-                className="w-8 h-8"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.5"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M10.5 6h9.75M10.5 6a1.5 1.5 0 1 1-3 0m3 0a1.5 1.5 0 1 0-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m-9.75 0h9.75"
-                />
-              </svg>
+              <List className="w-8 h-8" />
             }
             message="No statuses configured."
           />
@@ -1283,9 +1143,7 @@ function StatusRow({
             aria-label="Drag to reorder"
             className="text-muted hover:text-foreground cursor-grab active:cursor-grabbing select-none transition-colors"
           >
-            <svg className="w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
-              <path d="M7 2a2 2 0 1 0 .001 4.001A2 2 0 0 0 7 2zm0 6a2 2 0 1 0 .001 4.001A2 2 0 0 0 7 8zm0 6a2 2 0 1 0 .001 4.001A2 2 0 0 0 7 14zm6-8a2 2 0 1 0-.001-4.001A2 2 0 0 0 13 6zm0 2a2 2 0 1 0 .001 4.001A2 2 0 0 0 13 8zm0 6a2 2 0 1 0 .001 4.001A2 2 0 0 0 13 14z" />
-            </svg>
+            <X className="w-4 h-4" />
           </button>
         </Tooltip>
       )}
@@ -1336,12 +1194,14 @@ function StatusRow({
               <SelectItem value="done">Done</SelectItem>
             </SelectContent>
           </Select>
-          <button
-            onClick={onDelete}
-            className="text-xs text-[var(--danger)] hover:opacity-70 transition-opacity"
-          >
-            Remove
-          </button>
+          <Tooltip content="Remove status">
+            <button
+              onClick={onDelete}
+              className="w-7 h-7 flex items-center justify-center rounded text-muted hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+            </button>
+          </Tooltip>
         </div>
       ) : (
         <CategoryBadge category={s.category} />
@@ -1457,17 +1317,7 @@ function WebhooksTab({ projectId }: { projectId: string }) {
       {newSecret && (
         <div className="rounded-xl border border-[color-mix(in_srgb,var(--warning)_40%,transparent)] bg-[color-mix(in_srgb,var(--warning)_8%,transparent)] p-4">
           <div className="flex items-start gap-2.5">
-            <svg
-              className="w-4 h-4 text-[var(--warning)] mt-0.5 shrink-0"
-              viewBox="0 0 20 20"
-              fill="currentColor"
-            >
-              <path
-                fillRule="evenodd"
-                d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.17 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495zM10 5a.75.75 0 0 1 .75.75v3.5a.75.75 0 0 1-1.5 0v-3.5A.75.75 0 0 1 10 5zm0 9a1 1 0 1 0 0-2 1 1 0 0 0 0 2z"
-                clipRule="evenodd"
-              />
-            </svg>
+            <AlertTriangle className="w-4 h-4 text-[var(--warning)] mt-0.5 shrink-0" />
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium text-foreground mb-2">
                 Webhook secret — save it now, you won&apos;t see it again
@@ -1490,19 +1340,7 @@ function WebhooksTab({ projectId }: { projectId: string }) {
         {hooks.length === 0 ? (
           <EmptyState
             icon={
-              <svg
-                className="w-8 h-8"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.5"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M13.19 8.688a4.5 4.5 0 0 1 1.242 7.244l-4.5 4.5a4.5 4.5 0 0 1-6.364-6.364l1.757-1.757m13.35-.622 1.757-1.757a4.5 4.5 0 0 0-6.364-6.364l-4.5 4.5a4.5 4.5 0 0 0 1.242 7.244"
-                />
-              </svg>
+              <WebhookIcon className="w-8 h-8" />
             }
             message="No webhooks yet."
           />
@@ -1575,13 +1413,15 @@ function WebhookRow({
       >
         {hook.active ? "Active" : "Paused"}
       </button>
-      <button
-        onClick={onDelete}
-        className="text-xs text-[var(--danger)] hover:opacity-70 transition-opacity"
-      >
-        Remove
-      </button>
-    </li>
+              <Tooltip content="Remove webhook">
+                <button
+                  onClick={onDelete}
+                  className="w-7 h-7 flex items-center justify-center rounded text-muted hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                </button>
+              </Tooltip>
+            </li>
   );
 }
 
@@ -1729,13 +1569,7 @@ function ImportExportSection({ projectId }: { projectId: string }) {
       </h2>
       <div className="flex flex-wrap gap-2 mb-3">
         <Button size="sm" variant="secondary" onClick={downloadCsv}>
-          <svg className="w-3.5 h-3.5" viewBox="0 0 20 20" fill="currentColor">
-            <path
-              fillRule="evenodd"
-              d="M3 17a1 1 0 0 1 1-1h12a1 1 0 1 1 0 2H4a1 1 0 0 1-1-1zm3.293-7.707a1 1 0 0 1 1.414 0L9 10.586V3a1 1 0 1 1 2 0v7.586l1.293-1.293a1 1 0 1 1 1.414 1.414l-3 3a1 1 0 0 1-1.414 0l-3-3a1 1 0 0 1 0-1.414z"
-              clipRule="evenodd"
-            />
-          </svg>
+          <Download className="w-3.5 h-3.5" />
           Export issues CSV
         </Button>
         <Button
@@ -1743,13 +1577,7 @@ function ImportExportSection({ projectId }: { projectId: string }) {
           onClick={() => inputRef.current?.click()}
           disabled={importing}
         >
-          <svg className="w-3.5 h-3.5" viewBox="0 0 20 20" fill="currentColor">
-            <path
-              fillRule="evenodd"
-              d="M3 17a1 1 0 0 1 1-1h12a1 1 0 1 1 0 2H4a1 1 0 0 1-1-1zM6.293 6.707a1 1 0 0 1 0-1.414l3-3a1 1 0 0 1 1.414 0l3 3a1 1 0 0 1-1.414 1.414L11 5.414V13a1 1 0 1 1-2 0V5.414L7.707 6.707a1 1 0 0 1-1.414 0z"
-              clipRule="evenodd"
-            />
-          </svg>
+          <Upload className="w-3.5 h-3.5" />
           {importing ? "Importing…" : "Import from CSV"}
         </Button>
         <input
@@ -1856,24 +1684,15 @@ function ComponentsTab({ projectId }: { projectId: string }) {
               setDraft((d) => ({ ...d, name: e.target.value }))
             }
           />
-          <Select
+          <UserSearchSelect
             value={draft.lead_id || "__none__"}
             onValueChange={(v) =>
               setDraft((d) => ({ ...d, lead_id: v === "__none__" ? "" : v }))
             }
-          >
-            <SelectTrigger className="w-auto min-w-[160px]">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="__none__">No lead</SelectItem>
-              {users.map((u) => (
-                <SelectItem key={u.id} value={String(u.id)}>
-                  {u.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+            users={users}
+            noneLabel="No lead"
+            placeholder="Select lead..."
+          />
           <Button type="submit" size="sm" disabled={create.isPending}>
             Add
           </Button>
@@ -1885,19 +1704,7 @@ function ComponentsTab({ projectId }: { projectId: string }) {
         {components.length === 0 ? (
           <EmptyState
             icon={
-              <svg
-                className="w-8 h-8"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.5"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M21 7.5l-9-5.25L3 7.5m18 0-9 5.25m9-5.25v9l-9 5.25M3 7.5l9 5.25M3 7.5v9l9 5.25m0-9v9"
-                />
-              </svg>
+              <Puzzle className="w-8 h-8" />
             }
             message="No components yet."
           />
@@ -1939,6 +1746,159 @@ function ComponentsTab({ projectId }: { projectId: string }) {
           </DndContext>
         )}
       </div>
+    </div>
+  );
+}
+
+function LabelsTab({ projectId }: { projectId: string }) {
+  const can = usePermissionsStore((s) => s.can);
+  const { data: labels = [] } = useLabels(projectId);
+  const create = useCreateLabel(projectId);
+  const update = useUpdateLabel(projectId);
+  const remove = useDeleteLabel(projectId);
+
+  const [name, setName] = useState("");
+  const [color, setColor] = useState("#6366f1");
+
+  async function handleAdd(e: React.FormEvent) {
+    e.preventDefault();
+    if (!name.trim()) return;
+    await create.mutateAsync({ name: name.trim(), color });
+    setName("");
+    setColor("#6366f1");
+  }
+
+  return (
+    <div className="max-w-2xl space-y-4 animate-fade-in">
+      {can("issue.edit") && (
+      <div className="surface-card p-4">
+        <h2 className="text-sm font-semibold text-foreground mb-3">
+          Add label
+        </h2>
+        <form onSubmit={handleAdd} className="flex gap-2 items-end">
+          <div className="flex-1">
+            <label className="text-xs text-muted mb-1 block">Name</label>
+            <input
+              required
+              placeholder="Label name"
+              className="input"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+            />
+          </div>
+          <div>
+            <label className="text-xs text-muted mb-1 block">Color</label>
+            <input
+              type="color"
+              value={color}
+              onChange={(e) => setColor(e.target.value)}
+              className="w-10 h-10 rounded-lg border border-border bg-transparent p-0.5 cursor-pointer"
+            />
+          </div>
+          <Button type="submit" size="sm" disabled={create.isPending}>
+            Add
+          </Button>
+        </form>
+      </div>
+      )}
+
+      <div className="surface-card overflow-hidden">
+        {labels.length === 0 ? (
+          <div className="p-8 text-center text-sm text-muted">No labels yet.</div>
+        ) : (
+          <ul className="divide-y divide-border">
+            {labels.map((l) => (
+              <li key={l.id} className="flex items-center gap-3 px-4 py-3">
+                <div className="w-4 h-4 rounded shrink-0" style={{ backgroundColor: l.color }} />
+                <div className="flex-1 min-w-0">
+                  <LabelRow
+                    label={l}
+                    canEdit={can("issue.edit")}
+                    canDelete={can("issue.edit")}
+                    onRename={(name) => update.mutate({ id: l.id, name })}
+                    onRecolor={(color) => update.mutate({ id: l.id, color })}
+                    onDelete={async () => {
+                      if (await showConfirm({ message: `Delete label "${l.name}"?`, variant: "danger" }))
+                        remove.mutate(l.id);
+                    }}
+                  />
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function LabelRow({
+  label,
+  canEdit,
+  canDelete,
+  onRename,
+  onRecolor,
+  onDelete,
+}: {
+  label: { id: number; name: string; color: string };
+  canEdit: boolean;
+  canDelete: boolean;
+  onRename: (name: string) => void;
+  onRecolor: (color: string) => void;
+  onDelete: () => void;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [rename, setRename] = useState(label.name);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  function save() {
+    if (rename.trim() && rename.trim() !== label.name) {
+      onRename(rename.trim());
+    }
+    setEditing(false);
+  }
+
+  return (
+    <div className="flex items-center gap-2">
+      {canEdit && (
+        <input
+          type="color"
+          value={label.color}
+          onChange={(e) => onRecolor(e.target.value)}
+          className="w-6 h-6 rounded border border-border bg-transparent p-0.5 cursor-pointer shrink-0"
+          title="Change color"
+        />
+      )}
+      {editing ? (
+        <input
+          ref={inputRef}
+          autoFocus
+          className="input h-7 text-sm py-0 flex-1 min-w-0"
+          value={rename}
+          onChange={(e) => setRename(e.target.value)}
+          onBlur={save}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") save();
+            if (e.key === "Escape") { setRename(label.name); setEditing(false); }
+          }}
+        />
+      ) : (
+        <span
+          className="text-sm text-foreground flex-1 min-w-0 truncate cursor-pointer hover:text-brand"
+          onClick={() => { if (canEdit) { setRename(label.name); setEditing(true); } }}
+        >
+          {label.name}
+        </span>
+      )}
+      {canDelete && (
+        <button
+          onClick={onDelete}
+          className="shrink-0 w-6 h-6 flex items-center justify-center rounded text-muted hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition"
+          aria-label={`Delete ${label.name}`}
+        >
+          <Trash2 className="w-3.5 h-3.5" />
+        </button>
+      )}
     </div>
   );
 }
@@ -1996,9 +1956,7 @@ function ComponentRow({
             aria-label="Drag to reorder"
             className="text-muted hover:text-foreground cursor-grab active:cursor-grabbing select-none transition-colors"
           >
-            <svg className="w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
-              <path d="M7 2a2 2 0 1 0 .001 4.001A2 2 0 0 0 7 2zm0 6a2 2 0 1 0 .001 4.001A2 2 0 0 0 7 8zm0 6a2 2 0 1 0 .001 4.001A2 2 0 0 0 7 14zm6-8a2 2 0 1 0-.001-4.001A2 2 0 0 0 13 6zm0 2a2 2 0 1 0 .001 4.001A2 2 0 0 0 13 8zm0 6a2 2 0 1 0 .001 4.001A2 2 0 0 0 13 14z" />
-            </svg>
+            <X className="w-4 h-4" />
           </button>
         </Tooltip>
       )}
@@ -2032,30 +1990,24 @@ function ComponentRow({
         )}
       </div>
       {canEdit && (
-        <Select
+        <UserSearchSelect
           value={c.lead_id != null ? String(c.lead_id) : "__none__"}
           onValueChange={(v) => onLead(v === "__none__" ? undefined : Number(v))}
-        >
-          <SelectTrigger className="w-auto !text-xs !py-1 min-w-[140px]">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="__none__">No lead</SelectItem>
-            {users.map((u) => (
-              <SelectItem key={u.id} value={String(u.id)}>
-                {u.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+          users={users}
+          noneLabel="No lead"
+          placeholder="Select lead..."
+          triggerClassName="!py-1 !text-xs min-w-[140px]"
+        />
       )}
       {canDelete && (
-        <button
-          onClick={onDelete}
-          className="text-xs text-[var(--danger)] hover:opacity-70 transition-opacity"
-        >
-          Remove
-        </button>
+        <Tooltip content="Remove component">
+          <button
+            onClick={onDelete}
+            className="w-7 h-7 flex items-center justify-center rounded text-muted hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition"
+          >
+            <Trash2 className="w-3.5 h-3.5" />
+          </button>
+        </Tooltip>
       )}
     </li>
   );
@@ -2206,18 +2158,7 @@ function PermissionsTab({
             {/* Section: System roles */}
             <div className="p-4 pb-3">
               <div className="flex items-center gap-1.5 mb-3">
-                <svg
-                  className="w-3.5 h-3.5 text-muted"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
-                  <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-                </svg>
+                <Lock className="w-3.5 h-3.5 text-muted" />
                 <h3 className="text-xs font-semibold uppercase tracking-wider text-muted">
                   System Roles
                 </h3>
@@ -2237,25 +2178,7 @@ function PermissionsTab({
                     }`}
                   >
                     <div className="flex items-center gap-2">
-                      <svg
-                        className={`w-3.5 h-3.5 shrink-0 ${selectedRoleId === r.id ? "text-brand" : "text-muted"}`}
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      >
-                        <rect
-                          x="3"
-                          y="11"
-                          width="18"
-                          height="11"
-                          rx="2"
-                          ry="2"
-                        />
-                        <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-                      </svg>
+                      <Lock className={`w-3.5 h-3.5 shrink-0 ${selectedRoleId === r.id ? "text-brand" : "text-muted"}`} />
                       <span className="font-medium truncate flex-1">
                         {r.name}
                       </span>
@@ -2263,28 +2186,10 @@ function PermissionsTab({
                     </div>
                     <div className="flex items-center gap-2 mt-0.5">
                       <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[11px] font-medium bg-amber-50 text-amber-700 dark:bg-amber-500/10 dark:text-amber-400 border border-amber-200 dark:border-amber-500/20">
-                        <svg
-                          className="w-2.5 h-2.5"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="2.5"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        >
-                          <rect
-                            x="3"
-                            y="11"
-                            width="18"
-                            height="11"
-                            rx="2"
-                            ry="2"
-                          />
-                          <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-                        </svg>
+                        <Lock className="w-2.5 h-2.5" />
                         System
                       </span>
-                      <span className="text-xs text-muted">Predefined</span>
+                      <span className="text-xs text-muted">Built-in role</span>
                     </div>
                   </button>
                 ))}
@@ -2294,20 +2199,7 @@ function PermissionsTab({
             {/* Section: Custom roles */}
             <div className="p-4 pt-3">
               <div className="flex items-center gap-1.5 mb-3">
-                <svg
-                  className="w-3.5 h-3.5 text-muted"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
-                  <circle cx="9" cy="7" r="4" />
-                  <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
-                  <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-                </svg>
+                <Users className="w-3.5 h-3.5 text-muted" />
                 <h3 className="text-xs font-semibold uppercase tracking-wider text-muted">
                   Custom Roles
                 </h3>
@@ -2326,20 +2218,7 @@ function PermissionsTab({
                     }`}
                     onClick={() => setSelectedRoleId(r.id)}
                   >
-                    <svg
-                      className={`w-3.5 h-3.5 shrink-0 ${selectedRoleId === r.id ? "text-brand" : "text-muted"}`}
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    >
-                      <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
-                      <circle cx="9" cy="7" r="4" />
-                      <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
-                      <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-                    </svg>
+                    <Users className={`w-3.5 h-3.5 shrink-0 ${selectedRoleId === r.id ? "text-brand" : "text-muted"}`} />
                     <span className="font-medium truncate flex-1">
                       {r.name}
                     </span>
@@ -2353,18 +2232,7 @@ function PermissionsTab({
                         aria-label="Delete role"
                         className="shrink-0 p-1 rounded text-muted/30 hover:text-[var(--danger)] hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors opacity-0 group-hover:opacity-100"
                       >
-                        <svg
-                          className="w-3.5 h-3.5"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        >
-                          <polyline points="3 6 5 6 21 6" />
-                          <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-                        </svg>
+                        <Trash2 className="w-3.5 h-3.5" />
                       </button>
                     </Tooltip>
                   </div>
@@ -2392,18 +2260,7 @@ function PermissionsTab({
                     {createRole.isPending ? (
                       <Spinner className="w-3 h-3" />
                     ) : (
-                      <svg
-                        className="w-3 h-3"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2.5"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      >
-                        <line x1="12" y1="5" x2="12" y2="19" />
-                        <line x1="5" y1="12" x2="19" y2="12" />
-                      </svg>
+                      <Plus className="w-3 h-3" />
                     )}
                     {createRole.isPending ? "Adding…" : "Add role"}
                   </Button>
@@ -2428,27 +2285,7 @@ function PermissionsTab({
           ) : (
             <div className="surface-card h-full flex items-center justify-center min-h-[300px] rounded-xl border border-border shadow-sm">
               <EmptyState
-                icon={
-                  <svg
-                    className="w-12 h-12"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="1.2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
-                    <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-                    <circle
-                      cx="12"
-                      cy="16"
-                      r="1"
-                      fill="currentColor"
-                      opacity="0.3"
-                    />
-                  </svg>
-                }
+                icon={<Lock className="w-12 h-12 text-muted opacity-40" />}
                 message="Select a role from the sidebar to view and configure its permissions."
               />
             </div>
@@ -2491,7 +2328,7 @@ function RolePermissionEditor({
     perms: safePerms.filter((p) => p.group === g),
   }));
 
-  const readOnly = role.is_system;
+  const readOnly = false;
   const hasChanges = added.size > 0 || removed.size > 0;
 
   const updateRole = useUpdateRole(projectId, role.id);
@@ -2660,17 +2497,7 @@ function RolePermissionEditor({
                     aria-label="Save"
                     className="shrink-0 p-1 rounded text-[var(--brand)] hover:bg-[var(--brand-soft)] transition-colors disabled:opacity-30"
                   >
-                    <svg
-                      className="w-3.5 h-3.5"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2.5"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    >
-                      <polyline points="20 6 9 17 4 12" />
-                    </svg>
+<Check className="w-3.5 h-3.5" />
                   </button>
                 </Tooltip>
                 <Tooltip content="Cancel (Esc)">
@@ -2679,19 +2506,8 @@ function RolePermissionEditor({
                     aria-label="Cancel"
                     className="shrink-0 p-1 rounded text-muted hover:text-foreground hover:bg-surface-2 transition-colors"
                   >
-                    <svg
-                      className="w-3.5 h-3.5"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    >
-                      <line x1="18" y1="6" x2="6" y2="18" />
-                      <line x1="6" y1="6" x2="18" y2="18" />
-                    </svg>
-                  </button>
+                  <X className="w-3.5 h-3.5" />
+                </button>
                 </Tooltip>
               </div>
             ) : (
@@ -2708,18 +2524,7 @@ function RolePermissionEditor({
                   className="text-sm text-muted hover:text-foreground transition-colors inline-flex items-center gap-1"
                   title="Rename role"
                 >
-                  <svg
-                    className="w-3.5 h-3.5"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-                  </svg>
+                  <Pencil className="w-3.5 h-3.5" />
                   Rename
                 </button>
                 <span className="text-muted/30">|</span>
@@ -2727,18 +2532,7 @@ function RolePermissionEditor({
                   onClick={onDelete}
                   className="text-sm text-muted hover:text-[var(--danger)] transition-colors inline-flex items-center gap-1"
                 >
-                  <svg
-                    className="w-3.5 h-3.5"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <polyline points="3 6 5 6 21 6" />
-                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-                  </svg>
+<Trash2 className="w-3.5 h-3.5" />
                   Delete role
                 </button>
               </>
@@ -2747,9 +2541,7 @@ function RolePermissionEditor({
         </div>
         <div className="flex items-center justify-between mt-2">
           <p className="text-xs text-muted">
-            {readOnly
-              ? "System role permissions are predefined and cannot be changed."
-              : "Toggle permissions to customize what this role can do."}
+            Toggle permissions to customize what this role can do.
           </p>
           <span className="text-xs font-mono text-muted/60 shrink-0 ml-4">
             {totalChecked}/{safePerms.length} permissions
@@ -2760,18 +2552,7 @@ function RolePermissionEditor({
       {/* Search bar */}
       <div className="px-5 py-3 border-b border-border shrink-0">
         <div className="relative">
-          <svg
-            className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted pointer-events-none"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <circle cx="11" cy="11" r="8" />
-            <line x1="21" y1="21" x2="16.65" y2="16.65" />
-          </svg>
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted pointer-events-none" />
           <input
             className="input pl-8 py-1.5 text-sm h-9 w-full"
             placeholder="Search permissions…"
@@ -2783,44 +2564,13 @@ function RolePermissionEditor({
               onClick={() => setSearch("")}
               className="absolute right-2 top-1/2 -translate-y-1/2 p-0.5 rounded text-muted hover:text-foreground"
             >
-              <svg
-                className="w-3 h-3"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <line x1="18" y1="6" x2="6" y2="18" />
-                <line x1="6" y1="6" x2="18" y2="18" />
-              </svg>
+<X className="w-3 h-3" />
             </button>
           )}
         </div>
       </div>
 
-      {/* Read-only banner for system roles */}
-      {readOnly && (
-        <div className="px-5 py-3 bg-amber-50 dark:bg-amber-500/5 border-b border-amber-200 dark:border-amber-500/20 shrink-0">
-          <p className="text-xs text-amber-700 dark:text-amber-400 flex items-center gap-1.5">
-            <svg
-              className="w-3 h-3 shrink-0"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
-              <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-            </svg>
-            This is a system role. All {permissions.length} permissions are
-            fixed and cannot be modified.
-          </p>
-        </div>
-      )}
+
 
       {/* Permission groups */}
       <div className="overflow-y-auto flex-1">
@@ -2854,17 +2604,7 @@ function RolePermissionEditor({
                           }`}
                           title={allChecked ? "Deselect all" : "Select all"}
                         >
-                          <svg
-                            className="w-3.5 h-3.5"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="2.5"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                          >
-                            <polyline points="20 6 9 17 4 12" />
-                          </svg>
+                          <Check className="w-3.5 h-3.5" />
                         </button>
                       )}
                       <h3 className="text-xs font-semibold uppercase tracking-wider text-muted">
@@ -2941,33 +2681,12 @@ function RolePermissionEditor({
             {hasChanges ? (
               <span className="flex items-center gap-1.5">
                 <span className="inline-flex items-center gap-1 text-brand">
-                  <svg
-                    className="w-3 h-3"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <polyline points="20 6 9 17 4 12" />
-                  </svg>
+                  <Check className="w-3 h-3" />
                   {added.size} added
                 </span>
                 <span className="text-muted/40">|</span>
                 <span className="inline-flex items-center gap-1 text-[var(--danger)]">
-                  <svg
-                    className="w-3 h-3"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <line x1="18" y1="6" x2="6" y2="18" />
-                    <line x1="6" y1="6" x2="18" y2="18" />
-                  </svg>
+                  <X className="w-3 h-3" />
                   {removed.size} removed
                 </span>
               </span>

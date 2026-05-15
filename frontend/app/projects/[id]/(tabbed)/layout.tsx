@@ -134,7 +134,7 @@ export default function ProjectTabbedLayout({
         </div>
       </div>
 
-      <div className="flex-1 min-h-0">
+      <div className="flex-1 min-h-0 animate-fade-in">
         <ProjectFormatProvider
           dateFormat={project?.date_format}
           timeFormat={project?.time_format}

@@ -12,6 +12,7 @@ import { UserHoverCard } from "@/components/ui/UserHoverCard";
 import { IssueHoverCard } from "@/components/ui/IssueHoverCard";
 import { Button } from "@/components/ui/Button";
 import { SkeletonRow } from "@/components/ui/Skeleton";
+import { EmptyState, defaultIcons } from "@/components/ui/EmptyState";
 
 const verb = {
   comment: "commented on",
@@ -74,18 +75,11 @@ export default function NotificationsPage() {
             ))}
           </div>
         ) : notifs.length === 0 ? (
-          <div className="p-12 text-center">
-            <div className="mx-auto w-12 h-12 rounded-xl bg-surface-2 flex items-center justify-center mb-3">
-              <svg className="w-6 h-6 text-muted" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M6 8a6 6 0 1 1 12 0c0 5 2 6 2 6H4s2-1 2-6" />
-                <path d="M10 19a2 2 0 0 0 4 0" />
-              </svg>
-            </div>
-            <p className="font-medium">All caught up</p>
-            <p className="text-sm text-muted mt-1">
-              You have no {unreadOnly ? "unread " : ""}notifications.
-            </p>
-          </div>
+          <EmptyState
+            icon={defaultIcons.sprint}
+            title="All caught up"
+            description={`You have no ${unreadOnly ? "unread " : ""}notifications.`}
+          />
         ) : (
           notifs.map((n) => {
             const href = n.issue?.project_id

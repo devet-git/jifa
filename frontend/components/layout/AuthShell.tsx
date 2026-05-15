@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { ReactNode } from "react";
+import { Check } from "lucide-react";
 
 interface AuthShellProps {
   title: string;
@@ -55,9 +56,7 @@ export function AuthShell({ title, subtitle, children }: AuthShellProps) {
             ].map((line) => (
               <li key={line} className="flex items-center gap-2.5">
                 <span className="w-5 h-5 rounded-full bg-white/15 flex items-center justify-center shrink-0">
-                  <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M5 12l5 5L20 7" />
-                  </svg>
+                  <Check className="w-3 h-3" />
                 </span>
                 <span className="text-white/90">{line}</span>
               </li>

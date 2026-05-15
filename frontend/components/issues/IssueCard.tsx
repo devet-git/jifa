@@ -14,86 +14,23 @@ import {
   ContextMenuSeparator,
   ContextMenuTrigger,
 } from "@/components/ui/ContextMenu";
-import { Copy, ExternalLink, Hash, Type as TypeIcon } from "lucide-react";
+import { Copy, ExternalLink, Hash, Type as TypeIcon, SquareCheckBig, Bug, Bookmark, Zap, List, ArrowDown, ArrowRight, ArrowUp, TriangleAlert, Calendar, Pencil } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Issue, IssueType, IssuePriority } from "@/types";
 
-// SVG icons for each issue type — replace emoji to look professional.
 const typeIcons: Record<IssueType, { icon: React.ReactNode; tint: string }> = {
-  task: {
-    icon: (
-      <svg viewBox="0 0 24 24" fill="currentColor">
-        <rect x="3" y="3" width="18" height="18" rx="3" />
-        <path
-          d="m8 12 3 3 5-6"
-          stroke="white"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          fill="none"
-        />
-      </svg>
-    ),
-    tint: "text-blue-500",
-  },
-  bug: {
-    icon: (
-      <svg viewBox="0 0 24 24" fill="currentColor">
-        <circle cx="12" cy="12" r="9" />
-        <circle cx="9" cy="11" r="1.4" fill="white" />
-        <circle cx="15" cy="11" r="1.4" fill="white" />
-      </svg>
-    ),
-    tint: "text-red-500",
-  },
-  story: {
-    icon: (
-      <svg viewBox="0 0 24 24" fill="currentColor">
-        <path d="M4 4h16v16H4z" opacity="0" />
-        <path d="M5 3h14a1 1 0 0 1 1 1v17l-8-4-8 4V4a1 1 0 0 1 1-1z" />
-      </svg>
-    ),
-    tint: "text-emerald-500",
-  },
-  epic: {
-    icon: (
-      <svg viewBox="0 0 24 24" fill="currentColor">
-        <path d="M13 2 4 14h6l-1 8 9-12h-6l1-8z" />
-      </svg>
-    ),
-    tint: "text-violet-500",
-  },
-  subtask: {
-    icon: (
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M9 6h11M9 12h11M9 18h11M4 6h.01M4 12h.01M4 18h.01" />
-      </svg>
-    ),
-    tint: "text-cyan-500",
-  },
+  task: { icon: <SquareCheckBig className="w-full h-full" />, tint: "text-blue-500" },
+  bug: { icon: <Bug className="w-full h-full" />, tint: "text-red-500" },
+  story: { icon: <Bookmark className="w-full h-full" />, tint: "text-emerald-500" },
+  epic: { icon: <Zap className="w-full h-full" />, tint: "text-violet-500" },
+  subtask: { icon: <List className="w-full h-full" />, tint: "text-cyan-500" },
 };
 
 const priorityArrow: Record<IssuePriority, React.ReactNode> = {
-  low: (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M12 5v14M5 12l7 7 7-7" />
-    </svg>
-  ),
-  medium: (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M5 12h14M12 5l7 7-7 7" />
-    </svg>
-  ),
-  high: (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M12 19V5M5 12l7-7 7 7" />
-    </svg>
-  ),
-  urgent: (
-    <svg viewBox="0 0 24 24" fill="currentColor">
-      <path d="M12 2 1 21h22L12 2zm0 7 6 10H6l6-10zm-1 4v3h2v-3h-2zm0 4v2h2v-2h-2z" />
-    </svg>
-  ),
+  low: <ArrowDown className="w-full h-full" />,
+  medium: <ArrowRight className="w-full h-full" />,
+  high: <ArrowUp className="w-full h-full" />,
+  urgent: <TriangleAlert className="w-full h-full" />,
 };
 
 const priorityColor: Record<IssuePriority, string> = {
@@ -221,10 +158,7 @@ export function IssueCard({ issue, onClick, className, dragging }: Props) {
                 isOverdue ? "text-red-500" : "text-muted",
               )}
             >
-              <svg className="w-2.5 h-2.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <rect x="3" y="4" width="18" height="18" rx="2" />
-                <path d="M16 2v4M8 2v4M3 10h18" />
-              </svg>
+              <Calendar className="w-2.5 h-2.5" />
               {new Date(issue.due_date).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
             </span>
           )}
@@ -238,12 +172,9 @@ export function IssueCard({ issue, onClick, className, dragging }: Props) {
               type="button"
               onClick={startEdit}
               aria-label="Edit title"
-              className="opacity-0 group-hover:opacity-100 w-4 h-4 text-muted hover:text-brand transition"
+              className="w-4 h-4 text-muted/50 hover:text-brand transition"
             >
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M12 20h9" />
-                <path d="M16.5 3.5a2.121 2.121 0 1 1 3 3L7 19l-4 1 1-4 12.5-12.5z" />
-              </svg>
+              <Pencil className="w-4 h-4" />
             </button>
           </Tooltip>
         )}

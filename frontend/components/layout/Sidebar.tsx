@@ -8,6 +8,7 @@ import { ThemeToggle } from "@/components/layout/ThemeToggle";
 import { useProjects } from "@/hooks/useProject";
 import { cn } from "@/lib/utils";
 import { useState, useMemo, type ReactNode } from "react";
+import { LayoutDashboard, SquareCheckBig, Folder, Search, Bell, ChevronDown, Star } from "lucide-react";
 
 type NavItem = {
   href: string;
@@ -21,93 +22,27 @@ const navItems: NavItem[] = [
   {
     href: "/dashboard",
     label: "Dashboard",
-    icon: (
-      <svg
-        className={iconClass}
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.8"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      >
-        <rect x="3" y="3" width="7" height="9" rx="1.5" />
-        <rect x="14" y="3" width="7" height="5" rx="1.5" />
-        <rect x="14" y="12" width="7" height="9" rx="1.5" />
-        <rect x="3" y="16" width="7" height="5" rx="1.5" />
-      </svg>
-    ),
+    icon: <LayoutDashboard className={iconClass} />,
   },
   {
     href: "/my-issues",
     label: "My issues",
-    icon: (
-      <svg
-        className={iconClass}
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.8"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      >
-        <path d="M9 11l3 3L22 4" />
-        <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
-      </svg>
-    ),
+    icon: <SquareCheckBig className={iconClass} />,
   },
   {
     href: "/projects",
     label: "Projects",
-    icon: (
-      <svg
-        className={iconClass}
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.8"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      >
-        <path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7z" />
-      </svg>
-    ),
+    icon: <Folder className={iconClass} />,
   },
   {
     href: "/search",
     label: "Advanced search",
-    icon: (
-      <svg
-        className={iconClass}
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.8"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      >
-        <circle cx="11" cy="11" r="7" />
-        <path d="m20 20-3.5-3.5" />
-      </svg>
-    ),
+    icon: <Search className={iconClass} />,
   },
   {
     href: "/notifications",
     label: "Notifications",
-    icon: (
-      <svg
-        className={iconClass}
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.8"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      >
-        <path d="M6 8a6 6 0 1 1 12 0c0 5 2 6 2 6H4s2-1 2-6" />
-        <path d="M10 19a2 2 0 0 0 4 0" />
-      </svg>
-    ),
+    icon: <Bell className={iconClass} />,
   },
 ];
 
@@ -118,8 +53,6 @@ export function Sidebar() {
   const { data: projects = [] } = useProjects();
   const [projectSearch, setProjectSearch] = useState("");
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
-
-  const starred = projects.filter((p) => p.is_starred);
   const filtered = useMemo(() => {
     if (!projectSearch.trim()) return projects;
     const q = projectSearch.toLowerCase();
@@ -250,17 +183,7 @@ export function Sidebar() {
               }}
               className="text-slate-500 hover:text-slate-300 transition"
             >
-              <svg
-                className="w-3.5 h-3.5"
-                viewBox="0 0 20 20"
-                fill="currentColor"
-              >
-                <path
-                  fillRule="evenodd"
-                  d="M9 3.5a5.5 5.5 0 1 0 0 11 5.5 5.5 0 0 0 0-11zM2 9a7 7 0 1 1 12.452 4.391l3.328 3.329a.75.75 0 1 1-1.06 1.06l-3.329-3.328A7 7 0 0 1 2 9z"
-                  clipRule="evenodd"
-                />
-              </svg>
+              <Search className="w-3.5 h-3.5" />
             </button>
           )}
         </div>
@@ -293,16 +216,12 @@ export function Sidebar() {
                   onClick={() => toggleCollapse(key)}
                   className="flex items-center gap-1.5 w-full px-3 py-1 text-xs font-semibold uppercase tracking-wider text-slate-500 hover:text-slate-300 transition"
                 >
-                  <svg
+                  <ChevronDown
                     className={cn(
                       "w-2.5 h-2.5 transition-transform shrink-0",
                       isCollapsed && "-rotate-90",
                     )}
-                    viewBox="0 0 10 10"
-                    fill="currentColor"
-                  >
-                    <path d="M3 1l4 4-4 4" />
-                  </svg>
+                  />
                   {cat || "Ungrouped"}
                   <span className="text-[11px] text-slate-600 ml-auto">
                     {items.length}
@@ -330,15 +249,7 @@ export function Sidebar() {
                           <span className="font-medium truncate flex-1 min-w-0">
                             {p.name}
                           </span>
-                          {p.is_starred && (
-                            <svg
-                              className="w-3 h-3 text-amber-400 shrink-0"
-                              viewBox="0 0 24 24"
-                              fill="currentColor"
-                            >
-                              <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
-                            </svg>
-                          )}
+                            {p.is_starred && <Star className="w-3 h-3 text-amber-400 shrink-0 fill-amber-400" />}
                         </Link>
                       );
                     })}
@@ -358,6 +269,7 @@ export function Sidebar() {
           >
             <Avatar
               name={user?.name}
+              src={user?.avatar}
               size="sm"
               className="ring-2 ring-indigo-500/40"
             />

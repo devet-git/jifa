@@ -20,6 +20,7 @@ import { useSprints } from "@/hooks/useSprints";
 import { usePermissionsStore } from "@/store/permissions";
 import { Badge } from "@/components/ui/Badge";
 import { Skeleton } from "@/components/ui/Skeleton";
+import { EmptyState, defaultIcons } from "@/components/ui/EmptyState";
 import type { Issue, Sprint } from "@/types";
 
 const BACKLOG_COL = "backlog";
@@ -103,18 +104,7 @@ export default function PlanningPage({
   if (!can("issue.view")) {
     return (
       <div className="h-full p-8 overflow-auto flex items-center justify-center">
-        <div className="text-center max-w-sm">
-          <div className="mx-auto w-14 h-14 rounded-2xl bg-surface-2 flex items-center justify-center mb-4">
-            <svg className="w-7 h-7 text-muted" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-              <rect x="3" y="11" width="18" height="10" rx="2" />
-              <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-            </svg>
-          </div>
-          <p className="font-semibold text-foreground mb-1">No access</p>
-          <p className="text-sm text-muted leading-relaxed">
-            You don't have permission to view issues in this project.
-          </p>
-        </div>
+        <EmptyState icon={defaultIcons.lock} title="No access" description="You don't have permission to view issues in this project." />
       </div>
     );
   }
@@ -227,13 +217,14 @@ function ColumnsContent({
       })}
 
       {planningSpints.length === 0 && (
-        <div className="surface-card p-8 text-center text-sm text-muted max-w-sm">
-          No planned or active sprints. Create a sprint in the{" "}
-          <Link href={`/projects/${id}`} className="text-brand hover:underline">
-            Sprints tab
-          </Link>{" "}
-          to start planning.
-        </div>
+        <EmptyState
+          icon={defaultIcons.backlog}
+          title="No sprints to plan"
+          description={
+            <>Create a sprint in the <Link href={`/projects/${id}/sprints`} className="text-brand hover:underline font-medium">Sprints tab</Link> to start planning.</>
+          }
+          compact
+        />
       )}
     </>
   );

@@ -6,6 +6,7 @@ import { useIssues, useUpdateIssue } from "@/hooks/useIssues";
 import { usePermissionsStore } from "@/store/permissions";
 import { IssueDetail } from "@/components/issues/IssueDetail";
 import { SkeletonCard } from "@/components/ui/Skeleton";
+import { EmptyState, defaultIcons } from "@/components/ui/EmptyState";
 import type { Issue } from "@/types";
 
 const DAY_PX = 20;
@@ -132,18 +133,7 @@ export default function RoadmapPage({
   if (!can("issue.view")) {
     return (
       <div className="h-full p-8 overflow-auto flex items-center justify-center">
-        <div className="text-center max-w-sm">
-          <div className="mx-auto w-14 h-14 rounded-2xl bg-surface-2 flex items-center justify-center mb-4">
-            <svg className="w-7 h-7 text-muted" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-              <rect x="3" y="11" width="18" height="10" rx="2" />
-              <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-            </svg>
-          </div>
-          <p className="font-semibold text-foreground mb-1">No access</p>
-          <p className="text-sm text-muted leading-relaxed">
-            You don't have permission to view issues in this project.
-          </p>
-        </div>
+        <EmptyState icon={defaultIcons.lock} title="No access" description="You don't have permission to view issues in this project." />
       </div>
     );
   }
@@ -159,14 +149,12 @@ export default function RoadmapPage({
   return (
     <div className="h-full overflow-auto" style={drag ? { userSelect: "none", cursor: "ew-resize" } : undefined}>
         {epics.length === 0 ? (
-          <div className="surface-card p-12 text-center max-w-xl mx-auto mt-12">
-            <div className="mx-auto w-12 h-12 rounded-xl bg-violet-50 dark:bg-violet-500/15 flex items-center justify-center mb-3">
-              <svg className="w-6 h-6 text-violet-500" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M13 2 4 14h6l-1 8 9-12h-6l1-8z" />
-              </svg>
-            </div>
-            <p className="font-medium mb-1">No epics yet</p>
-            <p className="text-sm text-muted">Create an epic to start your roadmap.</p>
+          <div className="mt-12">
+            <EmptyState
+              icon={defaultIcons.epic}
+              title="No epics yet"
+              description="Create an epic with start and due dates to start your roadmap."
+            />
           </div>
         ) : (
           <div className="flex">

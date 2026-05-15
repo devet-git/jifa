@@ -7,10 +7,12 @@ import { useSprints, useSprintAction } from "@/hooks/useSprints";
 import { CreateSprintModal } from "@/components/sprints/CreateSprintModal";
 import { SprintRetroModal } from "@/components/sprints/SprintRetroModal";
 import { usePermissionsStore } from "@/store/permissions";
+import { Plus } from "lucide-react";
 import { PermissionGate } from "@/components/ui/PermissionGate";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { SkeletonRow } from "@/components/ui/Skeleton";
+import { EmptyState, defaultIcons } from "@/components/ui/EmptyState";
 
 export default function SprintsPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -27,9 +29,7 @@ export default function SprintsPage({ params }: { params: Promise<{ id: string }
         <h2 className="font-semibold">Sprints</h2>
         <PermissionGate perm="sprint.create" message="Bạn không có quyền tạo sprint">
           <Button size="sm" variant="gradient" onClick={() => setShowCreateSprint(true)} disabled={!can("sprint.create")}>
-            <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M12 5v14M5 12h14" />
-            </svg>
+            <Plus className="w-3.5 h-3.5" />
             New sprint
           </Button>
         </PermissionGate>
@@ -38,9 +38,19 @@ export default function SprintsPage({ params }: { params: Promise<{ id: string }
         {isLoading ? (
           Array.from({ length: 3 }).map((_, i) => <SkeletonRow key={i} />)
         ) : sprints.length === 0 ? (
-          <div className="surface-card p-10 text-center">
-            <p className="text-sm text-muted">No sprints yet — create your first sprint above.</p>
-          </div>
+          <EmptyState
+            icon={defaultIcons.sprint}
+            title="No sprints yet"
+            description="Sprints help you organize work into time-boxed iterations. Create your first sprint to get started."
+            action={
+              <PermissionGate perm="sprint.create">
+                <Button size="sm" variant="gradient" onClick={() => setShowCreateSprint(true)} disabled={!can("sprint.create")}>
+                  <Plus className="w-3.5 h-3.5" />
+                  Create sprint
+                </Button>
+              </PermissionGate>
+            }
+          />
         ) : (
           sprints.map((sprint) => (
             <div key={sprint.id} className="surface-card p-4 flex items-center justify-between gap-4">

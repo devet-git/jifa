@@ -33,6 +33,7 @@ import { DatePicker } from "@/components/ui/DatePicker";
 import { Progress } from "@/components/ui/Progress";
 import { Tooltip } from "@/components/ui/Tooltip";
 import { Skeleton } from "@/components/ui/Skeleton";
+import { EmptyState, defaultIcons } from "@/components/ui/EmptyState";
 import {
   ContextMenu,
   ContextMenuContent,
@@ -41,7 +42,7 @@ import {
   ContextMenuSeparator,
   ContextMenuTrigger,
 } from "@/components/ui/ContextMenu";
-import { Pencil, Rocket, RotateCcw, Trash2 } from "lucide-react";
+import { Calendar, GripVertical, Pencil, Plus, Rocket, RotateCcw, Trash2 } from "lucide-react";
 import type { Version } from "@/types";
 
 export default function VersionsPage({
@@ -103,9 +104,7 @@ export default function VersionsPage({
           <Button size="sm" variant={showAdd ? "secondary" : "gradient"} onClick={() => setShowAdd((v) => !v)} disabled={!can("version.create")}>
             {showAdd ? "Cancel" : (
               <>
-                <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M12 5v14M5 12h14" />
-                </svg>
+                <Plus className="w-3.5 h-3.5" />
                 Version
               </>
             )}
@@ -162,17 +161,21 @@ export default function VersionsPage({
             ))}
           </div>
         ) : versions.length === 0 ? (
-          <div className="surface-card p-12 text-center">
-            <div className="mx-auto w-12 h-12 rounded-xl bg-emerald-50 dark:bg-emerald-500/15 flex items-center justify-center mb-3">
-              <svg className="w-6 h-6 text-emerald-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M4.5 16.5 9 21l11-11M3 12l9 9 9-18" />
-              </svg>
-            </div>
-            <p className="font-medium mb-1">No versions yet</p>
-            <p className="text-sm text-muted">
-              Create your first version to track project releases.
-            </p>
-          </div>
+          <EmptyState
+            icon={defaultIcons.rocket}
+            title="No versions yet"
+            description="Versions help you plan and track releases. Create your first version to get started."
+            action={
+              !showAdd && (
+                <PermissionGate perm="version.create">
+                  <Button size="sm" variant="gradient" onClick={() => setShowAdd(true)} disabled={!can("version.create")}>
+                    <Plus className="w-3.5 h-3.5" />
+                    Create version
+                  </Button>
+                </PermissionGate>
+              )
+            }
+          />
         ) : (
           <DndContext
             sensors={sensors}
@@ -260,9 +263,7 @@ function VersionRow({
               aria-label="Drag to reorder"
               className="text-muted hover:text-foreground cursor-grab active:cursor-grabbing select-none transition-colors shrink-0"
             >
-              <svg className="w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
-                <path d="M7 2a2 2 0 1 0 .001 4.001A2 2 0 0 0 7 2zm0 6a2 2 0 1 0 .001 4.001A2 2 0 0 0 7 8zm0 6a2 2 0 1 0 .001 4.001A2 2 0 0 0 7 14zm6-8a2 2 0 1 0-.001-4.001A2 2 0 0 0 13 6zm0 2a2 2 0 1 0 .001 4.001A2 2 0 0 0 13 8zm0 6a2 2 0 1 0 .001 4.001A2 2 0 0 0 13 14z" />
-              </svg>
+              <GripVertical className="w-4 h-4" />
             </button>
           </Tooltip>
         )}
@@ -308,9 +309,7 @@ function VersionRow({
               disabled={!canDelete}
               className="w-7 h-7 rounded-lg flex items-center justify-center text-muted hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition"
             >
-              <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
-              </svg>
+              <Trash2 className="w-3.5 h-3.5" />
             </button>
           </Tooltip>
         </PermissionGate>
@@ -321,19 +320,13 @@ function VersionRow({
       <div className="flex items-center gap-3 text-xs text-muted mb-2 flex-wrap">
         {version.release_date && (
           <span className="inline-flex items-center gap-1">
-            <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <rect x="3" y="4" width="18" height="18" rx="2" />
-              <path d="M16 2v4M8 2v4M3 10h18" />
-            </svg>
+            <Calendar className="w-3 h-3" />
             {version.release_date.slice(0, 10)}
           </span>
         )}
         {version.released_at && (
           <span className="inline-flex items-center gap-1 text-emerald-600 dark:text-emerald-400">
-            <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09zM12 15l-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z" />
-              <path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5" />
-            </svg>
+            <Rocket className="w-3 h-3" />
             Released {version.released_at.slice(0, 10)}
           </span>
         )}

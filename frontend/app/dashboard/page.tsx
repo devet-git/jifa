@@ -14,6 +14,8 @@ import { Avatar } from "@/components/ui/Avatar";
 import { UserHoverCard } from "@/components/ui/UserHoverCard";
 import { IssueHoverCard } from "@/components/ui/IssueHoverCard";
 import { Badge } from "@/components/ui/Badge";
+import { EmptyState, defaultIcons } from "@/components/ui/EmptyState";
+import { Plus, Clock, Bell, Folder } from "lucide-react";
 import type { Issue } from "@/types";
 
 export default function DashboardPage() {
@@ -71,9 +73,7 @@ export default function DashboardPage() {
             onClick={() => setShowCreate(true)}
             className="!bg-white !text-indigo-700 hover:!bg-white/90 !border-0 shadow-md"
           >
-            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M12 5v14M5 12h14" />
-            </svg>
+            <Plus className="w-4 h-4" strokeWidth={2.5} />
             New project
           </Button>
         </div>
@@ -87,10 +87,7 @@ export default function DashboardPage() {
           href="/my-issues"
           tint="indigo"
           icon={
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="12" cy="12" r="9" />
-              <path d="M12 7v5l3 3" />
-            </svg>
+            <Clock strokeWidth={1.8} />
           }
         />
         <StatCard
@@ -99,10 +96,7 @@ export default function DashboardPage() {
           href="/notifications"
           tint="amber"
           icon={
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M6 8a6 6 0 1 1 12 0c0 5 2 6 2 6H4s2-1 2-6" />
-              <path d="M10 19a2 2 0 0 0 4 0" />
-            </svg>
+            <Bell strokeWidth={1.8} />
           }
         />
         <StatCard
@@ -111,9 +105,7 @@ export default function DashboardPage() {
           href="#projects"
           tint="emerald"
           icon={
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7z" />
-            </svg>
+            <Folder strokeWidth={1.8} />
           }
         />
       </div>
@@ -131,11 +123,14 @@ export default function DashboardPage() {
             </Link>
           </div>
           {openIssues.length === 0 ? (
-            <EmptyState
-              icon="🎉"
-              title="All caught up"
-              description="You have no open issues."
-            />
+            <div className="py-8">
+              <EmptyState
+                icon={defaultIcons.backlog}
+                title="All caught up"
+                description="You have no open issues."
+                compact
+              />
+            </div>
           ) : (
             <ul className="divide-y divide-border">
               {openIssues.slice(0, 6).map((i) => (
@@ -170,11 +165,14 @@ export default function DashboardPage() {
             </Link>
           </div>
           {recentNotifs.length === 0 ? (
-            <EmptyState
-              icon="🛎️"
-              title="Nothing yet"
-              description="Activity will appear here."
-            />
+            <div className="py-8">
+              <EmptyState
+                icon={defaultIcons.sprint}
+                title="Nothing yet"
+                description="Activity will appear here."
+                compact
+              />
+            </div>
           ) : (
             <ul className="divide-y divide-border">
               {recentNotifs.slice(0, 6).map((n) => (
@@ -255,20 +253,16 @@ export default function DashboardPage() {
             ))}
           </div>
         ) : projects.length === 0 ? (
-          <div className="surface-card p-10 text-center">
-            <div className="mx-auto w-12 h-12 rounded-xl bg-brand-soft flex items-center justify-center mb-3">
-              <svg className="w-6 h-6 text-brand" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7z" />
-              </svg>
-            </div>
-            <p className="font-medium mb-1">No projects yet</p>
-            <p className="text-sm text-muted mb-4">
-              Create your first project to get started.
-            </p>
-            <Button variant="gradient" onClick={() => setShowCreate(true)}>
-              Create your first project
-            </Button>
-          </div>
+          <EmptyState
+            icon={defaultIcons.backlog}
+            title="No projects yet"
+            description="Create your first project to get started."
+            action={
+              <Button variant="gradient" onClick={() => setShowCreate(true)}>
+                Create your first project
+              </Button>
+            }
+          />
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {projects.map((p) => (
@@ -349,24 +343,6 @@ function StatCard({
         <p className="mt-1 text-2xl font-bold tracking-tight">{value}</p>
       </div>
     </Link>
-  );
-}
-
-function EmptyState({
-  icon,
-  title,
-  description,
-}: {
-  icon: string;
-  title: string;
-  description: string;
-}) {
-  return (
-    <div className="px-4 py-10 text-center">
-      <div className="text-3xl mb-2">{icon}</div>
-      <p className="text-sm font-medium">{title}</p>
-      <p className="text-xs text-muted mt-1">{description}</p>
-    </div>
   );
 }
 

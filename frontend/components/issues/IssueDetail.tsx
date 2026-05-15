@@ -44,6 +44,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/Tabs";
 import { Checkbox } from "@/components/ui/Checkbox";
 import { UserHoverCard } from "@/components/ui/UserHoverCard";
 import { Tooltip } from "@/components/ui/Tooltip";
+import { UserSearchSelect } from "@/components/ui/UserSearchSelect";
 import { MarkdownEditor, MarkdownBody } from "@/components/ui/MarkdownEditor";
 import { cn } from "@/lib/utils";
 import { SubTaskList } from "@/components/issues/SubTaskList";
@@ -56,6 +57,7 @@ import { formatDate } from "@/lib/formatDate";
 import { useProjectFormat } from "@/lib/projectFormat";
 import api from "@/lib/api";
 import { useQueryClient } from "@tanstack/react-query";
+import { Trash2, Zap, Eye, Link, Copy, X, Hexagon } from "lucide-react";
 import type { Issue, IssuePriority } from "@/types";
 
 interface Props {
@@ -161,10 +163,15 @@ export function IssueDetail({ issue: initialIssue, onClose }: Props) {
     setSubmitting(false);
   }
 
-  // updateField sends only the changed field via the typed DTO, mapping `null`
-  // to the appropriate clear_* flag so the backend can distinguish "unset" from
-  // "absent".
   async function updateField(field: string, value: unknown) {
+    if ((field === "start_date" || field === "due_date") && value && value !== "") {
+      const start = field === "start_date" ? String(value) : issue.start_date;
+      const end = field === "due_date" ? String(value) : issue.due_date;
+      if (start && end && start > end) {
+        toast("Start date must be before or equal to due date", "error");
+        return;
+      }
+    }
     const body = buildPatch(field, value);
     await api.put(`/issues/${issue.id}`, body);
     qc.invalidateQueries({ queryKey: ["issues", issue.id] });
@@ -250,9 +257,7 @@ export function IssueDetail({ issue: initialIssue, onClose }: Props) {
                   className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-md text-white font-medium"
                   style={{ backgroundColor: parentEpic.color || "#94a3b8" }}
                 >
-                  <svg className="w-3 h-3" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M13 2 4 14h6l-1 8 9-12h-6l1-8z" />
-                  </svg>
+                  <Zap className="w-3 h-3" />
                   {parentEpic.title}
                 </span>
               )}
@@ -293,10 +298,7 @@ export function IssueDetail({ issue: initialIssue, onClose }: Props) {
                   : "ring-border text-muted hover:text-foreground hover:bg-surface-2"
               }`}
             >
-              <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-                <circle cx="12" cy="12" r="3" />
-              </svg>
+              <Eye className="w-3.5 h-3.5" />
               {isWatching ? "Watching" : "Watch"}
               <span className="opacity-70">{watchers.length}</span>
             </button>
@@ -309,10 +311,7 @@ export function IssueDetail({ issue: initialIssue, onClose }: Props) {
                 aria-label="Copy issue link"
                 className="w-8 h-8 rounded-lg flex items-center justify-center text-muted hover:text-foreground hover:bg-surface-2 transition"
               >
-                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
-                  <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
-                </svg>
+                <Link className="w-4 h-4" />
               </button>
             </Tooltip>
             {can("issue.create") && (
@@ -323,10 +322,7 @@ export function IssueDetail({ issue: initialIssue, onClose }: Props) {
                   aria-label="Duplicate issue"
                   className="w-8 h-8 rounded-lg flex items-center justify-center text-muted hover:text-foreground hover:bg-surface-2 transition disabled:opacity-50"
                 >
-                  <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                    <rect x="9" y="9" width="11" height="11" rx="2" />
-                    <path d="M5 15V5a2 2 0 0 1 2-2h10" />
-                  </svg>
+                  <Copy className="w-4 h-4" />
                 </button>
               </Tooltip>
             )}
@@ -336,9 +332,7 @@ export function IssueDetail({ issue: initialIssue, onClose }: Props) {
               aria-label="Close"
               className="w-8 h-8 rounded-lg flex items-center justify-center text-muted hover:text-foreground hover:bg-surface-2 transition"
             >
-              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M18 6 6 18M6 6l12 12" />
-              </svg>
+              <X className="w-4 h-4" />
             </button>
             </Tooltip>
           </div>
@@ -464,7 +458,7 @@ export function IssueDetail({ issue: initialIssue, onClose }: Props) {
               </p>
               <UserHoverCard user={issue.reporter} side="left">
                 <div className="flex items-center gap-2 text-sm cursor-default">
-                  <Avatar name={issue.reporter?.name} size="sm" />
+                  <Avatar name={issue.reporter?.name} src={issue.reporter?.avatar} size="sm" />
                   <span className="truncate">{issue.reporter?.name}</span>
                 </div>
               </UserHoverCard>
@@ -474,24 +468,15 @@ export function IssueDetail({ issue: initialIssue, onClose }: Props) {
                 Assignee
               </p>
               {can("issue.edit") ? (
-                <Select
+                <UserSearchSelect
                   value={issue.assignee?.id != null ? String(issue.assignee.id) : "__none__"}
                   onValueChange={(v) =>
                     updateField("assignee_id", v === "__none__" ? null : Number(v))
                   }
-                >
-                  <SelectTrigger className="!py-1.5 !text-xs">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="__none__">Unassigned</SelectItem>
-                    {users.map((u) => (
-                      <SelectItem key={u.id} value={String(u.id)}>
-                        {u.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                  users={users}
+                  triggerClassName="!py-1.5 !text-xs min-w-0"
+                  placeholder={issue.assignee?.name ?? "Unassigned"}
+                />
               ) : (
                 <p className="text-sm">{issue.assignee?.name ?? "Unassigned"}</p>
               )}
@@ -705,9 +690,7 @@ export function IssueDetail({ issue: initialIssue, onClose }: Props) {
                   key={c.id}
                   className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs bg-indigo-50 text-indigo-700 ring-1 ring-indigo-200 dark:bg-indigo-500/15 dark:text-indigo-300 dark:ring-indigo-500/20"
                 >
-                  <svg className="w-2.5 h-2.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
-                  </svg>
+                  <Hexagon className="w-2.5 h-2.5" />
                   {c.name}
                 </span>
               ))}
@@ -780,7 +763,7 @@ export function IssueDetail({ issue: initialIssue, onClose }: Props) {
                   {issue.comments?.map((c) => (
                     <div key={c.id} className="flex gap-3">
                       <UserHoverCard user={c.author} side="right" align="start">
-                        <Avatar name={c.author?.name} size="sm" />
+                        <Avatar name={c.author?.name} src={c.author?.avatar} size="sm" />
                       </UserHoverCard>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-baseline gap-2 mb-1">
@@ -824,7 +807,7 @@ export function IssueDetail({ issue: initialIssue, onClose }: Props) {
                                 <button
                                   onClick={() => handleDeleteComment(c.id)}
                                   className="text-[11px] text-muted hover:text-red-500 transition"
-                                >Delete</button>
+                                ><Trash2 className="w-3 h-3" /></button>
                               </div>
                             )}
                           </div>

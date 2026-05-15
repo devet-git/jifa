@@ -1,13 +1,14 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import QRCode from "qrcode";
 import { useSearchParams, useRouter } from "next/navigation";
 import {
   useNotificationPrefs,
   useUpdateNotificationPrefs,
 } from "@/hooks/useNotifications";
 import { useTokens, useCreateToken, useDeleteToken } from "@/hooks/useTokens";
-import { useMe, useUpdateProfile } from "@/hooks/useUsers";
+import { useMe, useUpdateProfile, useChangePassword } from "@/hooks/useUsers";
 import { useTotpSetup, useTotpEnable, useTotpDisable } from "@/hooks/useTotp";
 import { showConfirm } from "@/store/confirm";
 import { toast } from "@/store/toast";
@@ -17,6 +18,8 @@ import { DatePicker } from "@/components/ui/DatePicker";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/Tabs";
 import { Switch } from "@/components/ui/Switch";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/Alert";
+import { EmptyState, defaultIcons } from "@/components/ui/EmptyState";
+import { Bell, Camera, ChevronsRight, Clock, ExternalLink, KeyRound, Layers, Link, Lock, Maximize2, PieChart, Play, Puzzle, Shield, Timer, Trash2, User } from "lucide-react";
 import type { ApiToken, NotificationPrefs } from "@/types";
 
 type Row = {
@@ -67,12 +70,12 @@ const TABS = [
   { id: "notifications", label: "Notifications", icon: "bell" },
 ] as const;
 
-const iconPaths: Record<string, string> = {
-  user: "M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2 M12 7a4 4 0 1 0 0-8 4 4 0 0 0 0 8",
-  lock: "M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z M12 8v4 M12 16h.01",
-  key: "M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.78 7.78 5.5 5.5 0 0 1 7.78-7.78zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4",
-  puzzle: "M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2 M12 7a4 4 0 1 0 0-8 4 4 0 0 0 0 8",
-  bell: "M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9 M13.73 21a2 2 0 0 1-3.46 0",
+const tabIcons: Record<string, React.ReactNode> = {
+  user: <User className="w-4 h-4" />,
+  lock: <Lock className="w-4 h-4" />,
+  key: <KeyRound className="w-4 h-4" />,
+  puzzle: <Puzzle className="w-4 h-4" />,
+  bell: <Bell className="w-4 h-4" />,
 };
 
 export default function PreferencesPage() {
@@ -103,17 +106,7 @@ export default function PreferencesPage() {
                 value={t.id}
                 className="flex items-center gap-2 text-sm px-4 py-2 whitespace-nowrap"
               >
-                <svg
-                  className="w-4 h-4"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <path d={iconPaths[t.icon]} />
-                </svg>
+                {tabIcons[t.icon]}
                 {t.label}
               </TabsTrigger>
             ))}
@@ -169,10 +162,7 @@ function AccountTab() {
     <div className="surface-card p-6">
       <div className="flex items-center gap-3 mb-6">
         <div className="w-8 h-8 rounded-lg bg-indigo-500/10 flex items-center justify-center">
-          <svg className="w-4 h-4 text-indigo-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-            <circle cx="12" cy="7" r="4" />
-          </svg>
+          <User className="w-4 h-4 text-indigo-500" />
         </div>
         <div>
           <h2 className="text-sm font-semibold">Account</h2>
@@ -187,10 +177,7 @@ function AccountTab() {
         >
           <Avatar name={me?.name} src={me?.avatar} size="xl" />
           <div className="absolute inset-0 rounded-full bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center">
-            <svg className="w-5 h-5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
-              <circle cx="12" cy="13" r="4" />
-            </svg>
+            <Camera className="w-5 h-5 text-white" />
           </div>
           <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarChange} />
         </div>
@@ -220,6 +207,11 @@ function AccountTab() {
 
 function SecurityTab() {
   const { data: me } = useMe();
+  const changePassword = useChangePassword();
+  const [pwCurrent, setPwCurrent] = useState("");
+  const [pwNew, setPwNew] = useState("");
+  const [pwConfirm, setPwConfirm] = useState("");
+  const [pwError, setPwError] = useState("");
   const totpSetup = useTotpSetup();
   const totpEnable = useTotpEnable();
   const totpDisable = useTotpDisable();
@@ -228,8 +220,18 @@ function SecurityTab() {
   const [totpCode, setTotpCode] = useState("");
   const [totpPassword, setTotpPassword] = useState("");
   const [totpError, setTotpError] = useState("");
+  const [qrDataUrl, setQrDataUrl] = useState("");
 
   const isSaving = totpSetup.isPending || totpEnable.isPending || totpDisable.isPending;
+
+  useEffect(() => {
+    if (!totpData?.otpauth_url) return;
+    let cancelled = false;
+    QRCode.toDataURL(totpData.otpauth_url, { width: 200, margin: 2 })
+      .then((dataUrl) => { if (!cancelled) setQrDataUrl(dataUrl); })
+      .catch(() => { if (!cancelled) setQrDataUrl(""); });
+    return () => { cancelled = true; };
+  }, [totpData]);
 
   async function startSetup() {
     setTotpError("");
@@ -264,14 +266,30 @@ function SecurityTab() {
     }
   }
 
+  async function handleChangePassword(e: React.FormEvent) {
+    e.preventDefault();
+    setPwError("");
+    if (pwNew !== pwConfirm) {
+      setPwError("New passwords do not match.");
+      return;
+    }
+    try {
+      await changePassword.mutateAsync({ current_password: pwCurrent, new_password: pwNew });
+      setPwCurrent("");
+      setPwNew("");
+      setPwConfirm("");
+      toast("Password updated", "success");
+    } catch (err: any) {
+      setPwError(err.response?.data?.error ?? "Failed to change password");
+    }
+  }
+
   return (
+    <>
     <div className="surface-card p-6">
       <div className="flex items-center gap-3 mb-6">
         <div className="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center">
-          <svg className="w-4 h-4 text-emerald-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
-            <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-          </svg>
+          <Lock className="w-4 h-4 text-emerald-500" />
         </div>
         <div>
           <h2 className="text-sm font-semibold">Two-Factor Authentication</h2>
@@ -300,34 +318,47 @@ function SecurityTab() {
 
       {!me?.totp_enabled && step === "idle" && (
         <Button variant="secondary" size="sm" onClick={startSetup} disabled={totpSetup.isPending}>
-          <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-          </svg>
+          <Shield className="w-3.5 h-3.5" />
           Set up 2FA
         </Button>
       )}
 
       {step === "setup" && totpData && (
         <div className="space-y-4">
-          <div className="p-4 bg-surface-2 rounded-xl space-y-3">
-            <p className="text-xs font-medium">1. Open your authenticator app and scan or enter:</p>
-            <a
-              href={totpData.otpauth_url}
-              className="inline-flex items-center gap-1.5 text-xs text-indigo-600 dark:text-indigo-400 font-medium hover:underline"
-            >
-              <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
-                <polyline points="15 3 21 3 21 9" />
-                <line x1="10" y1="14" x2="21" y2="3" />
-              </svg>
-              Open in authenticator app
-            </a>
-            <div>
-              <p className="text-xs text-muted mb-1">Or enter this secret key manually:</p>
-              <code className="text-xs font-mono bg-surface border border-border px-3 py-1.5 rounded-lg block tracking-widest select-all">
+          <div className="p-4 bg-surface-2 rounded-xl space-y-4">
+            <p className="text-xs font-medium">1. Scan this QR code with your authenticator app:</p>
+            {qrDataUrl ? (
+              <div className="flex justify-center">
+                <img
+                  src={qrDataUrl}
+                  alt="TOTP QR Code"
+                  className="rounded-lg bg-white p-2"
+                  width={200}
+                  height={200}
+                />
+              </div>
+            ) : (
+              <div className="flex justify-center">
+                <div className="w-[200px] h-[200px] rounded-lg bg-surface animate-pulse" />
+              </div>
+            )}
+            <div className="text-center">
+              <a
+                href={totpData.otpauth_url}
+                className="inline-flex items-center gap-1.5 text-xs text-indigo-600 dark:text-indigo-400 font-medium hover:underline"
+              >
+                <ExternalLink className="w-3.5 h-3.5" />
+                Open in authenticator app
+              </a>
+            </div>
+            <details className="group">
+              <summary className="text-xs text-muted cursor-pointer hover:text-foreground transition-colors select-none">
+                Or enter the secret key manually
+              </summary>
+              <code className="mt-2 text-xs font-mono bg-surface border border-border px-3 py-1.5 rounded-lg block tracking-widest select-all">
                 {totpData.secret}
               </code>
-            </div>
+            </details>
           </div>
           <form onSubmit={confirmEnable} className="flex items-end gap-2">
             <div className="flex-1 max-w-60">
@@ -384,6 +415,63 @@ function SecurityTab() {
         </form>
       )}
     </div>
+
+    <div className="surface-card p-6 mt-6">
+      <div className="flex items-center gap-3 mb-6">
+        <div className="w-8 h-8 rounded-lg bg-sky-500/10 flex items-center justify-center">
+          <KeyRound className="w-4 h-4 text-sky-500" />
+        </div>
+        <div>
+          <h2 className="text-sm font-semibold">Change Password</h2>
+          <p className="text-xs text-muted">Update your login password</p>
+        </div>
+      </div>
+
+      {pwError && (
+        <Alert variant="destructive" className="mb-4 !text-xs">
+          {pwError}
+        </Alert>
+      )}
+
+      <form onSubmit={handleChangePassword} className="space-y-3 max-w-sm">
+        <div>
+          <label className="text-xs text-muted block mb-1">Current password</label>
+          <input
+            required
+            type="password"
+            className="input !py-1.5 !text-sm w-full"
+            value={pwCurrent}
+            onChange={(e) => setPwCurrent(e.target.value)}
+          />
+        </div>
+        <div>
+          <label className="text-xs text-muted block mb-1">New password (min. 8 characters)</label>
+          <input
+            required
+            type="password"
+            minLength={8}
+            className="input !py-1.5 !text-sm w-full"
+            value={pwNew}
+            onChange={(e) => setPwNew(e.target.value)}
+          />
+        </div>
+        <div>
+          <label className="text-xs text-muted block mb-1">Confirm new password</label>
+          <input
+            required
+            type="password"
+            minLength={8}
+            className="input !py-1.5 !text-sm w-full"
+            value={pwConfirm}
+            onChange={(e) => setPwConfirm(e.target.value)}
+          />
+        </div>
+        <Button type="submit" size="sm" disabled={changePassword.isPending}>
+          {changePassword.isPending ? "Saving…" : "Update Password"}
+        </Button>
+      </form>
+    </div>
+    </>
   );
 }
 
@@ -435,10 +523,7 @@ function TokensTab() {
       <div className="px-6 py-4 border-b border-border bg-surface-2/40">
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 rounded-lg bg-violet-500/10 flex items-center justify-center">
-            <svg className="w-4 h-4 text-violet-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <rect x="3" y="11" width="18" height="10" rx="2" />
-              <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-            </svg>
+            <KeyRound className="w-4 h-4 text-violet-500" />
           </div>
           <div>
             <h2 className="text-sm font-semibold">API Tokens</h2>
@@ -488,15 +573,13 @@ function TokensTab() {
       </form>
 
       {tokens.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-12 gap-3 text-muted">
-          <div className="w-12 h-12 rounded-2xl bg-surface-2 flex items-center justify-center">
-            <svg className="w-6 h-6 opacity-50" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-              <rect x="3" y="11" width="18" height="10" rx="2" />
-              <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-            </svg>
-          </div>
-          <p className="text-sm">No tokens yet.</p>
-          <p className="text-xs text-muted">Create one above to get started with MCP integrations.</p>
+        <div className="py-8">
+          <EmptyState
+            icon={defaultIcons.lock}
+            title="No tokens yet"
+            description="Create a token above to get started with MCP integrations."
+            compact
+          />
         </div>
       ) : (
         <div className="divide-y divide-border">
@@ -516,7 +599,7 @@ function TokensTab() {
                   <span>Created {new Date(t.created_at).toLocaleDateString()}</span>
                 </div>
               </div>
-              <Button variant="ghost" size="sm" className="!text-red-500 hover:!text-red-600 hover:!bg-red-50 dark:hover:!bg-red-500/10" onClick={() => handleDelete(t.id, t.name)} disabled={del.isPending}>Delete</Button>
+              <Button variant="ghost" size="sm" className="!text-red-500 hover:!text-red-600 hover:!bg-red-50 dark:hover:!bg-red-500/10" onClick={() => handleDelete(t.id, t.name)} disabled={del.isPending}><Trash2 className="w-3.5 h-3.5" /></Button>
             </div>
           ))}
         </div>
@@ -542,10 +625,7 @@ function NotificationsTab() {
       <div className="px-6 py-4 border-b border-border bg-surface-2/40">
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 rounded-lg bg-sky-500/10 flex items-center justify-center">
-            <svg className="w-4 h-4 text-sky-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
-              <path d="M13.73 21a2 2 0 0 1-3.46 0" />
-            </svg>
+            <Bell className="w-4 h-4 text-sky-500" />
           </div>
           <div>
             <h2 className="text-sm font-semibold">Notifications</h2>
@@ -627,13 +707,7 @@ function MCPTab() {
       <div className="px-6 py-4 border-b border-border bg-surface-2/40">
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 rounded-lg bg-amber-500/10 flex items-center justify-center">
-            <svg className="w-4 h-4 text-amber-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <polyline points="16 3 21 3 21 8" />
-              <line x1="4" y1="20" x2="21" y2="3" />
-              <polyline points="21 16 21 21 16 21" />
-              <line x1="15" y1="15" x2="21" y2="21" />
-              <line x1="4" y1="4" x2="9" y2="9" />
-            </svg>
+            <Puzzle className="w-4 h-4 text-amber-500" />
           </div>
           <div>
             <h2 className="text-sm font-semibold">MCP Integration</h2>
@@ -669,7 +743,7 @@ function MCPTab() {
 
           <ConfigBlock
             label="Claude Desktop"
-            icon={<svg className="w-4 h-4 text-amber-600" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>}
+            icon={<Layers className="w-4 h-4 text-amber-600" />}
             config={JSON.stringify({ mcpServers: { jifa: { url: mcpUrl, headers: { Authorization: "Bearer <your-token>" } } } }, null, 2)}
             fileName="claude_desktop_config.json"
             copyKey="claude"
@@ -679,7 +753,7 @@ function MCPTab() {
 
           <ConfigBlock
             label="VS Code (Cline)"
-            icon={<svg className="w-4 h-4 text-sky-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 3h5v5M8 3H3v5M16 21h5v-5M8 21H3v-5"/></svg>}
+            icon={<Maximize2 className="w-4 h-4 text-sky-600" />}
             config={JSON.stringify({ name: "jifa", type: "sse", url: mcpUrl, headers: { Authorization: "Bearer <your-token>" } }, null, 2)}
             fileName="cline_mcp_settings.json"
             copyKey="cline"
@@ -689,7 +763,7 @@ function MCPTab() {
 
           <ConfigBlock
             label="Continue (VS Code)"
-            icon={<svg className="w-4 h-4 text-purple-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>}
+            icon={<Play className="w-4 h-4 text-purple-600" />}
             config={JSON.stringify({ mcpServers: { jifa: { type: "sse", url: mcpUrl, headers: { Authorization: "Bearer <your-token>" } } } }, null, 2)}
             fileName="config.json"
             copyKey="continue"
@@ -699,7 +773,7 @@ function MCPTab() {
 
           <ConfigBlock
             label="Cursor"
-            icon={<svg className="w-4 h-4 text-zinc-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2a10 10 0 1 0 10 10h-10V2z"/></svg>}
+            icon={<PieChart className="w-4 h-4 text-zinc-600" />}
             config={JSON.stringify({ mcpServers: { jifa: { url: mcpUrl, headers: { Authorization: "Bearer <your-token>" } } } }, null, 2)}
             fileName=".cursor/mcp.json"
             copyKey="cursor"
@@ -709,7 +783,7 @@ function MCPTab() {
 
           <ConfigBlock
             label="Windsurf"
-            icon={<svg className="w-4 h-4 text-teal-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12a9 9 0 1 1-9-9"/><path d="M12 3v9h9"/></svg>}
+            icon={<Timer className="w-4 h-4 text-teal-600" />}
             config={JSON.stringify({ name: "jifa", type: "sse", transport: { url: mcpUrl, headers: { Authorization: "Bearer <your-token>" } } }, null, 2)}
             fileName=".windsurf/mcp_config.json"
             copyKey="windsurf"
@@ -719,7 +793,7 @@ function MCPTab() {
 
           <ConfigBlock
             label="OpenCode"
-            icon={<svg className="w-4 h-4 text-sky-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>}
+            icon={<ChevronsRight className="w-4 h-4 text-sky-600" />}
             config={JSON.stringify({
               mcpServers: {
                 jifa: {
@@ -738,7 +812,7 @@ function MCPTab() {
 
           <ConfigBlock
             label="Antigravity"
-            icon={<svg className="w-4 h-4 text-orange-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>}
+            icon={<Clock className="w-4 h-4 text-orange-600" />}
             config={JSON.stringify({
               name: "jifa",
               transport: "sse",
@@ -755,7 +829,7 @@ function MCPTab() {
 
           <ConfigBlock
             label="Test with curl"
-            icon={<svg className="w-4 h-4 text-green-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>}
+            icon={<Link className="w-4 h-4 text-green-600" />}
             config={`# Initialize SSE connection
 curl -N "${mcpUrl}" \\
   -H "Authorization: Bearer <your-token>"

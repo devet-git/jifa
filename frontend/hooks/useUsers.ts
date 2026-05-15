@@ -24,3 +24,10 @@ export function useUpdateProfile() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ["me"] }),
   });
 }
+
+export function useChangePassword() {
+  return useMutation({
+    mutationFn: (data: { current_password: string; new_password: string }) =>
+      api.put("/me/password", data).then((r) => r.data),
+  });
+}

@@ -61,7 +61,7 @@ func (h *TotpHandler) Enable(c *gin.Context) {
 		return
 	}
 	if !totp.Validate(*user.TotpSecret, req.Code) {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid authenticator code"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid authenticator code"})
 		return
 	}
 
@@ -86,7 +86,7 @@ func (h *TotpHandler) Disable(c *gin.Context) {
 		return
 	}
 	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(req.Password)); err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid password"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid password"})
 		return
 	}
 

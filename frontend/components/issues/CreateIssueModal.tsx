@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Modal } from "@/components/ui/Modal";
 import { Button } from "@/components/ui/Button";
+import { UserSearchSelect } from "@/components/ui/UserSearchSelect";
 import {
   Select,
   SelectContent,
@@ -198,144 +199,17 @@ export function CreateIssueModal({
         <div className="grid grid-cols-2 gap-4">
           <div>
             <label className="block text-xs font-medium mb-1.5 text-muted">
-              Story Points
-              {form.type === "story" && (
-                <span className="text-red-500 ml-0.5">*</span>
-              )}
+              Story Points{form.type === "story" && <span className="text-red-500 ml-0.5">*</span>}
             </label>
             <input
-              required
+              type="number"
+              min={0}
+              required={form.type === "story"}
+              placeholder={form.type === "story" ? "Required for Story" : "—"}
               className="input"
-              placeholder="What needs to be done?"
-              autoFocus
-              value={form.title}
-              onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
-            />
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs font-medium mb-1.5 text-muted">
-                Type
-              </label>
-              <Select
-                value={form.type}
-                onValueChange={(v) =>
-                  setForm((f) => ({ ...f, type: v as IssueType }))
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {TYPE_OPTIONS.map((o) => (
-                    <SelectItem key={o.value} value={o.value}>
-                      {o.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <label className="block text-xs font-medium mb-1.5 text-muted">
-                Priority
-              </label>
-              <Select
-                value={form.priority}
-                onValueChange={(v) =>
-                  setForm((f) => ({ ...f, priority: v as IssuePriority }))
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {PRIORITY_OPTIONS.map((o) => (
-                    <SelectItem key={o.value} value={o.value}>
-                      {o.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs font-medium mb-1.5 text-muted">
-                Story Points{form.type === "story" && <span className="text-red-500 ml-0.5">*</span>}
-              </label>
-              <input
-                type="number"
-                min={0}
-                required={form.type === "story"}
-                placeholder={form.type === "story" ? "Required for Story" : "—"}
-                className="input"
-                value={form.story_points}
-                onChange={(e) =>
-                  setForm((f) => ({ ...f, story_points: e.target.value }))
-                }
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-medium mb-1.5 text-muted">
-                Sprint
-              </label>
-              <Select
-                value={form.sprint_id || SPRINT_NONE}
-                onValueChange={(v) =>
-                  setForm((f) => ({ ...f, sprint_id: v === SPRINT_NONE ? "" : v }))
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value={SPRINT_NONE}>Backlog</SelectItem>
-                  {sprints.map((s) => (
-                    <SelectItem key={s.id} value={String(s.id)}>
-                      {s.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-          <div>
-            <label className="block text-xs font-medium mb-1.5 text-muted">
-              Assignee
-            </label>
-            <Select
-              value={form.assignee_id || ASSIGNEE_NONE}
-              onValueChange={(v) =>
-                setForm((f) => ({
-                  ...f,
-                  assignee_id: v === ASSIGNEE_NONE ? "" : v,
-                }))
-              }
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value={ASSIGNEE_NONE}>Unassigned</SelectItem>
-                {users.map((u) => (
-                  <SelectItem key={u.id} value={String(u.id)}>
-                    {u.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div>
-            <label className="block text-xs font-medium mb-1.5 text-muted">
-              Description
-            </label>
-            <textarea
-              rows={4}
-              placeholder="Detailed description (optional)"
-              className="input resize-none"
-              value={form.description}
+              value={form.story_points}
               onChange={(e) =>
-                setForm((f) => ({ ...f, description: e.target.value }))
+                setForm((f) => ({ ...f, story_points: e.target.value }))
               }
             />
           </div>
@@ -367,7 +241,7 @@ export function CreateIssueModal({
           <label className="block text-xs font-medium mb-1.5 text-muted">
             Assignee
           </label>
-          <Select
+          <UserSearchSelect
             value={form.assignee_id || ASSIGNEE_NONE}
             onValueChange={(v) =>
               setForm((f) => ({
@@ -375,19 +249,9 @@ export function CreateIssueModal({
                 assignee_id: v === ASSIGNEE_NONE ? "" : v,
               }))
             }
-          >
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value={ASSIGNEE_NONE}>Unassigned</SelectItem>
-              {users.map((u) => (
-                <SelectItem key={u.id} value={String(u.id)}>
-                  {u.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+            users={users}
+            noneValue={ASSIGNEE_NONE}
+          />
         </div>
         <div>
           <label className="block text-xs font-medium mb-1.5 text-muted">

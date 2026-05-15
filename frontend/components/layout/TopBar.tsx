@@ -276,7 +276,7 @@ function NotificationRow({
       }`}
     >
       <UserHoverCard user={n.actor} side="left" align="start">
-        <Avatar name={n.actor?.name ?? "?"} size="sm" />
+        <Avatar name={n.actor?.name ?? "?"} src={n.actor?.avatar} size="sm" />
       </UserHoverCard>
       <div className="flex-1 min-w-0">
         <p className="text-sm leading-snug">

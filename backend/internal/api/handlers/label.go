@@ -39,6 +39,33 @@ func (h *LabelHandler) Create(c *gin.Context) {
 	c.JSON(http.StatusCreated, label)
 }
 
+func (h *LabelHandler) Update(c *gin.Context) {
+	var body struct {
+		Name  *string `json:"name"`
+		Color *string `json:"color"`
+	}
+	if err := c.ShouldBindJSON(&body); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	updates := map[string]any{}
+	if body.Name != nil {
+		updates["name"] = *body.Name
+	}
+	if body.Color != nil {
+		updates["color"] = *body.Color
+	}
+	if len(updates) == 0 {
+		c.Status(http.StatusNoContent)
+		return
+	}
+	if err := h.db.Model(&models.Label{}).Where("id = ?", c.Param("labelId")).Updates(updates).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.Status(http.StatusNoContent)
+}
+
 func (h *LabelHandler) Delete(c *gin.Context) {
 	h.db.Delete(&models.Label{}, c.Param("labelId"))
 	c.Status(http.StatusNoContent)

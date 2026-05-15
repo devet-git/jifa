@@ -120,10 +120,6 @@ func (h *RoleHandler) SetPermissions(c *gin.Context) {
 		c.JSON(http.StatusNotFound, gin.H{"error": "role not found"})
 		return
 	}
-	if role.IsSystem {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "cannot edit system role permissions"})
-		return
-	}
 	var dto struct {
 		Permissions []string `json:"permissions"`
 	}

@@ -17,6 +17,7 @@ import { UserHoverCard } from "@/components/ui/UserHoverCard";
 import { Progress } from "@/components/ui/Progress";
 import { formatDate } from "@/lib/formatDate";
 import { useProjectFormat } from "@/lib/projectFormat";
+import { Trash2 } from "lucide-react";
 import type { Issue } from "@/types";
 
 interface Props {
@@ -183,7 +184,7 @@ export function TimeTrackingPanel({ issue }: Props) {
               className="flex items-center gap-2 text-sm border rounded px-2 py-1"
             >
               <UserHoverCard user={l.user} side="top">
-                <Avatar name={l.user?.name} size="sm" />
+                <Avatar name={l.user?.name} src={l.user?.avatar} size="sm" />
               </UserHoverCard>
               <span className="font-semibold">{formatDuration(l.minutes)}</span>
               <span className="text-gray-500 flex-1 truncate">
@@ -197,7 +198,7 @@ export function TimeTrackingPanel({ issue }: Props) {
                   onClick={() => canWorklog && remove.mutate(l.id)}
                   className="text-xs text-gray-400 hover:text-red-500"
                 >
-                  ×
+                  <Trash2 className="w-3.5 h-3.5" />
                 </button>
               </PermissionGate>
             </li>

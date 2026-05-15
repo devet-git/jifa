@@ -25,6 +25,7 @@ import {
   useUpdateIssueStatus,
 } from "@/hooks/useIssues";
 import { useStatuses } from "@/hooks/useStatuses";
+import { ArrowLeft, Columns2 } from "lucide-react";
 import { ProjectFormatProvider } from "@/lib/projectFormat";
 import type { Issue } from "@/types";
 
@@ -142,9 +143,7 @@ export default function BoardPage({
               href={`/projects/${projectId}`}
               className="inline-flex items-center gap-1 text-xs text-muted hover:text-foreground transition-colors"
             >
-              <svg className="w-3.5 h-3.5" viewBox="0 0 20 20" fill="currentColor">
-                <path fillRule="evenodd" d="M17 10a.75.75 0 0 1-.75.75H5.612l4.158 3.96a.75.75 0 1 1-1.04 1.08l-5.5-5.25a.75.75 0 0 1 0-1.08l5.5-5.25a.75.75 0 1 1 1.04 1.08L5.612 9.25H16.25A.75.75 0 0 1 17 10Z" clipRule="evenodd" />
-              </svg>
+              <ArrowLeft className="w-3.5 h-3.5" />
               {project?.name ?? "Back to project"}
             </Link>
           )}
@@ -152,10 +151,7 @@ export default function BoardPage({
         <div className="flex items-center justify-between gap-4">
           <div>
             <h1 className="text-2xl font-bold tracking-tight inline-flex items-center gap-2 mr-4">
-            <svg className="w-6 h-6 text-brand" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-              <rect x="3" y="3" width="7" height="18" rx="1.5" />
-              <rect x="14" y="3" width="7" height="11" rx="1.5" />
-            </svg>
+            <Columns2 className="w-6 h-6 text-brand" />
             Sprint Board
           </h1>
           <p className="text-xs text-muted mt-0.5">

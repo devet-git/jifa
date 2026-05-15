@@ -2,6 +2,7 @@
 
 import { usePermissionsStore } from "@/store/permissions";
 import { Modal } from "@/components/ui/Modal";
+import { Home, Pencil, Zap, Star, Layout, BookOpen, Grid3x3, User, FileText, Webhook, Clock } from "lucide-react";
 
 interface Props {
   open: boolean;
@@ -229,6 +230,20 @@ const GROUP_ORDER = [
   "Audit",
 ];
 
+const GROUP_ICONS: Record<string, React.ReactNode> = {
+  Project: <Home className="w-3.5 h-3.5" />,
+  Issue: <Pencil className="w-3.5 h-3.5" />,
+  Sprint: <Zap className="w-3.5 h-3.5" />,
+  Version: <Star className="w-3.5 h-3.5" />,
+  Board: <Layout className="w-3.5 h-3.5" />,
+  Wiki: <BookOpen className="w-3.5 h-3.5" />,
+  Component: <Grid3x3 className="w-3.5 h-3.5" />,
+  Member: <User className="w-3.5 h-3.5" />,
+  Workflow: <FileText className="w-3.5 h-3.5" />,
+  Webhook: <Webhook className="w-3.5 h-3.5" />,
+  Audit: <Clock className="w-3.5 h-3.5" />,
+};
+
 export function MyPermissionsModal({ open, onClose, projectName }: Props) {
   const perms = usePermissionsStore((s) => s.perms);
 
@@ -247,40 +262,51 @@ export function MyPermissionsModal({ open, onClose, projectName }: Props) {
     perms.has(k),
   ).length;
   const totalCount = Object.keys(PERMISSION_LABELS).length;
+  const pct = Math.round((grantedCount / totalCount) * 100);
 
   return (
     <Modal
       open={open}
       onClose={onClose}
-      title={`Permission in ${projectName} project`}
+      title={`Permissions in ${projectName}`}
       size="lg"
     >
-      {/* {projectName && <p className="text-sm text-muted mb-4">{projectName}</p>} */}
-      <div className="mb-4 flex items-center gap-2">
-        <div className="h-2 flex-1 bg-surface-2 rounded-full overflow-hidden">
+      <div className="mb-5 p-3 rounded-xl bg-primary-soft/20 border border-primary-soft/30">
+        <div className="flex items-center justify-between mb-2">
+          <span className="text-xs font-medium text-foreground">
+            {grantedCount} of {totalCount} permissions
+          </span>
+          <span className="text-xs font-semibold text-primary">{pct}%</span>
+        </div>
+        <div className="h-1.5 bg-surface-2 rounded-full overflow-hidden">
           <div
             className="h-full bg-gradient-to-r from-emerald-500 to-teal-500 rounded-full transition-all"
-            style={{ width: `${(grantedCount / totalCount) * 100}%` }}
+            style={{ width: `${pct}%` }}
           />
         </div>
-        <span className="text-xs text-muted font-medium whitespace-nowrap">
-          {grantedCount}/{totalCount}
-        </span>
       </div>
-      <div className="space-y-4 max-h-96 overflow-y-auto">
+      <div className="space-y-5 max-h-96 overflow-y-auto -mx-6 px-6">
         {grouped.map(({ group, items }) => (
           <div key={group}>
-            <h3 className="text-xs font-semibold text-muted uppercase tracking-wider mb-2">
-              {group}
-            </h3>
+            <div className="flex items-center gap-2 mb-2.5">
+              <span className="w-5 h-5 rounded-md bg-surface-2 flex items-center justify-center text-muted shrink-0">
+                {GROUP_ICONS[group]}
+              </span>
+              <h3 className="text-[11px] font-semibold text-muted uppercase tracking-wider">
+                {group}
+              </h3>
+              <span className="text-[11px] text-muted/50 ml-auto">
+                {items.filter((i) => i.granted).length}/{items.length}
+              </span>
+            </div>
             <div className="space-y-1">
               {items.map(({ key, name, description, granted }) => (
                 <div
                   key={key}
-                  className={`flex items-start gap-3 px-3 py-2 rounded-lg text-sm ${
+                  className={`flex items-start gap-3 px-3 py-2 rounded-lg text-sm transition ${
                     granted
-                      ? "bg-emerald-50 dark:bg-emerald-500/10"
-                      : "bg-surface-2/50 opacity-60"
+                      ? "bg-emerald-50 dark:bg-emerald-500/8 hover:bg-emerald-100 dark:hover:bg-emerald-500/15"
+                      : "bg-surface-2/40 opacity-60 hover:opacity-80 hover:bg-surface-2"
                   }`}
                 >
                   <span
@@ -292,14 +318,14 @@ export function MyPermissionsModal({ open, onClose, projectName }: Props) {
                   />
                   <div className="flex-1 min-w-0">
                     <p
-                      className={`font-medium ${granted ? "text-foreground" : "text-muted"}`}
+                      className={`text-[13px] font-medium ${granted ? "text-foreground" : "text-muted"}`}
                     >
                       {name}
                     </p>
-                    <p className="text-xs text-muted">{description}</p>
+                    <p className="text-xs text-muted mt-0.5">{description}</p>
                   </div>
                   <span
-                    className={`text-[10px] font-mono shrink-0 ${
+                    className={`text-[11px] font-mono shrink-0 mt-0.5 ${
                       granted
                         ? "text-emerald-600 dark:text-emerald-400"
                         : "text-slate-400"

@@ -121,6 +121,7 @@ func (h *ProjectHandler) Create(c *gin.Context) {
 		if err := tx.Create(&models.Member{
 			ProjectID: project.ID,
 			UserID:    userID.(uint),
+			Role:      models.ProjectRole("admin"),
 			RoleID:    adminRoleID,
 		}).Error; err != nil {
 			return err

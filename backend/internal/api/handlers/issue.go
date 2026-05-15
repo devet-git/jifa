@@ -354,6 +354,27 @@ func (h *IssueHandler) Update(c *gin.Context) {
 		updates["start_date"] = *dto.StartDate
 	}
 
+	// Validate start_date ≤ due_date
+	var finalStart, finalDue *time.Time
+	if dto.ClearStart || dto.ClearDue {
+		// no validation needed when clearing
+	} else {
+		if dto.StartDate != nil {
+			finalStart = dto.StartDate
+		} else {
+			finalStart = issue.StartDate
+		}
+		if dto.DueDate != nil {
+			finalDue = dto.DueDate
+		} else {
+			finalDue = issue.DueDate
+		}
+		if finalStart != nil && finalDue != nil && finalStart.After(*finalDue) {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "start_date must be before or equal to due_date"})
+			return
+		}
+	}
+
 	if len(updates) > 0 {
 		if err := h.db.Model(&issue).Updates(updates).Error; err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -403,6 +424,7 @@ func logIssueDiff(db *gorm.DB, userID uint, oldI, newI models.Issue) {
 	logActivity(db, newI.ID, userID, "priority", string(oldI.Priority), string(newI.Priority))
 	logActivity(db, newI.ID, userID, "story_points", oldI.StoryPoints, newI.StoryPoints)
 	logActivity(db, newI.ID, userID, "due_date", oldI.DueDate, newI.DueDate)
+	logActivity(db, newI.ID, userID, "start_date", oldI.StartDate, newI.StartDate)
 	logActivity(db, newI.ID, userID, "assignee_id", oldI.AssigneeID, newI.AssigneeID)
 	logActivity(db, newI.ID, userID, "sprint_id", oldI.SprintID, newI.SprintID)
 	logActivity(db, newI.ID, userID, "parent_id", oldI.ParentID, newI.ParentID)

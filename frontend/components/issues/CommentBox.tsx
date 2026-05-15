@@ -136,7 +136,7 @@ export function CommentBox({
                     : "hover:bg-surface-2"
                 }`}
               >
-                <Avatar name={u.name} size="sm" />
+                <Avatar name={u.name} src={u.avatar} size="sm" />
                 <span className="truncate">{u.name}</span>
               </button>
             ))}

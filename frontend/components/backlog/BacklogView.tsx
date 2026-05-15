@@ -23,6 +23,7 @@ import { Button } from "@/components/ui/Button";
 import { Checkbox } from "@/components/ui/Checkbox";
 import { useRankIssue } from "@/hooks/useIssues";
 import { BacklogFilterBar } from "@/components/backlog/BacklogFilterBar";
+import { Plus } from "lucide-react";
 import { BulkActionBar } from "@/components/backlog/BulkActionBar";
 import type { BacklogFilterState, Issue, Sprint } from "@/types";
 
@@ -62,7 +63,8 @@ export function BacklogView({
   function toggleSelected(id: number) {
     setSelected((prev) => {
       const next = new Set(prev);
-      next.has(id) ? next.delete(id) : next.add(id);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
       return next;
     });
   }
@@ -190,15 +192,11 @@ export function BacklogView({
             {selectMode ? "Done" : "Select"}
           </Button>
           <Button size="sm" variant="secondary" onClick={onCreateSprint}>
-            <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M12 5v14M5 12h14" />
-            </svg>
+            <Plus className="w-3.5 h-3.5" />
             Sprint
           </Button>
           <Button size="sm" variant="gradient" onClick={onCreateIssue}>
-            <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M12 5v14M5 12h14" />
-            </svg>
+            <Plus className="w-3.5 h-3.5" />
             Issue
           </Button>
         </div>

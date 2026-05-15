@@ -18,6 +18,7 @@ import {
   SelectValue,
 } from "@/components/ui/Select";
 import { IssueHoverCard } from "@/components/ui/IssueHoverCard";
+import { Trash2 } from "lucide-react";
 import type { Issue, IssueLinkType } from "@/types";
 
 interface Props {
@@ -167,7 +168,7 @@ export function LinksPanel({ issue }: Props) {
                   onClick={() => canManage && remove.mutate(r.linkId)}
                   className="text-xs text-gray-400 hover:text-red-500"
                 >
-                  ×
+                  <Trash2 className="w-3.5 h-3.5" />
                 </button>
               </PermissionGate>
             </li>

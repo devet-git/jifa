@@ -19,7 +19,11 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/Popover";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, Trash2, Search, X } from "lucide-react";
+
+function capitalize(s: string) {
+  return s.charAt(0).toUpperCase() + s.slice(1);
+}
 import type {
   BacklogFilterState,
   IssuePriority,
@@ -54,7 +58,8 @@ export function BacklogFilterBar({ projectId, value, onChange }: Props) {
     item: T,
   ): T[] {
     const set = new Set(arr ?? []);
-    set.has(item) ? set.delete(item) : set.add(item);
+    if (set.has(item)) set.delete(item);
+    else set.add(item);
     return Array.from(set);
   }
 
@@ -90,10 +95,7 @@ export function BacklogFilterBar({ projectId, value, onChange }: Props) {
       <div className="flex flex-wrap items-center gap-2">
         {!jqlMode && (
           <div className="flex items-center bg-surface border border-border rounded-lg hover:border-[var(--border-strong)] focus-within:border-brand transition w-56">
-            <svg className="ml-2.5 w-3.5 h-3.5 text-muted shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="11" cy="11" r="7" />
-              <path d="m20 20-3.5-3.5" />
-            </svg>
+            <Search className="ml-2.5 w-3.5 h-3.5 text-muted shrink-0" />
             <input
               type="text"
               placeholder="Filter by text…"
@@ -114,7 +116,9 @@ export function BacklogFilterBar({ projectId, value, onChange }: Props) {
               options={users.map((u) => ({
                 id: u.id,
                 label: u.name,
+                sublabel: u.email,
                 avatar: u.name,
+                avatarSrc: u.avatar,
               }))}
               selected={value.assignee_ids ?? []}
               onToggle={(id) =>
@@ -127,7 +131,7 @@ export function BacklogFilterBar({ projectId, value, onChange }: Props) {
             <DropdownMulti
               label="Type"
               count={value.types?.length ?? 0}
-              options={TYPES.map((t) => ({ id: t, label: t }))}
+              options={TYPES.map((t) => ({ id: t, label: capitalize(t) }))}
               selected={value.types ?? []}
               onToggle={(id) =>
                 onChange({ ...value, types: toggle(value.types, id as IssueType) })
@@ -136,7 +140,7 @@ export function BacklogFilterBar({ projectId, value, onChange }: Props) {
             <DropdownMulti
               label="Priority"
               count={value.priorities?.length ?? 0}
-              options={PRIORITIES.map((p) => ({ id: p, label: p }))}
+              options={PRIORITIES.map((p) => ({ id: p, label: capitalize(p) }))}
               selected={value.priorities ?? []}
               onToggle={(id) =>
                 onChange({
@@ -274,9 +278,7 @@ export function BacklogFilterBar({ projectId, value, onChange }: Props) {
                 aria-label="Remove filter"
                 className="w-4 h-4 rounded-full flex items-center justify-center text-muted hover:text-red-500 hover:bg-surface transition"
               >
-                <svg className="w-2.5 h-2.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M18 6 6 18M6 6l12 12" />
-                </svg>
+                <Trash2 className="w-3 h-3" />
               </button>
             </span>
           ))}
@@ -295,10 +297,15 @@ function DropdownMulti({
 }: {
   label: string;
   count: number;
-  options: { id: number | string; label: string; avatar?: string; color?: string }[];
+  options: { id: number | string; label: string; sublabel?: string; avatar?: string; avatarSrc?: string; color?: string }[];
   selected: (number | string)[];
   onToggle: (id: number | string) => void;
 }) {
+  const [query, setQuery] = useState("");
+  const filtered = query
+    ? options.filter((o) => o.label.toLowerCase().includes(query.toLowerCase()))
+    : options;
+
   return (
     <Popover>
       <PopoverTrigger
@@ -318,34 +325,63 @@ function DropdownMulti({
       </PopoverTrigger>
       <PopoverContent
         align="start"
-        className="!p-0 w-56 max-h-64 overflow-auto"
+        className="!p-0 w-56 max-h-80 overflow-hidden flex flex-col"
       >
-        {options.length === 0 ? (
-          <p className="px-3 py-2 text-xs text-muted">Nothing available.</p>
-        ) : (
-          options.map((opt) => {
-            const checked = selected.includes(opt.id);
-            return (
-              <label
-                key={opt.id}
-                className="flex items-center gap-2 px-3 py-1.5 cursor-pointer hover:bg-surface-2 text-sm transition"
+        {options.length > 0 && (
+          <div className="flex items-center gap-1 border-b border-border px-3">
+            <Search className="w-3.5 h-3.5 shrink-0 text-muted" />
+            <input
+              autoFocus
+              placeholder="Search..."
+              className="flex-1 py-2.5 text-xs bg-transparent outline-none placeholder:text-muted-2"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+            />
+            {query && (
+              <button
+                onClick={() => setQuery("")}
+                className="text-muted hover:text-foreground transition"
               >
-                <Checkbox
-                  checked={checked}
-                  onCheckedChange={() => onToggle(opt.id)}
-                />
-                {opt.avatar && <Avatar name={opt.avatar} size="sm" />}
-                {opt.color && (
-                  <span
-                    className="w-3 h-3 rounded-full"
-                    style={{ backgroundColor: opt.color }}
-                  />
-                )}
-                <span className="truncate">{opt.label}</span>
-              </label>
-            );
-          })
+                <X className="w-3 h-3" />
+              </button>
+            )}
+          </div>
         )}
+        <div className="max-h-56 overflow-auto">
+          {filtered.length === 0 ? (
+            <p className="px-3 py-2 text-xs text-muted">
+              {query ? "No results found." : "Nothing available."}
+            </p>
+          ) : (
+            filtered.map((opt) => {
+              const checked = selected.includes(opt.id);
+              return (
+                <label
+                  key={opt.id}
+                  className="flex items-center gap-2 px-3 py-1.5 cursor-pointer hover:bg-surface-2 text-sm transition"
+                >
+                  <Checkbox
+                    checked={checked}
+                    onCheckedChange={() => onToggle(opt.id)}
+                  />
+                  {opt.avatar && <Avatar name={opt.avatar} src={opt.avatarSrc} size="sm" />}
+                  {opt.color && (
+                    <span
+                      className="w-3 h-3 rounded-full"
+                      style={{ backgroundColor: opt.color }}
+                    />
+                  )}
+                  <div className="flex flex-col min-w-0">
+                    <span className="truncate">{opt.label}</span>
+                    {opt.sublabel && (
+                      <span className="truncate text-xs text-muted">{opt.sublabel}</span>
+                    )}
+                  </div>
+                </label>
+              );
+            })
+          )}
+        </div>
       </PopoverContent>
     </Popover>
   );

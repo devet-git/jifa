@@ -5,6 +5,7 @@ import { SortableIssueCard } from "./SortableIssueCard";
 import { Checkbox } from "@/components/ui/Checkbox";
 import { Tooltip } from "@/components/ui/Tooltip";
 import type { Issue, StatusDefinition } from "@/types";
+import { ChevronLeft, Plus } from "lucide-react";
 
 interface Props {
   status: StatusDefinition;
@@ -116,9 +117,7 @@ export function KanbanColumn({ status, issues, onIssueClick, boardKey = "default
                 aria-label={`Collapse ${status.name}`}
                 className="w-5 h-5 -mr-1 rounded text-muted hover:text-foreground hover:bg-surface-2 transition flex items-center justify-center"
               >
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-3.5 h-3.5">
-                  <path d="m15 18-6-6 6-6" />
-                </svg>
+                <ChevronLeft className="w-3.5 h-3.5" />
               </button>
             </Tooltip>
           </div>
@@ -183,9 +182,7 @@ function QuickAddRow({
         onClick={() => setOpen(true)}
         className="w-full flex items-center gap-1 text-xs text-muted hover:text-foreground hover:bg-surface-2 rounded-lg px-2 py-1.5 transition mt-1"
       >
-        <svg className="w-3.5 h-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M12 5v14M5 12h14" />
-        </svg>
+        <Plus className="w-3.5 h-3.5 shrink-0" />
         Add issue
       </button>
     );
