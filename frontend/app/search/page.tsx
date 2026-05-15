@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useJQL } from "@/hooks/useJQL";
 import { Badge } from "@/components/ui/Badge";
 import { Avatar } from "@/components/ui/Avatar";
+import { Alert } from "@/components/ui/Alert";
 
 const EXAMPLES = [
   `assignee = me AND status != done`,
@@ -66,13 +67,9 @@ export default function AdvancedSearchPage() {
           </button>
         </div>
         {errMsg && (
-          <div className="mt-3 flex items-start gap-2 p-2 rounded-md bg-red-50 border border-red-200 text-red-700 text-xs dark:bg-red-500/10 dark:border-red-500/30 dark:text-red-300">
-            <svg className="w-3.5 h-3.5 mt-0.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="12" cy="12" r="10" />
-              <path d="M12 8v4M12 16h.01" />
-            </svg>
+          <Alert variant="destructive" className="mt-3 !text-xs !py-2">
             Syntax error: {errMsg}
-          </div>
+          </Alert>
         )}
       </div>
 

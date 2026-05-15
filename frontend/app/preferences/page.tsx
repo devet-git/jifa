@@ -16,6 +16,7 @@ import { Button } from "@/components/ui/Button";
 import { DatePicker } from "@/components/ui/DatePicker";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/Tabs";
 import { Switch } from "@/components/ui/Switch";
+import { Alert } from "@/components/ui/Alert";
 import type { ApiToken, NotificationPrefs } from "@/types";
 
 type Row = {
@@ -292,9 +293,9 @@ function SecurityTab() {
       </div>
 
       {totpError && (
-        <div className="mb-4 p-3 rounded-lg bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/25">
-          <p className="text-xs text-red-600 dark:text-red-400">{totpError}</p>
-        </div>
+        <Alert variant="destructive" className="mb-4 !text-xs">
+          {totpError}
+        </Alert>
       )}
 
       {!me?.totp_enabled && step === "idle" && (
