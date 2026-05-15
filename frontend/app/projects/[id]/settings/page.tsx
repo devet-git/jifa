@@ -76,6 +76,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/Select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/Tabs";
 import type {
   BacklogFilterState,
   Board,
@@ -297,7 +298,11 @@ export default function ProjectSettingsPage({
   }
 
   return (
-    <div className="flex flex-col h-full">
+    <Tabs
+      value={tab}
+      onValueChange={(v) => setTab(v as Tab)}
+      className="flex flex-col h-full"
+    >
       {/* Header */}
       <div className="px-8 pt-6 pb-0 border-b border-border bg-surface">
         <div className="flex items-center gap-2 mb-1">
@@ -305,8 +310,16 @@ export default function ProjectSettingsPage({
             href={`/projects/${id}`}
             className="inline-flex items-center gap-1 text-xs text-muted hover:text-foreground transition-colors"
           >
-            <svg className="w-3.5 h-3.5" viewBox="0 0 20 20" fill="currentColor">
-              <path fillRule="evenodd" d="M17 10a.75.75 0 0 1-.75.75H5.612l4.158 3.96a.75.75 0 1 1-1.04 1.08l-5.5-5.25a.75.75 0 0 1 0-1.08l5.5-5.25a.75.75 0 1 1 1.04 1.08L5.612 9.25H16.25A.75.75 0 0 1 17 10Z" clipRule="evenodd" />
+            <svg
+              className="w-3.5 h-3.5"
+              viewBox="0 0 20 20"
+              fill="currentColor"
+            >
+              <path
+                fillRule="evenodd"
+                d="M17 10a.75.75 0 0 1-.75.75H5.612l4.158 3.96a.75.75 0 1 1-1.04 1.08l-5.5-5.25a.75.75 0 0 1 0-1.08l5.5-5.25a.75.75 0 1 1 1.04 1.08L5.612 9.25H16.25A.75.75 0 0 1 17 10Z"
+                clipRule="evenodd"
+              />
             </svg>
             Back to project
           </Link>
@@ -314,29 +327,23 @@ export default function ProjectSettingsPage({
         <h1 className="text-xl font-bold tracking-tight text-foreground mb-4">
           Settings
         </h1>
-        <div className="flex gap-0 -mb-px overflow-x-auto">
+        <TabsList className="!bg-transparent !rounded-none !p-0 gap-0 -mb-px overflow-x-auto justify-start w-full">
           {visibleTabs.map((t) => (
-            <button
+            <TabsTrigger
               key={t.key}
-              onClick={() => setTab(t.key)}
-              className={`inline-flex items-center gap-1.5 px-3.5 py-2.5 text-sm font-medium border-b-2 transition-all whitespace-nowrap ${
-                tab === t.key
-                  ? "border-brand text-brand"
-                  : "border-transparent text-muted hover:text-foreground hover:border-border"
-              }`}
+              value={t.key}
+              className="!rounded-none !bg-transparent !shadow-none inline-flex items-center gap-1.5 px-3.5 py-2.5 text-sm font-medium border-b-2 border-transparent transition-all whitespace-nowrap data-[state=active]:border-brand data-[state=active]:text-brand data-[state=active]:!bg-transparent data-[state=active]:!shadow-none hover:border-border"
             >
-              <span className={tab === t.key ? "text-brand" : "text-muted"}>
-                {t.icon}
-              </span>
+              {t.icon}
               {t.label}
-            </button>
+            </TabsTrigger>
           ))}
-        </div>
+        </TabsList>
       </div>
 
       {/* Content */}
       <div className="flex-1 p-8 overflow-auto">
-        {tab === "members" && (
+        <TabsContent value="members" className="!mt-0">
           <div className="max-w-2xl space-y-4 animate-fade-in">
             {canManageMembers && (
               <div className="surface-card p-5">
@@ -465,27 +472,37 @@ export default function ProjectSettingsPage({
               )}
             </div>
           </div>
-        )}
+        </TabsContent>
 
-        {tab === "components" && (
+        <TabsContent value="components" className="!mt-0">
           <ComponentsTab projectId={id} />
-        )}
-        {tab === "workflow" && (
+        </TabsContent>
+        <TabsContent value="workflow" className="!mt-0">
           <WorkflowTab projectId={id} />
-        )}
-        {tab === "boards" && <BoardsTab projectId={id} />}
-        {tab === "webhooks" && <WebhooksTab projectId={id} />}
-        {tab === "audit" && <AuditTab projectId={id} dateFormat={project?.date_format} timeFormat={project?.time_format} />}
+        </TabsContent>
+        <TabsContent value="boards" className="!mt-0">
+          <BoardsTab projectId={id} />
+        </TabsContent>
+        <TabsContent value="webhooks" className="!mt-0">
+          <WebhooksTab projectId={id} />
+        </TabsContent>
+        <TabsContent value="audit" className="!mt-0">
+          <AuditTab
+            projectId={id}
+            dateFormat={project?.date_format}
+            timeFormat={project?.time_format}
+          />
+        </TabsContent>
 
-        {tab === "permissions" && (
+        <TabsContent value="permissions" className="!mt-0">
           <PermissionsTab
             projectId={id}
             permissions={permissions}
             roles={roles}
           />
-        )}
+        </TabsContent>
 
-        {tab === "details" && (
+        <TabsContent value="details" className="!mt-0">
           <div className="max-w-2xl space-y-4 animate-fade-in">
             <div className="surface-card p-5">
               <h2 className="text-sm font-semibold text-foreground mb-4">
@@ -524,9 +541,9 @@ export default function ProjectSettingsPage({
             <DateFormatSection project={project} projectId={id} />
             <ImportExportSection projectId={id} />
           </div>
-        )}
+        </TabsContent>
       </div>
-    </div>
+    </Tabs>
   );
 }
 
