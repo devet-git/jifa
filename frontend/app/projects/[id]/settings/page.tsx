@@ -80,6 +80,7 @@ import { Button } from "@/components/ui/Button";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { Checkbox } from "@/components/ui/Checkbox";
 import { Spinner } from "@/components/ui/Spinner";
+import { Tooltip } from "@/components/ui/Tooltip";
 import {
   Select,
   SelectContent,
@@ -1275,17 +1276,18 @@ function StatusRow({
       className="px-5 py-3 flex items-center gap-3 bg-surface"
     >
       {can("workflow.edit") && (
-        <button
-          {...attributes}
-          {...listeners}
-          aria-label="Drag to reorder"
-          className="text-muted hover:text-foreground cursor-grab active:cursor-grabbing select-none transition-colors"
-          title="Drag to reorder"
-        >
-          <svg className="w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
-            <path d="M7 2a2 2 0 1 0 .001 4.001A2 2 0 0 0 7 2zm0 6a2 2 0 1 0 .001 4.001A2 2 0 0 0 7 8zm0 6a2 2 0 1 0 .001 4.001A2 2 0 0 0 7 14zm6-8a2 2 0 1 0-.001-4.001A2 2 0 0 0 13 6zm0 2a2 2 0 1 0 .001 4.001A2 2 0 0 0 13 8zm0 6a2 2 0 1 0 .001 4.001A2 2 0 0 0 13 14z" />
-          </svg>
-        </button>
+        <Tooltip content="Drag to reorder">
+          <button
+            {...attributes}
+            {...listeners}
+            aria-label="Drag to reorder"
+            className="text-muted hover:text-foreground cursor-grab active:cursor-grabbing select-none transition-colors"
+          >
+            <svg className="w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
+              <path d="M7 2a2 2 0 1 0 .001 4.001A2 2 0 0 0 7 2zm0 6a2 2 0 1 0 .001 4.001A2 2 0 0 0 7 8zm0 6a2 2 0 1 0 .001 4.001A2 2 0 0 0 7 14zm6-8a2 2 0 1 0-.001-4.001A2 2 0 0 0 13 6zm0 2a2 2 0 1 0 .001 4.001A2 2 0 0 0 13 8zm0 6a2 2 0 1 0 .001 4.001A2 2 0 0 0 13 14z" />
+            </svg>
+          </button>
+        </Tooltip>
       )}
       <span
         className="w-3 h-3 rounded-full shrink-0 ring-2 ring-white dark:ring-surface"
@@ -1987,17 +1989,18 @@ function ComponentRow({
       className="px-5 py-3.5 flex items-center gap-3 bg-surface"
     >
       {canEdit && (
-        <button
-          {...attributes}
-          {...listeners}
-          aria-label="Drag to reorder"
-          className="text-muted hover:text-foreground cursor-grab active:cursor-grabbing select-none transition-colors"
-          title="Drag to reorder"
-        >
-          <svg className="w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
-            <path d="M7 2a2 2 0 1 0 .001 4.001A2 2 0 0 0 7 2zm0 6a2 2 0 1 0 .001 4.001A2 2 0 0 0 7 8zm0 6a2 2 0 1 0 .001 4.001A2 2 0 0 0 7 14zm6-8a2 2 0 1 0-.001-4.001A2 2 0 0 0 13 6zm0 2a2 2 0 1 0 .001 4.001A2 2 0 0 0 13 8zm0 6a2 2 0 1 0 .001 4.001A2 2 0 0 0 13 14z" />
-          </svg>
-        </button>
+        <Tooltip content="Drag to reorder">
+          <button
+            {...attributes}
+            {...listeners}
+            aria-label="Drag to reorder"
+            className="text-muted hover:text-foreground cursor-grab active:cursor-grabbing select-none transition-colors"
+          >
+            <svg className="w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
+              <path d="M7 2a2 2 0 1 0 .001 4.001A2 2 0 0 0 7 2zm0 6a2 2 0 1 0 .001 4.001A2 2 0 0 0 7 8zm0 6a2 2 0 1 0 .001 4.001A2 2 0 0 0 7 14zm6-8a2 2 0 1 0-.001-4.001A2 2 0 0 0 13 6zm0 2a2 2 0 1 0 .001 4.001A2 2 0 0 0 13 8zm0 6a2 2 0 1 0 .001 4.001A2 2 0 0 0 13 14z" />
+            </svg>
+          </button>
+        </Tooltip>
       )}
       <div className="flex-1 min-w-0">
         {canEdit && editing ? (
@@ -2341,27 +2344,29 @@ function PermissionsTab({
                       {r.name}
                     </span>
                     {renderRolePermBadge(r)}
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDelete(r);
-                      }}
-                      className="shrink-0 p-1 rounded text-muted/30 hover:text-[var(--danger)] hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors opacity-0 group-hover:opacity-100"
-                      title="Delete role"
-                    >
-                      <svg
-                        className="w-3.5 h-3.5"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
+                    <Tooltip content="Delete role">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDelete(r);
+                        }}
+                        aria-label="Delete role"
+                        className="shrink-0 p-1 rounded text-muted/30 hover:text-[var(--danger)] hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors opacity-0 group-hover:opacity-100"
                       >
-                        <polyline points="3 6 5 6 21 6" />
-                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-                      </svg>
-                    </button>
+                        <svg
+                          className="w-3.5 h-3.5"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        >
+                          <polyline points="3 6 5 6 21 6" />
+                          <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                        </svg>
+                      </button>
+                    </Tooltip>
                   </div>
                 ))}
               </div>
@@ -2648,42 +2653,46 @@ function RolePermissionEditor({
                   }}
                   autoFocus
                 />
-                <button
-                  onClick={saveRename}
-                  disabled={!nameDraft.trim() || updateRole.isPending}
-                  className="shrink-0 p-1 rounded text-[var(--brand)] hover:bg-[var(--brand-soft)] transition-colors disabled:opacity-30"
-                  title="Save"
-                >
-                  <svg
-                    className="w-3.5 h-3.5"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2.5"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
+                <Tooltip content="Save (Enter)">
+                  <button
+                    onClick={saveRename}
+                    disabled={!nameDraft.trim() || updateRole.isPending}
+                    aria-label="Save"
+                    className="shrink-0 p-1 rounded text-[var(--brand)] hover:bg-[var(--brand-soft)] transition-colors disabled:opacity-30"
                   >
-                    <polyline points="20 6 9 17 4 12" />
-                  </svg>
-                </button>
-                <button
-                  onClick={cancelRename}
-                  className="shrink-0 p-1 rounded text-muted hover:text-foreground hover:bg-surface-2 transition-colors"
-                  title="Cancel"
-                >
-                  <svg
-                    className="w-3.5 h-3.5"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
+                    <svg
+                      className="w-3.5 h-3.5"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2.5"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <polyline points="20 6 9 17 4 12" />
+                    </svg>
+                  </button>
+                </Tooltip>
+                <Tooltip content="Cancel (Esc)">
+                  <button
+                    onClick={cancelRename}
+                    aria-label="Cancel"
+                    className="shrink-0 p-1 rounded text-muted hover:text-foreground hover:bg-surface-2 transition-colors"
                   >
-                    <line x1="18" y1="6" x2="6" y2="18" />
-                    <line x1="6" y1="6" x2="18" y2="18" />
-                  </svg>
-                </button>
+                    <svg
+                      className="w-3.5 h-3.5"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <line x1="18" y1="6" x2="6" y2="18" />
+                      <line x1="6" y1="6" x2="18" y2="18" />
+                    </svg>
+                  </button>
+                </Tooltip>
               </div>
             ) : (
               <h2 className="text-sm font-semibold text-foreground truncate">
