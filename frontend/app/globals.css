@@ -298,6 +298,14 @@ select:focus {
   0% { background-position: -400px 0; }
   100% { background-position: 400px 0; }
 }
+@keyframes accordion-down {
+  from { height: 0 }
+  to { height: var(--radix-accordion-content-height) }
+}
+@keyframes accordion-up {
+  from { height: var(--radix-accordion-content-height) }
+  to { height: 0 }
+}
 
 .animate-fade-in {
   animation: fadeIn 200ms ease-out both;
@@ -307,6 +315,12 @@ select:focus {
 }
 .animate-pulse-soft {
   animation: pulseSoft 1.6s ease-in-out infinite;
+}
+.animate-accordion-down {
+  animation: accordion-down 200ms ease-out;
+}
+.animate-accordion-up {
+  animation: accordion-up 200ms ease-out;
 }
 
 .skeleton {
