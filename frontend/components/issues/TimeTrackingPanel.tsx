@@ -13,6 +13,7 @@ import {
 import { usePermissionsStore } from "@/store/permissions";
 import { PermissionGate } from "@/components/ui/PermissionGate";
 import { Avatar } from "@/components/ui/Avatar";
+import { Progress } from "@/components/ui/Progress";
 import { formatDate } from "@/lib/formatDate";
 import { useProjectFormat } from "@/lib/projectFormat";
 import type { Issue } from "@/types";
@@ -140,12 +141,11 @@ export function TimeTrackingPanel({ issue }: Props) {
           )}
         </div>
         {estimate > 0 && (
-          <div className="h-1.5 bg-gray-100 rounded overflow-hidden">
-            <div
-              className={`h-full ${overrun ? "bg-red-500" : "bg-blue-500"}`}
-              style={{ width: `${pct}%` }}
-            />
-          </div>
+          <Progress
+            value={pct}
+            className="h-1.5 !rounded"
+            indicatorClassName={overrun ? "bg-red-500" : "bg-blue-500"}
+          />
         )}
       </div>
 

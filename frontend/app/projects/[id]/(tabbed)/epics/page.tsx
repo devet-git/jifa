@@ -3,6 +3,7 @@
 import { use, useMemo, useState } from "react";
 import { useIssues } from "@/hooks/useIssues";
 import { IssueDetail } from "@/components/issues/IssueDetail";
+import { Progress } from "@/components/ui/Progress";
 import type { Issue, IssueStatus } from "@/types";
 
 export default function EpicsPage({
@@ -72,12 +73,10 @@ export default function EpicsPage({
                       {p.done}/{p.total} done
                     </span>
                   </div>
-                  <div className="h-2 bg-surface-2 rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-gradient-to-r from-emerald-500 to-teal-500 transition-all"
-                      style={{ width: `${p.pct}%` }}
-                    />
-                  </div>
+                  <Progress
+                    value={p.pct}
+                    indicatorClassName="bg-gradient-to-r from-emerald-500 to-teal-500"
+                  />
                   <div className="flex gap-3 mt-2 text-[11px] text-muted">
                     {Object.entries(statusBreakdown).map(([s, n]) => (
                       <span key={s} className="inline-flex items-center gap-1">

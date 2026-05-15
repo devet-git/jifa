@@ -30,6 +30,7 @@ import { PermissionGate } from "@/components/ui/PermissionGate";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { DatePicker } from "@/components/ui/DatePicker";
+import { Progress } from "@/components/ui/Progress";
 import type { Version } from "@/types";
 
 export default function VersionsPage({
@@ -314,12 +315,10 @@ function VersionRow({
           {done}/{total} issues done
         </span>
       </div>
-      <div className="h-2 bg-surface-2 rounded-full overflow-hidden">
-        <div
-          className="h-full bg-gradient-to-r from-emerald-500 to-teal-500 transition-all"
-          style={{ width: `${pct}%` }}
-        />
-      </div>
+      <Progress
+        value={pct}
+        indicatorClassName="bg-gradient-to-r from-emerald-500 to-teal-500"
+      />
     </li>
   );
 }
