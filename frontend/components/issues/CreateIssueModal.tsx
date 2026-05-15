@@ -217,40 +217,45 @@ export function CreateIssueModal({
               <label className="block text-xs font-medium mb-1.5 text-muted">
                 Type
               </label>
-              <select
-                className="input"
+              <Select
                 value={form.type}
-                onChange={(e) =>
-                  setForm((f) => ({ ...f, type: e.target.value as IssueType }))
+                onValueChange={(v) =>
+                  setForm((f) => ({ ...f, type: v as IssueType }))
                 }
               >
-                {TYPE_OPTIONS.map((o) => (
-                  <option key={o.value} value={o.value}>
-                    {o.label}
-                  </option>
-                ))}
-              </select>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {TYPE_OPTIONS.map((o) => (
+                    <SelectItem key={o.value} value={o.value}>
+                      {o.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div>
               <label className="block text-xs font-medium mb-1.5 text-muted">
                 Priority
               </label>
-              <select
-                className="input"
+              <Select
                 value={form.priority}
-                onChange={(e) =>
-                  setForm((f) => ({
-                    ...f,
-                    priority: e.target.value as IssuePriority,
-                  }))
+                onValueChange={(v) =>
+                  setForm((f) => ({ ...f, priority: v as IssuePriority }))
                 }
               >
-                {PRIORITY_OPTIONS.map((o) => (
-                  <option key={o.value} value={o.value}>
-                    {o.label}
-                  </option>
-                ))}
-              </select>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {PRIORITY_OPTIONS.map((o) => (
+                    <SelectItem key={o.value} value={o.value}>
+                      {o.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
           <div className="grid grid-cols-2 gap-4">
@@ -274,40 +279,51 @@ export function CreateIssueModal({
               <label className="block text-xs font-medium mb-1.5 text-muted">
                 Sprint
               </label>
-              <select
-                className="input"
-                value={form.sprint_id}
-                onChange={(e) =>
-                  setForm((f) => ({ ...f, sprint_id: e.target.value }))
+              <Select
+                value={form.sprint_id || SPRINT_NONE}
+                onValueChange={(v) =>
+                  setForm((f) => ({ ...f, sprint_id: v === SPRINT_NONE ? "" : v }))
                 }
               >
-                <option value="">Backlog</option>
-                {sprints.map((s) => (
-                  <option key={s.id} value={s.id}>
-                    {s.name}
-                  </option>
-                ))}
-              </select>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={SPRINT_NONE}>Backlog</SelectItem>
+                  {sprints.map((s) => (
+                    <SelectItem key={s.id} value={String(s.id)}>
+                      {s.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
           <div>
             <label className="block text-xs font-medium mb-1.5 text-muted">
               Assignee
             </label>
-            <select
-              className="input"
-              value={form.assignee_id}
-              onChange={(e) =>
-                setForm((f) => ({ ...f, assignee_id: e.target.value }))
+            <Select
+              value={form.assignee_id || ASSIGNEE_NONE}
+              onValueChange={(v) =>
+                setForm((f) => ({
+                  ...f,
+                  assignee_id: v === ASSIGNEE_NONE ? "" : v,
+                }))
               }
             >
-              <option value="">Unassigned</option>
-              {users.map((u) => (
-                <option key={u.id} value={u.id}>
-                  {u.name}
-                </option>
-              ))}
-            </select>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={ASSIGNEE_NONE}>Unassigned</SelectItem>
+                {users.map((u) => (
+                  <SelectItem key={u.id} value={String(u.id)}>
+                    {u.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
           <div>
             <label className="block text-xs font-medium mb-1.5 text-muted">
