@@ -779,7 +779,9 @@ export function IssueDetail({ issue: initialIssue, onClose }: Props) {
                   )}
                   {issue.comments?.map((c) => (
                     <div key={c.id} className="flex gap-3">
-                      <Avatar name={c.author?.name} size="sm" />
+                      <UserHoverCard user={c.author} side="right" align="start">
+                        <Avatar name={c.author?.name} size="sm" />
+                      </UserHoverCard>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-baseline gap-2 mb-1">
                           <span className="text-sm font-medium">
