@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import { use } from "react";
 import { useRouter } from "next/navigation";
 import api from "@/lib/api";
+import { Spinner } from "@/components/ui/Spinner";
 
 export default function IssueRedirectPage({
   params,
@@ -32,9 +33,7 @@ export default function IssueRedirectPage({
   return (
     <div className="h-screen flex items-center justify-center">
       <div className="flex flex-col items-center gap-3 text-muted">
-        <svg className="w-6 h-6 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-          <path d="M21 12a9 9 0 1 1-6.219-8.56" strokeLinecap="round" />
-        </svg>
+        <Spinner className="w-6 h-6" />
         <p className="text-sm">Opening issue…</p>
       </div>
     </div>

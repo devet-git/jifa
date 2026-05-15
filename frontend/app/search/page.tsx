@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/Badge";
 import { Avatar } from "@/components/ui/Avatar";
 import { UserHoverCard } from "@/components/ui/UserHoverCard";
 import { Alert } from "@/components/ui/Alert";
+import { Spinner } from "@/components/ui/Spinner";
 
 const EXAMPLES = [
   `assignee = me AND status != done`,
@@ -102,10 +103,7 @@ export default function AdvancedSearchPage() {
           </h2>
           {isFetching && (
             <span className="text-xs text-muted inline-flex items-center gap-1.5">
-              <svg className="w-3 h-3 animate-spin" viewBox="0 0 24 24" fill="none">
-                <circle cx="12" cy="12" r="10" stroke="currentColor" strokeOpacity="0.25" strokeWidth="3" />
-                <path d="M4 12a8 8 0 0 1 8-8" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
-              </svg>
+              <Spinner className="w-3 h-3" />
               Searching…
             </span>
           )}

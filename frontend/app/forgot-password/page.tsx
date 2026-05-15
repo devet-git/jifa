@@ -5,6 +5,7 @@ import Link from "next/link";
 import api from "@/lib/api";
 import { AuthShell } from "@/components/layout/AuthShell";
 import { Alert } from "@/components/ui/Alert";
+import { Spinner } from "@/components/ui/Spinner";
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
@@ -67,12 +68,7 @@ export default function ForgotPasswordPage() {
               disabled={loading}
               className="w-full gradient-brand text-white py-2.5 rounded-lg font-semibold shadow-md shadow-indigo-600/25 hover:opacity-95 disabled:opacity-60 disabled:cursor-not-allowed transition inline-flex items-center justify-center gap-2"
             >
-              {loading && (
-                <svg className="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none">
-                  <circle cx="12" cy="12" r="10" stroke="currentColor" strokeOpacity="0.25" strokeWidth="3" />
-                  <path d="M4 12a8 8 0 0 1 8-8" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
-                </svg>
-              )}
+              {loading && <Spinner className="w-4 h-4" />}
               {loading ? "Sending…" : "Send reset link"}
             </button>
           </form>
