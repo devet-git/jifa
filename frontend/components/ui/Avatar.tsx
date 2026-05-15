@@ -1,12 +1,8 @@
-import { cn } from "@/lib/utils";
+"use client";
 
-interface AvatarProps {
-  name?: string;
-  src?: string;
-  size?: "xs" | "sm" | "md" | "lg" | "xl";
-  className?: string;
-  ring?: boolean;
-}
+import * as React from "react";
+import * as AvatarPrimitive from "@radix-ui/react-avatar";
+import { cn } from "@/lib/utils";
 
 const sizes = {
   xs: "w-5 h-5 text-[10px]",
@@ -14,7 +10,9 @@ const sizes = {
   md: "w-9 h-9 text-sm",
   lg: "w-11 h-11 text-base",
   xl: "w-14 h-14 text-lg",
-};
+} as const;
+
+type AvatarSize = keyof typeof sizes;
 
 function initials(name?: string) {
   if (!name) return "?";
@@ -26,8 +24,8 @@ function initials(name?: string) {
     .toUpperCase();
 }
 
-// Soft gradients keyed off the first character of the name. Deterministic so
-// each user keeps the same colour across renders.
+/* Deterministic gradient per name so the same user is always the same
+   colour, even after re-renders or page reloads. */
 const gradients = [
   "from-indigo-500 to-violet-500",
   "from-sky-500 to-cyan-500",
@@ -48,33 +46,49 @@ function gradientForName(name?: string) {
   return gradients[Math.abs(hash) % gradients.length];
 }
 
+interface AvatarProps {
+  name?: string;
+  src?: string;
+  size?: AvatarSize;
+  className?: string;
+  ring?: boolean;
+}
+
+/* Wraps the Radix Avatar primitive so failed image loads fall back to
+   the gradient-initials block automatically (Radix handles the swap
+   via Image.onLoadingStatusChange). */
 export function Avatar({ name, src, size = "md", className, ring }: AvatarProps) {
-  if (src) {
-    return (
-      <img
-        src={src}
-        alt={name}
-        className={cn(
-          "rounded-full object-cover",
-          sizes[size],
-          ring && "ring-2 ring-white dark:ring-slate-800",
-          className,
-        )}
-      />
-    );
-  }
   return (
-    <div
+    <AvatarPrimitive.Root
       className={cn(
-        "rounded-full flex items-center justify-center text-white font-semibold bg-gradient-to-br shrink-0",
+        "relative flex shrink-0 overflow-hidden rounded-full",
         sizes[size],
-        gradientForName(name),
         ring && "ring-2 ring-white dark:ring-slate-800",
         className,
       )}
       aria-label={name}
     >
-      {initials(name)}
-    </div>
+      {src && (
+        <AvatarPrimitive.Image
+          src={src}
+          alt={name ?? ""}
+          className="aspect-square h-full w-full object-cover"
+        />
+      )}
+      <AvatarPrimitive.Fallback
+        delayMs={src ? 200 : 0}
+        className={cn(
+          "flex h-full w-full items-center justify-center text-white font-semibold bg-gradient-to-br",
+          gradientForName(name),
+        )}
+      >
+        {initials(name)}
+      </AvatarPrimitive.Fallback>
+    </AvatarPrimitive.Root>
   );
 }
+
+/* Re-exports for advanced composition (e.g. AvatarGroup overlap). */
+export const AvatarRoot = AvatarPrimitive.Root;
+export const AvatarImage = AvatarPrimitive.Image;
+export const AvatarFallback = AvatarPrimitive.Fallback;
