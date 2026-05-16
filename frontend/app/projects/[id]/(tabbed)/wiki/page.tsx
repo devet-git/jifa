@@ -13,14 +13,21 @@ import {
   useUpdateWikiPage,
   useDeleteWikiPage,
 } from "@/hooks/useWiki";
+import {
+  useWikiComments,
+  useCreateWikiComment,
+  useUpdateWikiComment,
+  useDeleteWikiComment,
+} from "@/hooks/useWikiComments";
 import { Avatar } from "@/components/ui/Avatar";
 import { UserHoverCard } from "@/components/ui/UserHoverCard";
 import { Spinner } from "@/components/ui/Spinner";
 import { Tooltip } from "@/components/ui/Tooltip";
 import { MarkdownEditor, MarkdownBody } from "@/components/ui/MarkdownEditor";
 import { SkeletonArticle } from "@/components/ui/Skeleton";
-import { BookOpen, FileText, Pencil, Plus, Save, Search, Trash2 } from "lucide-react";
-import type { WikiPage } from "@/types";
+import { CommentBox } from "@/components/issues/CommentBox";
+import { BookOpen, FileText, MessageSquare, Pencil, Plus, Save, Search, Trash2 } from "lucide-react";
+import type { WikiPage, WikiComment, User } from "@/types";
 
 type Sort = "alpha" | "recent";
 
@@ -447,6 +454,125 @@ function WikiPageView({
           </button>
           )}
         </div>
+      )}
+
+      {/* Comments */}
+      <WikiCommentsSection projectId={projectId} pageId={pageId} />
+    </div>
+  );
+}
+
+function WikiCommentsSection({ projectId, pageId }: { projectId: string; pageId: number }) {
+  const { data, isLoading } = useWikiComments(projectId, pageId);
+  const comments = data ?? [];
+  const createComment = useCreateWikiComment(projectId, pageId);
+  const updateComment = useUpdateWikiComment(projectId, pageId);
+  const deleteComment = useDeleteWikiComment(projectId, pageId);
+  const can = usePermissionsStore((s) => s.can);
+  const user = useAuthStore((s) => s.user);
+  const [submitting, setSubmitting] = useState(false);
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [editText, setEditText] = useState("");
+
+  async function handleSubmit(body: string, mentionUserIds: number[]) {
+    setSubmitting(true);
+    await createComment.mutateAsync({ body, mention_user_ids: mentionUserIds });
+    setSubmitting(false);
+  }
+
+  async function handleUpdate(id: number) {
+    await updateComment.mutateAsync({ id, body: editText });
+    setEditingId(null);
+  }
+
+  async function handleDelete(id: number) {
+    if (!(await showConfirm({ message: "Delete this comment?", variant: "danger" }))) return;
+    await deleteComment.mutateAsync(id);
+  }
+
+  return (
+    <div className="mt-10 border-t border-border pt-8">
+      <div className="flex items-center gap-2 mb-6">
+        <MessageSquare className="w-4 h-4 text-muted" />
+        <h3 className="text-sm font-semibold text-foreground">
+          Comments ({comments.length})
+        </h3>
+      </div>
+
+      {isLoading ? (
+        <div className="space-y-4">
+          <div className="h-12 bg-surface-2/50 rounded-lg animate-pulse" />
+          <div className="h-12 bg-surface-2/50 rounded-lg animate-pulse" />
+        </div>
+      ) : comments.length === 0 ? (
+        <p className="text-xs text-muted italic mb-4">No comments yet.</p>
+      ) : (
+        <div className="space-y-4 mb-4">
+          {comments.map((c) => (
+            <div key={c.id} className="flex gap-3">
+              <UserHoverCard user={c.author} side="right" align="start">
+                <Avatar name={c.author?.name} src={c.author?.avatar} size="sm" />
+              </UserHoverCard>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-baseline gap-2 mb-1">
+                  <span className="text-sm font-medium">{c.author?.name}</span>
+                  <span className="text-[11px] text-muted">{timeAgo(c.created_at)}</span>
+                </div>
+                {editingId === c.id ? (
+                  <div className="space-y-2">
+                    <textarea
+                      value={editText}
+                      onChange={(e) => setEditText(e.target.value)}
+                      rows={3}
+                      className="input resize-none w-full text-sm"
+                    />
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => handleUpdate(c.id)}
+                        disabled={updateComment.isPending}
+                        className="text-xs px-3 py-1.5 rounded-lg gradient-brand text-white font-medium transition disabled:opacity-60"
+                      >
+                        {updateComment.isPending ? "Saving…" : "Save"}
+                      </button>
+                      <button
+                        onClick={() => setEditingId(null)}
+                        className="text-xs px-3 py-1.5 rounded-lg ring-1 ring-border text-muted hover:text-foreground transition"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div>
+                    <div className="text-sm whitespace-pre-wrap rounded-lg bg-surface-2/50 px-3 py-2">
+                      {c.body}
+                    </div>
+                    {c.author_id === user?.id && (
+                      <div className="flex gap-2 mt-1 justify-end">
+                        <button
+                          onClick={() => { setEditingId(c.id); setEditText(c.body); }}
+                          className="text-[11px] text-muted hover:text-brand transition"
+                        >
+                          Edit
+                        </button>
+                        <button
+                          onClick={() => handleDelete(c.id)}
+                          className="text-[11px] text-muted hover:text-red-500 transition"
+                        >
+                          <Trash2 className="w-3 h-3" />
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {can("wiki.comment") && (
+        <CommentBox onSubmit={handleSubmit} submitting={submitting} placeholder="Add a comment…" />
       )}
     </div>
   );

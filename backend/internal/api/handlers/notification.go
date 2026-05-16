@@ -29,7 +29,7 @@ func (h *NotificationHandler) List(c *gin.Context) {
 		}
 	}
 	q := h.db.Where("user_id = ?", userID).
-		Preload("Actor").Preload("Issue.Project").
+		Preload("Actor").Preload("Issue.Project").Preload("WikiPage").
 		Order("created_at DESC").
 		Limit(limit)
 	if c.Query("unread") == "1" {
@@ -185,6 +185,13 @@ func sendEmail(db *gorm.DB, n *models.Notification, actorID uint) {
 			issueKey = fmt.Sprintf("%s-%d", issue.Project.Key, issue.Number)
 			issueTitle = issue.Title
 			link = mailer.IssueURL(issue.ProjectID, issue.ID)
+		}
+	} else if n.WikiPageID != nil {
+		var page models.WikiPage
+		if err := db.First(&page, *n.WikiPageID).Error; err == nil {
+			issueKey = page.Title
+			issueTitle = "Wiki: " + page.Title
+			link = mailer.WikiURL(page.ProjectID)
 		}
 	}
 

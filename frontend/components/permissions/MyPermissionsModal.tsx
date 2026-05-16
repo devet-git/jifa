@@ -158,6 +158,12 @@ const PERMISSION_LABELS: Record<
     description:
       "Delete wiki pages authored by other members (authors can always delete their own pages)",
   },
+  "wiki.comment": {
+    name: "Comment on Wiki Pages",
+    group: "Wiki",
+    description:
+      "Add, edit, and delete comments on wiki pages",
+  },
 
   "component.create": {
     name: "Create Components",

@@ -9,11 +9,12 @@ import type { Issue } from "@/types";
 interface Props {
   open: boolean;
   onClose: () => void;
+  projectId: number | string;
   sprintId: number | null;
 }
 
-export function SprintRetroModal({ open, onClose, sprintId }: Props) {
-  const { data, isLoading } = useSprintRetro(sprintId);
+export function SprintRetroModal({ open, onClose, projectId, sprintId }: Props) {
+  const { data, isLoading } = useSprintRetro(projectId, sprintId);
 
   return (
     <Modal open={open} onClose={onClose} title="Sprint Retrospective" size="xl">

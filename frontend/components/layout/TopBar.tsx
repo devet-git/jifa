@@ -290,6 +290,8 @@ function NotificationRow({
     if (isUnread) onMarkRead();
     if (n.issue?.project_id) {
       router.push(`/projects/${n.issue.project_id}`);
+    } else if (n.wiki_page?.project_id) {
+      router.push(`/projects/${n.wiki_page.project_id}/wiki`);
     }
     onClose();
   }
@@ -313,6 +315,11 @@ function NotificationRow({
                 {n.issue.key ?? `#${n.issue.id}`}
               </span>
             </IssueHoverCard>
+          )}
+          {n.wiki_page && (
+            <span className="font-mono text-xs text-muted cursor-default">
+              {n.wiki_page.title}
+            </span>
           )}
         </p>
         {n.body && (

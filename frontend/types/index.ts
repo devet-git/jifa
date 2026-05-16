@@ -119,9 +119,29 @@ export interface Notification {
   type: NotificationType;
   issue_id?: number;
   issue?: Issue;
+  wiki_page_id?: number;
+  wiki_page?: WikiPage;
   comment_id?: number;
   body: string;
   read_at?: string | null;
+  created_at: string;
+}
+
+export interface WikiComment {
+  id: number;
+  wiki_page_id: number;
+  body: string;
+  author?: User;
+  author_id: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface WikiWatcher {
+  id: number;
+  wiki_page_id: number;
+  user_id: number;
+  user?: User;
   created_at: string;
 }
 
@@ -195,6 +215,11 @@ export type WebhookEvent =
   | "wiki_page.created"
   | "wiki_page.updated"
   | "wiki_page.deleted"
+  // Wiki comment
+  | "wiki_comment.created"
+  | "wiki_comment.updated"
+  | "wiki_comment.deleted"
+  | "wiki_comment.mentioned"
   // Project
   | "project.updated";
 

@@ -78,7 +78,7 @@ export default function SprintsPage({ params }: { params: Promise<{ id: string }
                 )}
                 {sprint.status === "active" && (
                   <>
-                    <Link href={`/board/${sprint.id}`}>
+                    <Link href={`/projects/${id}/board`}>
                       <Button size="sm" variant="secondary">Open Board</Button>
                     </Link>
                     <PermissionGate perm="sprint.manage" message="You don't have permission to manage sprints">
@@ -115,6 +115,7 @@ export default function SprintsPage({ params }: { params: Promise<{ id: string }
       <SprintRetroModal
         open={retroSprintId !== null}
         onClose={() => setRetroSprintId(null)}
+        projectId={id}
         sprintId={retroSprintId}
       />
     </div>

@@ -39,11 +39,16 @@ export interface SprintRetro {
   scope_added: import("@/types").Issue[];
 }
 
-export function useSprintRetro(sprintId: number | null | undefined) {
+export function useSprintRetro(
+  projectId: number | string | null | undefined,
+  sprintId: number | null | undefined,
+) {
   return useQuery<SprintRetro>({
-    queryKey: ["sprint-retro", sprintId],
+    queryKey: ["sprint-retro", projectId, sprintId],
     queryFn: () =>
-      api.get(`/sprints/${sprintId}/retrospective`).then((r) => r.data),
-    enabled: !!sprintId,
+      api
+        .get(`/projects/${projectId}/sprints/${sprintId}/retrospective`)
+        .then((r) => r.data),
+    enabled: !!projectId && !!sprintId,
   });
 }

@@ -48,6 +48,8 @@ func Migrate(db *gorm.DB) error {
 		&models.Role{},
 		&models.RolePermission{},
 		&models.WikiPage{},
+		&models.WikiComment{},
+		&models.WikiWatcher{},
 		&models.PersonalAccessToken{},
 		&models.UserAppearance{},
 	)

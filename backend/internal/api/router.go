@@ -181,6 +181,15 @@ func NewRouter(db *gorm.DB, cfg *config.Config) *gin.Engine {
 	project.PUT("/wiki/:pageId", wikiHandler.Update)
 	project.DELETE("/wiki/:pageId", wikiHandler.Delete)
 
+	wikiCommentHandler := handlers.NewWikiCommentHandler(db)
+	project.GET("/wiki/:pageId/comments", wikiCommentHandler.List)
+	project.POST("/wiki/:pageId/comments", middleware.RequirePermission("wiki.comment"), wikiCommentHandler.Create)
+	project.PUT("/wiki/:pageId/comments/:commentId", middleware.RequirePermission("wiki.comment"), wikiCommentHandler.Update)
+	project.DELETE("/wiki/:pageId/comments/:commentId", middleware.RequirePermission("wiki.comment"), wikiCommentHandler.Delete)
+	project.POST("/wiki/:pageId/watch", middleware.RequirePermission("wiki.view"), wikiCommentHandler.Watch)
+	project.DELETE("/wiki/:pageId/watch", middleware.RequirePermission("wiki.view"), wikiCommentHandler.Unwatch)
+	project.GET("/wiki/:pageId/watchers", middleware.RequirePermission("project.view"), wikiCommentHandler.ListWatchers)
+
 	permissionHandler := handlers.NewPermissionHandler(db)
 	project.GET("/permissions", middleware.RequirePermission("project.view"), permissionHandler.List)
 	project.GET("/permissions/my", permissionHandler.MyPermissions)

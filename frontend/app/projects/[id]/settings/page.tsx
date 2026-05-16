@@ -188,6 +188,11 @@ const ALL_WEBHOOK_EVENTS: WebhookEvent[] = [
   "wiki_page.created",
   "wiki_page.updated",
   "wiki_page.deleted",
+  // Wiki comment
+  "wiki_comment.created",
+  "wiki_comment.updated",
+  "wiki_comment.deleted",
+  "wiki_comment.mentioned",
   // Project
   "project.updated",
 ];
@@ -243,7 +248,11 @@ const WEBHOOK_EVENT_GROUPS: { label: string; events: WebhookEvent[] }[] = [
   },
   {
     label: "Wiki",
-    events: ["wiki_page.created", "wiki_page.updated", "wiki_page.deleted"],
+    events: [
+      "wiki_page.created", "wiki_page.updated", "wiki_page.deleted",
+      "wiki_comment.created", "wiki_comment.updated",
+      "wiki_comment.deleted", "wiki_comment.mentioned",
+    ],
   },
   {
     label: "Project",
@@ -316,6 +325,15 @@ const WEBHOOK_EVENT_DESCRIPTIONS: Record<WebhookEvent, string> = {
     "Fires when a wiki page's title or content is edited.",
   "wiki_page.deleted":
     "Fires when a wiki page is removed.",
+  // Wiki comment
+  "wiki_comment.created":
+    "Fires when someone posts a new comment on any wiki page in this project.",
+  "wiki_comment.updated":
+    "Fires when an existing wiki comment's body is edited by its author or an admin.",
+  "wiki_comment.deleted":
+    "Fires when a wiki comment is removed.",
+  "wiki_comment.mentioned":
+    "Fires once per @mention inside a new wiki comment. Payload includes the mentioned user id.",
   // Project
   "project.updated":
     "Fires when project metadata changes — name, key, description, category, or date/time formats.",

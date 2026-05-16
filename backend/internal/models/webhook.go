@@ -44,9 +44,15 @@ const (
 	EventAttachmentUploaded WebhookEvent = "attachment.uploaded"
 
 	// Wiki page
-	EventWikiPageCreated WebhookEvent = "wiki_page.created"
-	EventWikiPageUpdated WebhookEvent = "wiki_page.updated"
-	EventWikiPageDeleted WebhookEvent = "wiki_page.deleted"
+	EventWikiPageCreated    WebhookEvent = "wiki_page.created"
+	EventWikiPageUpdated    WebhookEvent = "wiki_page.updated"
+	EventWikiPageDeleted    WebhookEvent = "wiki_page.deleted"
+
+	// Wiki comment
+	EventWikiCommentCreated   WebhookEvent = "wiki_comment.created"
+	EventWikiCommentUpdated   WebhookEvent = "wiki_comment.updated"
+	EventWikiCommentDeleted   WebhookEvent = "wiki_comment.deleted"
+	EventWikiCommentMentioned WebhookEvent = "wiki_comment.mentioned"
 
 	// Project
 	EventProjectUpdated WebhookEvent = "project.updated"
@@ -91,6 +97,11 @@ var AllWebhookEvents = []WebhookEvent{
 	EventWikiPageCreated,
 	EventWikiPageUpdated,
 	EventWikiPageDeleted,
+	// Wiki comment
+	EventWikiCommentCreated,
+	EventWikiCommentUpdated,
+	EventWikiCommentDeleted,
+	EventWikiCommentMentioned,
 	// Project
 	EventProjectUpdated,
 }

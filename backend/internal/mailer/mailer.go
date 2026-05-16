@@ -92,6 +92,15 @@ func IssueURL(projectID, issueID uint) string {
 	return fmt.Sprintf("%s/projects/%d?issue=%d", base, projectID, issueID)
 }
 
+// WikiURL returns the URL to the wiki tab within a project.
+func WikiURL(projectID uint) string {
+	base := BaseURL()
+	if base == "" {
+		return ""
+	}
+	return fmt.Sprintf("%s/projects/%d/wiki", base, projectID)
+}
+
 // NotificationsURL returns the URL to the user's notifications page.
 func NotificationsURL() string {
 	base := BaseURL()
