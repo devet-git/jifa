@@ -49,6 +49,7 @@ func Migrate(db *gorm.DB) error {
 		&models.RolePermission{},
 		&models.WikiPage{},
 		&models.PersonalAccessToken{},
+		&models.UserAppearance{},
 	)
 }
 

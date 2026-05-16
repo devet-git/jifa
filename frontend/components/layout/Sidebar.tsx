@@ -165,7 +165,7 @@ export function Sidebar() {
           </svg>
           {!rail && (
             <span className="text-lg font-bold tracking-tight text-foreground">
-              Jifa
+              JIFA
             </span>
           )}
         </Link>

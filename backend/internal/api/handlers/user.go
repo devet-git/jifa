@@ -75,3 +75,72 @@ func (h *UserHandler) ChangePassword(c *gin.Context) {
 	h.db.Model(&user).Update("password", string(hashed))
 	c.JSON(http.StatusOK, gin.H{"message": "password updated"})
 }
+
+func (h *UserHandler) GetPreferences(c *gin.Context) {
+	userID, _ := c.Get("userID")
+
+	var appearance models.UserAppearance
+	err := h.db.Where("user_id = ?", userID).First(&appearance).Error
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			d := models.DefaultUserPreferences()
+			appearance = models.UserAppearance{UserID: userID.(uint), Preferences: d}
+			h.db.Create(&appearance)
+		} else {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to load preferences"})
+			return
+		}
+	}
+
+	prefs := appearance.Preferences
+	if prefs.FontSize == "" {
+		prefs = models.DefaultUserPreferences()
+	}
+	c.JSON(http.StatusOK, prefs)
+}
+
+type updatePreferencesBody struct {
+	FontSize    *string `json:"font_size"`
+	FontFamily  *string `json:"font_family"`
+	AccentColor *string `json:"accent_color"`
+}
+
+func (h *UserHandler) UpdatePreferences(c *gin.Context) {
+	userID, _ := c.Get("userID")
+
+	var body updatePreferencesBody
+	if err := c.ShouldBindJSON(&body); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	var appearance models.UserAppearance
+	err := h.db.Where("user_id = ?", userID).First(&appearance).Error
+	if err != nil {
+		if err != gorm.ErrRecordNotFound {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to load preferences"})
+			return
+		}
+		d := models.DefaultUserPreferences()
+		appearance = models.UserAppearance{UserID: userID.(uint), Preferences: d}
+		h.db.Create(&appearance)
+	}
+
+	prefs := appearance.Preferences
+	if prefs.FontSize == "" {
+		prefs = models.DefaultUserPreferences()
+	}
+	if body.FontSize != nil {
+		prefs.FontSize = *body.FontSize
+	}
+	if body.FontFamily != nil {
+		prefs.FontFamily = *body.FontFamily
+	}
+	if body.AccentColor != nil {
+		prefs.AccentColor = *body.AccentColor
+	}
+
+	appearance.Preferences = prefs
+	h.db.Model(&appearance).Update("preferences", prefs)
+	c.JSON(http.StatusOK, prefs)
+}

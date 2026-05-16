@@ -397,6 +397,12 @@ export interface ApiToken {
   token?: string; // returned only on create
 }
 
+export interface AppearancePreferences {
+  font_size: "small" | "medium" | "large" | "xl";
+  font_family: "geist" | "inter" | "roboto" | "manrope";
+  accent_color: "indigo" | "blue" | "green" | "orange" | "purple" | "red" | "pink" | "teal";
+}
+
 export interface WikiPage {
   id: number;
   project_id: number;

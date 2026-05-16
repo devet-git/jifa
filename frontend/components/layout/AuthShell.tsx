@@ -30,7 +30,7 @@ export function AuthShell({ title, subtitle, children }: AuthShellProps) {
             <span className="w-9 h-9 rounded-xl bg-white/15 backdrop-blur flex items-center justify-center font-bold text-lg">
               J
             </span>
-            <span className="text-xl font-bold tracking-tight">Jifa</span>
+            <span className="text-xl font-bold tracking-tight">JIFA</span>
           </Link>
         </div>
 
@@ -65,7 +65,7 @@ export function AuthShell({ title, subtitle, children }: AuthShellProps) {
         </div>
 
         <div className="relative px-12 pb-8 text-[11px] text-white/60">
-          © {new Date().getFullYear()} Jifa
+          © {new Date().getFullYear()} JIFA
         </div>
       </div>
 
@@ -78,7 +78,7 @@ export function AuthShell({ title, subtitle, children }: AuthShellProps) {
               <span className="w-9 h-9 rounded-xl gradient-brand flex items-center justify-center font-bold text-white text-lg shadow-md shadow-indigo-600/30">
                 J
               </span>
-              <span className="text-xl font-bold tracking-tight">Jifa</span>
+              <span className="text-xl font-bold tracking-tight">JIFA</span>
             </Link>
           </div>
 

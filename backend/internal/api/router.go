@@ -51,6 +51,8 @@ func NewRouter(db *gorm.DB, cfg *config.Config) *gin.Engine {
 	protected.GET("/me", userHandler.Me)
 	protected.PUT("/me", userHandler.UpdateProfile)
 	protected.PUT("/me/password", userHandler.ChangePassword)
+	protected.GET("/me/preferences", userHandler.GetPreferences)
+	protected.PUT("/me/preferences", userHandler.UpdatePreferences)
 
 	projectHandler := handlers.NewProjectHandler(db)
 	protected.GET("/projects", projectHandler.List)

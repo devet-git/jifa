@@ -8,6 +8,51 @@ import { Toaster } from "@/components/ui/Sonner";
 import { TooltipProvider } from "@/components/ui/Tooltip";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { toast } from "@/store/toast";
+import { useAppearanceStore } from "@/store/appearance";
+
+// Map font family key to the next/font CSS variable name.
+const FONT_VARS: Record<string, string> = {
+  geist: "var(--font-geist-sans)",
+  inter: "var(--font-inter)",
+  roboto: "var(--font-roboto)",
+  manrope: "var(--font-manrope)",
+};
+
+// Map font size key to px value.
+const FONT_SIZES: Record<string, string> = {
+  small: "14px",
+  medium: "16px",
+  large: "18px",
+  xl: "20px",
+};
+
+function applyAppearance() {
+  const { fontSize, fontFamily, accentColor } = useAppearanceStore.getState();
+
+  document.documentElement.style.setProperty(
+    "--font-user-sans",
+    FONT_VARS[fontFamily] ?? FONT_VARS.geist,
+  );
+  document.documentElement.style.setProperty(
+    "--font-size",
+    FONT_SIZES[fontSize] ?? FONT_SIZES.medium,
+  );
+
+  // Remove old accent classes, add the current one.
+  const prefix = "accent-";
+  for (const cls of document.documentElement.classList) {
+    if (cls.startsWith(prefix)) {
+      document.documentElement.classList.remove(cls);
+    }
+  }
+  if (accentColor !== "indigo") {
+    document.documentElement.classList.add(`accent-${accentColor}`);
+  }
+}
+
+// Subscriber so any setFontSize / setFontFamily / setAccentColor call
+// re-applies immediately without a React re-render cycle.
+let subscribed = false;
 
 export function Providers({ children }: { children: React.ReactNode }) {
   const [queryClient] = useState(() => new QueryClient({
@@ -19,8 +64,6 @@ export function Providers({ children }: { children: React.ReactNode }) {
         const backendMsg = (error as any)?.response?.data?.error as
           | string
           | undefined;
-        // 5xx responses can leak DB constraint names, stack hints, etc.
-        // Log them for devs but show the user a generic message.
         if (status && status >= 500) {
           console.error("[mutation] server error", status, backendMsg, error);
           toast(
@@ -35,13 +78,19 @@ export function Providers({ children }: { children: React.ReactNode }) {
     }),
   }));
 
-  // Apply persisted theme as early as we can in client-rendered code. The
-  // <html> class is what Tailwind's dark: variant keys on.
   useEffect(() => {
     const saved = localStorage.getItem("jifa-theme");
     const mql = window.matchMedia("(prefers-color-scheme: dark)");
     const isDark = saved === "dark" || (saved == null && mql.matches);
     document.documentElement.classList.toggle("dark", isDark);
+  }, []);
+
+  useEffect(() => {
+    applyAppearance();
+    if (!subscribed) {
+      subscribed = true;
+      useAppearanceStore.subscribe(applyAppearance);
+    }
   }, []);
 
   return (

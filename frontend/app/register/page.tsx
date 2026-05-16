@@ -34,7 +34,7 @@ export default function RegisterPage() {
 
   return (
     <AuthShell
-      title="Create your Jifa account"
+      title="Create your JIFA account"
       subtitle="Start managing projects in seconds."
     >
       {error && (

@@ -19,17 +19,18 @@
   --muted-2: #94a3b8;
   --border: #e5e8f0;
   --border-strong: #d4d9e4;
-  --ring: #6366f1;
   --brand: #4f46e5;
   --brand-strong: #4338ca;
   --brand-soft: #eef2ff;
   --accent: #06b6d4;
+  --ring: #6366f1;
   --success: #10b981;
   --warning: #f59e0b;
   --danger: #ef4444;
   --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.05);
   --shadow-md: 0 4px 16px -4px rgba(15, 23, 42, 0.08), 0 2px 4px -2px rgba(15, 23, 42, 0.04);
   --shadow-lg: 0 20px 50px -20px rgba(15, 23, 42, 0.25);
+  --font-size: 16px;
 }
 
 .dark {
@@ -81,9 +82,117 @@
   --color-card-foreground: var(--foreground);
   --color-destructive: var(--danger);
   --color-destructive-foreground: #ffffff;
-  --font-sans: var(--font-geist-sans);
+  --font-sans: var(--font-user-sans, var(--font-geist-sans));
   --font-mono: var(--font-geist-mono);
   --radius: 0.625rem;
+}
+
+/* ---------- Accent colors ----------
+   Class on <html> overrides the brand/accent palette at runtime.
+   Each accent has a light and dark variant. */
+.accent-blue {
+  --brand: #3b82f6;
+  --brand-strong: #2563eb;
+  --brand-soft: #eff6ff;
+  --ring: #3b82f6;
+  --accent: #38bdf8;
+}
+.dark.accent-blue {
+  --brand: #60a5fa;
+  --brand-strong: #93c5fd;
+  --brand-soft: rgba(59, 130, 246, 0.15);
+  --ring: #60a5fa;
+  --accent: #7dd3fc;
+}
+
+.accent-green {
+  --brand: #10b981;
+  --brand-strong: #059669;
+  --brand-soft: #ecfdf5;
+  --ring: #10b981;
+  --accent: #34d399;
+}
+.dark.accent-green {
+  --brand: #34d399;
+  --brand-strong: #6ee7b7;
+  --brand-soft: rgba(16, 185, 129, 0.15);
+  --ring: #34d399;
+  --accent: #6ee7b7;
+}
+
+.accent-orange {
+  --brand: #f59e0b;
+  --brand-strong: #d97706;
+  --brand-soft: #fffbeb;
+  --ring: #f59e0b;
+  --accent: #fbbf24;
+}
+.dark.accent-orange {
+  --brand: #fbbf24;
+  --brand-strong: #fcd34d;
+  --brand-soft: rgba(245, 158, 11, 0.15);
+  --ring: #fbbf24;
+  --accent: #fde68a;
+}
+
+.accent-purple {
+  --brand: #8b5cf6;
+  --brand-strong: #7c3aed;
+  --brand-soft: #f5f3ff;
+  --ring: #8b5cf6;
+  --accent: #a78bfa;
+}
+.dark.accent-purple {
+  --brand: #a78bfa;
+  --brand-strong: #c4b5fd;
+  --brand-soft: rgba(139, 92, 246, 0.15);
+  --ring: #a78bfa;
+  --accent: #c4b5fd;
+}
+
+.accent-red {
+  --brand: #ef4444;
+  --brand-strong: #dc2626;
+  --brand-soft: #fef2f2;
+  --ring: #ef4444;
+  --accent: #f87171;
+}
+.dark.accent-red {
+  --brand: #f87171;
+  --brand-strong: #fca5a5;
+  --brand-soft: rgba(239, 68, 68, 0.15);
+  --ring: #f87171;
+  --accent: #fca5a5;
+}
+
+.accent-pink {
+  --brand: #ec4899;
+  --brand-strong: #db2777;
+  --brand-soft: #fdf2f8;
+  --ring: #ec4899;
+  --accent: #f472b6;
+}
+.dark.accent-pink {
+  --brand: #f472b6;
+  --brand-strong: #f9a8d4;
+  --brand-soft: rgba(236, 72, 153, 0.15);
+  --ring: #f472b6;
+  --accent: #f9a8d4;
+}
+
+.accent-teal {
+  --brand: #14b8a6;
+  --brand-strong: #0d9488;
+  --brand-soft: #f0fdfa;
+  --ring: #14b8a6;
+  --accent: #2dd4bf;
+}
+.dark.accent-teal {
+  --brand: #2dd4bf;
+  --brand-strong: #5eead4;
+  --brand-soft: rgba(20, 184, 166, 0.15);
+  --ring: #2dd4bf;
+  --accent: #5eead4;
 }
 
 /* ---------- Buttons ---------- */
@@ -99,15 +208,14 @@ button:disabled {
    feel modern without overpowering body copy. Tailwind utilities are
    relative to this root so `text-sm`, `text-base`, etc. all scale up. */
 html {
-  font-size: 16px;
+  font-size: var(--font-size, 16px);
   line-height: 1.55;
 }
 html,
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: var(--font-geist-sans), ui-sans-serif, system-ui, -apple-system,
-    "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  font-family: var(--font-sans);
   font-feature-settings: "cv11", "ss01", "ss03";
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
