@@ -145,15 +145,19 @@ func NewRouter(db *gorm.DB, cfg *config.Config) *gin.Engine {
 	componentHandler := handlers.NewComponentHandler(db)
 	project.GET("/components", middleware.RequirePermission("project.view"), componentHandler.List)
 	project.POST("/components", middleware.RequirePermission("component.create"), componentHandler.Create)
-	project.PUT("/components/:componentId", middleware.RequirePermission("component.edit"), componentHandler.Update)
+	// Reorder must precede /:componentId param route (Gin conflict, see versions).
 	project.PUT("/components/reorder", middleware.RequirePermission("component.edit"), componentHandler.Reorder)
+	project.PUT("/components/:componentId", middleware.RequirePermission("component.edit"), componentHandler.Update)
 	project.DELETE("/components/:componentId", middleware.RequirePermission("component.delete"), componentHandler.Delete)
 
 	versionHandler := handlers.NewVersionHandler(db)
 	project.GET("/versions", middleware.RequirePermission("project.view"), versionHandler.List)
 	project.POST("/versions", middleware.RequirePermission("version.create"), versionHandler.Create)
-	project.PUT("/versions/:versionId", middleware.RequirePermission("version.edit"), versionHandler.Update)
+	// Reorder must be registered BEFORE the /:versionId param route, otherwise
+	// Gin matches /versions/reorder against /:versionId (with versionId="reorder")
+	// and dispatches Update → "version not found".
 	project.PUT("/versions/reorder", middleware.RequirePermission("version.edit"), versionHandler.Reorder)
+	project.PUT("/versions/:versionId", middleware.RequirePermission("version.edit"), versionHandler.Update)
 	project.POST("/versions/:versionId/release", middleware.RequirePermission("version.release"), versionHandler.Release)
 	project.POST("/versions/:versionId/unrelease", middleware.RequirePermission("version.release"), versionHandler.Unrelease)
 	project.DELETE("/versions/:versionId", middleware.RequirePermission("version.delete"), versionHandler.Delete)

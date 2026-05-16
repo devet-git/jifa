@@ -178,7 +178,12 @@ export default function ProjectTabbedLayout({
         </div>
       </div>
 
-      <div className="flex-1 min-h-0 animate-fade-in">
+      {/* No `animate-fade-in` here: any transform on this wrapper (even the
+          identity matrix left behind after the keyframe finishes) creates a
+          containing block for `position: fixed` descendants, which breaks
+          dnd-kit's <DragOverlay/> positioning across every tab that uses
+          drag-and-drop (board, backlog, planning, …). */}
+      <div className="flex-1 min-h-0">
         <ProjectFormatProvider
           dateFormat={project?.date_format}
           timeFormat={project?.time_format}

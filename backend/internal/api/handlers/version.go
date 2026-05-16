@@ -34,8 +34,10 @@ type versionStats struct {
 func (h *VersionHandler) List(c *gin.Context) {
 	pid := c.Param("projectId")
 	var versions []models.Version
+	// User-defined drag-and-drop ordering (rank) takes precedence; the legacy
+	// date/id ordering is a stable fallback for rows the user hasn't touched.
 	h.db.Where("project_id = ?", pid).
-		Order("released_at DESC NULLS FIRST, release_date ASC NULLS LAST, id ASC").
+		Order("rank ASC, released_at DESC NULLS FIRST, release_date ASC NULLS LAST, id ASC").
 		Find(&versions)
 
 	// Look up the project's done-category status keys once.

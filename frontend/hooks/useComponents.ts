@@ -47,13 +47,28 @@ export function useDeleteComponent(projectId: number | string) {
 
 export function useReorderComponents(projectId: number | string) {
   const qc = useQueryClient();
+  const key = ["components", String(projectId)] as const;
   return useMutation({
     mutationFn: (ids: number[]) =>
       api
         .put(`/projects/${projectId}/components/reorder`, { ids })
         .then((r) => r.data),
-    onSuccess: () =>
-      qc.invalidateQueries({ queryKey: ["components", String(projectId)] }),
+    onMutate: async (ids) => {
+      await qc.cancelQueries({ queryKey: key });
+      const prev = qc.getQueryData<Component[]>(key);
+      if (prev) {
+        const map = new Map(prev.map((c) => [c.id, c]));
+        qc.setQueryData<Component[]>(
+          key,
+          ids.map((id) => map.get(id)).filter((c): c is Component => !!c),
+        );
+      }
+      return { prev };
+    },
+    onError: (_e, _v, ctx) => {
+      if (ctx?.prev) qc.setQueryData(key, ctx.prev);
+    },
+    onSettled: () => qc.invalidateQueries({ queryKey: key }),
   });
 }
 

@@ -53,13 +53,28 @@ export function useVersionAction(projectId: number | string) {
 
 export function useReorderVersions(projectId: number | string) {
   const qc = useQueryClient();
+  const key = ["versions", String(projectId)] as const;
   return useMutation({
     mutationFn: (ids: number[]) =>
       api
         .put(`/projects/${projectId}/versions/reorder`, { ids })
         .then((r) => r.data),
-    onSuccess: () =>
-      qc.invalidateQueries({ queryKey: ["versions", String(projectId)] }),
+    onMutate: async (ids) => {
+      await qc.cancelQueries({ queryKey: key });
+      const prev = qc.getQueryData<Version[]>(key);
+      if (prev) {
+        const map = new Map(prev.map((v) => [v.id, v]));
+        qc.setQueryData<Version[]>(
+          key,
+          ids.map((id) => map.get(id)).filter((v): v is Version => !!v),
+        );
+      }
+      return { prev };
+    },
+    onError: (_e, _v, ctx) => {
+      if (ctx?.prev) qc.setQueryData(key, ctx.prev);
+    },
+    onSettled: () => qc.invalidateQueries({ queryKey: key }),
   });
 }
 

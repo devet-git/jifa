@@ -94,17 +94,20 @@ export function IssueCard({ issue, onClick, className, dragging, draggable }: Pr
       ? `${window.location.origin}/projects/${issue.project_id}#issue-${issue.id}`
       : "";
 
-  return (
-    <ContextMenu>
-      <ContextMenuTrigger asChild>
+  const cardBody = (
     <div
       onClick={onClick}
       className={cn(
-        "group bg-surface border border-border rounded-lg p-3 flex items-start gap-3 hover:border-[var(--border-strong)] hover:shadow-md transition-all select-none",
+        "group bg-surface border border-border rounded-lg p-3 flex items-start gap-3 hover:border-[var(--border-strong)] hover:shadow-md select-none",
+        // transition-all animates `transform` too — when this card is inside
+        // dnd-kit's DragOverlay, that breaks pointer tracking (the overlay
+        // chases the cursor instead of staying under it).
+        dragging
+          ? "shadow-lg ring-2 ring-brand/30"
+          : "transition-[border-color,box-shadow,background-color]",
         draggable
           ? "cursor-grab active:cursor-grabbing"
           : "cursor-pointer",
-        dragging && "shadow-lg ring-2 ring-brand/30 rotate-1",
         className,
       )}
     >
@@ -200,7 +203,16 @@ export function IssueCard({ issue, onClick, className, dragging, draggable }: Pr
         )}
       </div>
     </div>
-      </ContextMenuTrigger>
+  );
+
+  // Inside <DragOverlay/>, Radix's ContextMenuTrigger interferes with dnd-kit's
+  // pointer tracking (the overlay clone stops following the cursor). The overlay
+  // also has no need for a right-click menu, so skip it entirely when dragging.
+  if (dragging) return cardBody;
+
+  return (
+    <ContextMenu>
+      <ContextMenuTrigger asChild>{cardBody}</ContextMenuTrigger>
       <ContextMenuContent>
         <ContextMenuLabel>{issue.key ?? `#${issue.id}`}</ContextMenuLabel>
         {onClick && (

@@ -1,9 +1,10 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import {
   DndContext,
   DragEndEvent,
+  DragOverEvent,
   DragOverlay,
   DragStartEvent,
   PointerSensor,
@@ -18,10 +19,12 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { IssueCard } from "@/components/issues/IssueCard";
+import { IssueDragPreview } from "@/components/issues/IssueDragPreview";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Checkbox } from "@/components/ui/Checkbox";
 import { useRankIssue } from "@/hooks/useIssues";
+import { useDragCursor } from "@/hooks/useDragCursor";
 import { BacklogFilterBar } from "@/components/backlog/BacklogFilterBar";
 import { Plus } from "lucide-react";
 import { BulkActionBar } from "@/components/backlog/BulkActionBar";
@@ -73,9 +76,9 @@ export function BacklogView({
     setSelectMode(false);
   }
 
-  // Build sections in deterministic order: active sprints, then planned,
-  // then backlog. Completed sprints are hidden from this view (Jira-like).
-  const sections: Section[] = useMemo(() => {
+  // Build the cache view of sections (filtered, sorted) — used as fallback
+  // when no drag is in progress.
+  const cacheSections: Section[] = useMemo(() => {
     const visible = sprints.filter((s) => s.status !== "completed");
     const ordered = [
       ...visible.filter((s) => s.status === "active"),
@@ -100,80 +103,184 @@ export function BacklogView({
     ];
   }, [sprints, backlog, filters]);
 
+  // While a drag is in progress, mirror holds the in-flight layout so the UI
+  // rearranges instantly. mirror keys = section ids; values = issues in that
+  // section's current visual order.
+  type SectionsMap = Record<string, Issue[]>;
+  const [mirror, setMirror] = useState<SectionsMap | null>(null);
+
+  const cacheSectionsMap = useMemo<SectionsMap>(() => {
+    const out: SectionsMap = {};
+    for (const s of cacheSections) out[s.id] = s.issues;
+    return out;
+  }, [cacheSections]);
+
+  const liveSectionsMap = mirror ?? cacheSectionsMap;
+
+  const sections: Section[] = useMemo(
+    () =>
+      cacheSections.map((s) => ({ ...s, issues: liveSectionsMap[s.id] ?? s.issues })),
+    [cacheSections, liveSectionsMap],
+  );
+
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
   );
 
   const [activeIssue, setActiveIssue] = useState<Issue | null>(null);
+  useDragCursor(!!activeIssue);
 
-  // Flat index of issue id -> section id, for figuring out source.
-  const issueToSection = useMemo(() => {
-    const m = new Map<number, string>();
-    for (const s of sections) for (const i of s.issues) m.set(i.id, s.id);
-    return m;
-  }, [sections]);
+  function findFromSection(
+    map: SectionsMap,
+    issueId: number,
+  ): string | null {
+    for (const [secId, list] of Object.entries(map)) {
+      if (list.some((i) => i.id === issueId)) return secId;
+    }
+    return null;
+  }
+
+  // Stringify a section map's id sequence so we can short-circuit setState when
+  // an onDragOver tick computes the *same* layout we already have. Without this
+  // the layout-shift caused by an update can re-fire onDragOver in the opposite
+  // direction (the pointer ends up over a different droppable after the shift),
+  // and the two states flip back and forth → "Maximum update depth exceeded".
+  function fingerprint(map: SectionsMap): string {
+    const keys = Object.keys(map).sort();
+    return keys.map((k) => `${k}:${map[k].map((i) => i.id).join(",")}`).join("|");
+  }
+
+  function resolveDest(
+    overId: string,
+    map: SectionsMap,
+  ): { sectionId: string; overIssue?: Issue } | null {
+    if (map[overId]) return { sectionId: overId };
+    const num = Number(overId);
+    if (!Number.isFinite(num)) return null;
+    for (const [secId, list] of Object.entries(map)) {
+      const hit = list.find((i) => i.id === num);
+      if (hit) return { sectionId: secId, overIssue: hit };
+    }
+    return null;
+  }
+
+  // Track the last two layouts we've applied so we can detect oscillation —
+  // when layout-shift makes the pointer bounce between two droppables and the
+  // mirror flip-flops between two states (A → B → A → B → ...).
+  const recentLayoutsRef = useRef<string[]>([]);
 
   function handleDragStart(e: DragStartEvent) {
     const id = Number(e.active.id);
-    for (const s of sections) {
+    for (const s of cacheSections) {
       const found = s.issues.find((i) => i.id === id);
       if (found) {
         setActiveIssue(found);
-        return;
+        break;
       }
     }
+    recentLayoutsRef.current = [fingerprint(cacheSectionsMap)];
+    setMirror(cacheSectionsMap);
+  }
+
+  function handleDragOver(e: DragOverEvent) {
+    const { active, over } = e;
+    if (!over) return;
+    const issueId = Number(active.id);
+    const overId = String(over.id);
+    setMirror((prev) => {
+      const map = prev ?? cacheSectionsMap;
+      const dest = resolveDest(overId, map);
+      if (!dest) return prev;
+      const fromSec = findFromSection(map, issueId);
+      if (!fromSec) return prev;
+
+      const toSec = dest.sectionId;
+      const dragged = map[fromSec].find((i) => i.id === issueId)!;
+
+      let candidate: SectionsMap;
+      if (fromSec !== toSec) {
+        const fromItems = map[fromSec].filter((i) => i.id !== issueId);
+        const toItems = map[toSec].slice();
+        const insertIdx = dest.overIssue
+          ? toItems.findIndex((i) => i.id === dest.overIssue!.id)
+          : toItems.length;
+        toItems.splice(insertIdx, 0, dragged);
+        candidate = { ...map, [fromSec]: fromItems, [toSec]: toItems };
+      } else {
+        const list = map[fromSec];
+        const fromIdx = list.findIndex((i) => i.id === issueId);
+        const toIdx = dest.overIssue
+          ? list.findIndex((i) => i.id === dest.overIssue!.id)
+          : list.length - 1;
+        if (fromIdx === -1 || toIdx === -1 || fromIdx === toIdx) return prev;
+        const next = list.slice();
+        const [item] = next.splice(fromIdx, 1);
+        next.splice(toIdx, 0, item);
+        candidate = { ...map, [fromSec]: next };
+      }
+      const fp = fingerprint(candidate);
+      const recent = recentLayoutsRef.current;
+      // Identical to current → no work.
+      if (fp === recent[recent.length - 1]) return prev;
+      // Identical to the state *before* current → we're oscillating. Ignore.
+      if (recent.length >= 2 && fp === recent[recent.length - 2]) return prev;
+      recentLayoutsRef.current = [...recent.slice(-3), fp];
+      return candidate;
+    });
   }
 
   function handleDragEnd(e: DragEndEvent) {
-    setActiveIssue(null);
     const { active, over } = e;
-    if (!over) return;
+    const clear = () => {
+      setActiveIssue(null);
+      setMirror(null);
+      recentLayoutsRef.current = [];
+    };
+    if (!over) return clear();
+
     const activeId = Number(active.id);
-    const fromSectionId = issueToSection.get(activeId);
-    if (!fromSectionId) return;
+    const map = mirror ?? cacheSectionsMap;
+    const finalSec = findFromSection(map, activeId);
+    if (!finalSec) return clear();
 
-    // over.id can be an issue id (drop on a card) or a section id (drop on
-    // section container).
-    let toSectionId: string;
-    let toIndex: number;
-    const overIsSection = sections.some((s) => s.id === String(over.id));
-    if (overIsSection) {
-      toSectionId = String(over.id);
-      toIndex = sections.find((s) => s.id === toSectionId)!.issues.length;
-    } else {
-      const overId = Number(over.id);
-      const targetSection = sections.find((s) =>
-        s.issues.some((i) => i.id === overId),
-      );
-      if (!targetSection) return;
-      toSectionId = targetSection.id;
-      toIndex = targetSection.issues.findIndex((i) => i.id === overId);
-    }
+    const fromSec = findFromSection(cacheSectionsMap, activeId);
+    const isCrossSection = fromSec !== finalSec;
+    const movingToBacklog = finalSec === BACKLOG_SECTION;
 
-    const dest = sections.find((s) => s.id === toSectionId)!;
-    const destIssues = dest.issues.filter((i) => i.id !== activeId);
-    const beforeIssue = destIssues[toIndex - 1];
-    const afterIssue = destIssues[toIndex];
+    const finalList = map[finalSec];
+    const insertedAt = finalList.findIndex((i) => i.id === activeId);
+    const beforeIssue = insertedAt > 0 ? finalList[insertedAt - 1] : undefined;
+    const afterIssue =
+      insertedAt < finalList.length - 1 ? finalList[insertedAt + 1] : undefined;
 
-    const isCrossSection = fromSectionId !== toSectionId;
-    const movingToBacklog = toSectionId === BACKLOG_SECTION;
-
-    // Don't fire a no-op move within the same section.
+    // No-op: same section + same slot.
     if (!isCrossSection) {
-      const fromIndex = dest.issues.findIndex((i) => i.id === activeId);
-      if (fromIndex === toIndex) return;
+      const cacheList = cacheSectionsMap[finalSec] ?? [];
+      const cacheIdx = cacheList.findIndex((i) => i.id === activeId);
+      if (cacheIdx === insertedAt) return clear();
     }
 
-    rank.mutate({
-      id: activeId,
-      before_id: beforeIssue?.id,
-      after_id: afterIssue?.id,
-      ...(isCrossSection
-        ? movingToBacklog
-          ? { clear_sprint: true }
-          : { sprint_id: dest.sprintId }
-        : {}),
-    });
+    const destSprintId = cacheSections.find((s) => s.id === finalSec)?.sprintId;
+
+    rank.mutate(
+      {
+        id: activeId,
+        before_id: beforeIssue?.id,
+        after_id: afterIssue?.id,
+        ...(isCrossSection
+          ? movingToBacklog
+            ? { clear_sprint: true }
+            : { sprint_id: destSprintId }
+          : {}),
+      },
+      { onSettled: clear },
+    );
+  }
+
+  function handleDragCancel() {
+    setActiveIssue(null);
+    setMirror(null);
+    recentLayoutsRef.current = [];
   }
 
   return (
@@ -211,7 +318,9 @@ export function BacklogView({
       <DndContext
         sensors={sensors}
         onDragStart={handleDragStart}
+        onDragOver={handleDragOver}
         onDragEnd={handleDragEnd}
+        onDragCancel={handleDragCancel}
       >
         <div className="space-y-4">
           {sections.map((section) => (
@@ -226,7 +335,7 @@ export function BacklogView({
           ))}
         </div>
         <DragOverlay>
-          {activeIssue && <IssueCard issue={activeIssue} dragging />}
+          {activeIssue && <IssueDragPreview issue={activeIssue} />}
         </DragOverlay>
       </DndContext>
 
@@ -322,10 +431,13 @@ function SortableIssueRow({
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id: issue.id });
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-  };
+
+  const style = isDragging
+    ? { opacity: 0 }
+    : {
+        transform: CSS.Transform.toString(transform),
+        transition,
+      };
   return (
     <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
       <IssueCard issue={issue} onClick={onClick} dragging={isDragging} draggable />

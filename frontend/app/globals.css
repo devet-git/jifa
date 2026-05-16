@@ -398,9 +398,15 @@ select:focus {
 }
 
 /* ---------- Animation utilities ---------- */
+/* IMPORTANT: do NOT animate `transform` here. With `animation-fill-mode: both`,
+   the final frame's transform sticks on the element forever, which creates a
+   containing block for any descendant `position: fixed`. dnd-kit's
+   <DragOverlay/> uses `position: fixed`, so a transform on any ancestor offsets
+   the drag preview from the cursor (it gets pinned to the ancestor's box
+   instead of the viewport). Opacity-only is safe. */
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(4px); }
-  to { opacity: 1; transform: translateY(0); }
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 @keyframes slideDown {
   from { opacity: 0; transform: translateY(-8px); }

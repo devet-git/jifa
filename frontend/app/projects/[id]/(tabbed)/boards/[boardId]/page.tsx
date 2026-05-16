@@ -1,10 +1,11 @@
 "use client";
 
-import { use, useMemo, useState } from "react";
+import { use, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import {
   DndContext,
   DragEndEvent,
+  DragOverEvent,
   DragOverlay,
   DragStartEvent,
   PointerSensor,
@@ -15,6 +16,7 @@ import {
 import { ArrowLeft, LogOut, SlidersHorizontal } from "lucide-react";
 
 import { useBoard } from "@/hooks/useBoards";
+import { useDragCursor } from "@/hooks/useDragCursor";
 import {
   useIssues,
   useRankIssue,
@@ -22,7 +24,7 @@ import {
 } from "@/hooks/useIssues";
 import { useStatuses } from "@/hooks/useStatuses";
 import { KanbanColumn } from "@/components/board/KanbanColumn";
-import { IssueCard } from "@/components/issues/IssueCard";
+import { IssueDragPreview } from "@/components/issues/IssueDragPreview";
 import { IssueDetail } from "@/components/issues/IssueDetail";
 import { EmptyState, defaultIcons } from "@/components/ui/EmptyState";
 import { Skeleton, SkeletonKanban } from "@/components/ui/Skeleton";
@@ -112,21 +114,31 @@ function BoardView({
   const rank = useRankIssue();
   const [selectedIssue, setSelectedIssue] = useState<Issue | null>(null);
   const [activeIssue, setActiveIssue] = useState<Issue | null>(null);
+  // Local mirror of columns during drag. See sprint board for rationale.
+  type ColumnsMap = Record<string, Issue[]>;
+  const [mirror, setMirror] = useState<ColumnsMap | null>(null);
+  useDragCursor(!!activeIssue);
 
   const filtered = useMemo(
     () => issues.filter((i) => matchesFilter(i, filter)),
     [issues, filter],
   );
 
+  const cacheColumns = useMemo<ColumnsMap>(() => {
+    const out: ColumnsMap = {};
+    for (const s of statuses) {
+      out[s.key] = filtered
+        .filter((i) => i.status === s.key)
+        .sort((a, b) => (a.rank ?? 999) - (b.rank ?? 999));
+    }
+    return out;
+  }, [statuses, filtered]);
+
+  const liveColumns = mirror ?? cacheColumns;
+
   const columns = useMemo(
-    () =>
-      statuses.map((s) => ({
-        ...s,
-        items: filtered
-          .filter((i) => i.status === s.key)
-          .sort((a, b) => (a.rank ?? 999) - (b.rank ?? 999)),
-      })),
-    [statuses, filtered],
+    () => statuses.map((s) => ({ ...s, items: liveColumns[s.key] ?? [] })),
+    [statuses, liveColumns],
   );
 
   const chips = filterChips(filter);
@@ -135,49 +147,138 @@ function BoardView({
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
   );
 
+  function resolveTarget(
+    overId: string,
+    cols: ColumnsMap,
+  ): { colKey: string; overIssue?: Issue } | null {
+    if (cols[overId]) return { colKey: overId };
+    const overIssueId = Number(overId);
+    if (!Number.isFinite(overIssueId)) return null;
+    for (const [colKey, items] of Object.entries(cols)) {
+      const hit = items.find((i) => i.id === overIssueId);
+      if (hit) return { colKey, overIssue: hit };
+    }
+    return null;
+  }
+
+  // Oscillation guard against onDragOver flip-flop (see board/page.tsx).
+  const recentLayoutsRef = useRef<string[]>([]);
+  const fingerprint = (m: ColumnsMap) =>
+    Object.keys(m)
+      .sort()
+      .map((k) => `${k}:${m[k].map((i) => i.id).join(",")}`)
+      .join("|");
+
   function handleDragStart(e: DragStartEvent) {
     const issue = filtered.find((i) => i.id === Number(e.active.id));
     setActiveIssue(issue ?? null);
+    recentLayoutsRef.current = [fingerprint(cacheColumns)];
+    setMirror(cacheColumns);
   }
 
-  function handleDragEnd(e: DragEndEvent) {
-    setActiveIssue(null);
+  function handleDragOver(e: DragOverEvent) {
     const { active, over } = e;
     if (!over) return;
     const issueId = Number(active.id);
     const overId = String(over.id);
-    const issue = filtered.find((i) => i.id === issueId);
-    if (!issue) return;
+    setMirror((prev) => {
+      const cols = prev ?? cacheColumns;
+      const target = resolveTarget(overId, cols);
+      if (!target) return prev;
 
-    // Dropped on a column's empty area — over.id is the status key.
-    const overCol = columns.find((c) => c.key === overId);
-    if (overCol) {
-      if (issue.status !== overCol.key) {
-        updateStatus.mutate({ id: issueId, status: overCol.key });
+      let fromCol: string | null = null;
+      for (const [colKey, items] of Object.entries(cols)) {
+        if (items.some((i) => i.id === issueId)) {
+          fromCol = colKey;
+          break;
+        }
       }
-      return;
-    }
+      if (!fromCol) return prev;
 
-    // Dropped on another card.
-    const overIssue = filtered.find((i) => i.id === Number(overId));
-    if (!overIssue) return;
-    const targetCol = columns.find((c) => c.items.includes(overIssue));
-    if (!targetCol) return;
+      const dragged = cols[fromCol].find((i) => i.id === issueId)!;
+      const toCol = target.colKey;
 
-    if (issue.status !== targetCol.key) {
-      updateStatus.mutate({ id: issueId, status: targetCol.key });
-      return;
-    }
-
-    const colItems = targetCol.items.filter((i) => i.id !== issueId);
-    const idx = colItems.indexOf(overIssue);
-    const before = colItems[idx - 1];
-    const after = colItems[idx];
-    rank.mutate({
-      id: issueId,
-      before_id: before?.id,
-      after_id: after?.id,
+      let candidate: ColumnsMap;
+      if (fromCol !== toCol) {
+        const fromItems = cols[fromCol].filter((i) => i.id !== issueId);
+        const toItems = cols[toCol].slice();
+        const insertIdx = target.overIssue
+          ? toItems.findIndex((i) => i.id === target.overIssue!.id)
+          : toItems.length;
+        const moved: Issue = { ...dragged, status: toCol as Issue["status"] };
+        toItems.splice(insertIdx, 0, moved);
+        candidate = { ...cols, [fromCol]: fromItems, [toCol]: toItems };
+      } else {
+        const list = cols[fromCol];
+        const fromIdx = list.findIndex((i) => i.id === issueId);
+        const toIdx = target.overIssue
+          ? list.findIndex((i) => i.id === target.overIssue!.id)
+          : list.length - 1;
+        if (fromIdx === -1 || toIdx === -1 || fromIdx === toIdx) return prev;
+        const next = list.slice();
+        const [item] = next.splice(fromIdx, 1);
+        next.splice(toIdx, 0, item);
+        candidate = { ...cols, [fromCol]: next };
+      }
+      const fp = fingerprint(candidate);
+      const recent = recentLayoutsRef.current;
+      if (fp === recent[recent.length - 1]) return prev;
+      if (recent.length >= 2 && fp === recent[recent.length - 2]) return prev;
+      recentLayoutsRef.current = [...recent.slice(-3), fp];
+      return candidate;
     });
+  }
+
+  function handleDragEnd(e: DragEndEvent) {
+    const { active, over } = e;
+    const clear = () => {
+      setActiveIssue(null);
+      setMirror(null);
+      recentLayoutsRef.current = [];
+    };
+    if (!over) return clear();
+
+    const issueId = Number(active.id);
+    const draggedIssue = filtered.find((i) => i.id === issueId);
+    if (!draggedIssue) return clear();
+
+    const cols = mirror ?? cacheColumns;
+    let finalCol: string | null = null;
+    let finalList: Issue[] = [];
+    for (const [colKey, items] of Object.entries(cols)) {
+      if (items.some((i) => i.id === issueId)) {
+        finalCol = colKey;
+        finalList = items;
+        break;
+      }
+    }
+    if (!finalCol) return clear();
+
+    const insertedAt = finalList.findIndex((i) => i.id === issueId);
+    const before = insertedAt > 0 ? finalList[insertedAt - 1] : undefined;
+    const after =
+      insertedAt < finalList.length - 1 ? finalList[insertedAt + 1] : undefined;
+
+    const movedColumn = draggedIssue.status !== finalCol;
+    const cacheList = cacheColumns[finalCol] ?? [];
+    const cacheIdx = cacheList.findIndex((i) => i.id === issueId);
+    if (!movedColumn && cacheIdx === insertedAt) return clear();
+
+    if (movedColumn) {
+      updateStatus
+        .mutateAsync({ id: issueId, status: finalCol })
+        .finally(clear);
+      return;
+    }
+    rank
+      .mutateAsync({ id: issueId, before_id: before?.id, after_id: after?.id })
+      .finally(clear);
+  }
+
+  function handleDragCancel() {
+    setActiveIssue(null);
+    setMirror(null);
+    recentLayoutsRef.current = [];
   }
 
   return (
@@ -272,7 +373,9 @@ function BoardView({
           <DndContext
             sensors={sensors}
             onDragStart={handleDragStart}
+            onDragOver={handleDragOver}
             onDragEnd={handleDragEnd}
+            onDragCancel={handleDragCancel}
             collisionDetection={closestCorners}
           >
             <div className="flex gap-4 items-start min-h-full">
@@ -286,7 +389,7 @@ function BoardView({
               ))}
             </div>
             <DragOverlay>
-              {activeIssue && <IssueCard issue={activeIssue} dragging />}
+              {activeIssue && <IssueDragPreview issue={activeIssue} />}
             </DragOverlay>
           </DndContext>
         )}

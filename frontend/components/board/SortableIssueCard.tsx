@@ -18,10 +18,16 @@ export function SortableIssueCard({ issue, onClick, selectMode, selected, onTogg
     id: issue.id,
   });
 
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-  };
+  // When this card is being dragged, the actual visual is rendered inside
+  // <DragOverlay/>. Suppress transform/transition on the source node so it
+  // doesn't try to translate itself (which would otherwise drift the empty
+  // placeholder slot away from where the user grabbed).
+  const style = isDragging
+    ? { opacity: 0 }
+    : {
+        transform: CSS.Transform.toString(transform),
+        transition,
+      };
 
   if (selectMode) {
     return (

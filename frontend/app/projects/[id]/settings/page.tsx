@@ -7,11 +7,15 @@ import { useQueryClient } from "@tanstack/react-query";
 import {
   DndContext,
   DragEndEvent,
+  DragOverEvent,
+  DragStartEvent,
   PointerSensor,
   closestCenter,
   useSensor,
   useSensors,
 } from "@dnd-kit/core";
+import { arrayMove } from "@/lib/dnd";
+import { useDragCursor } from "@/hooks/useDragCursor";
 import {
   SortableContext,
   useSortable,
@@ -1683,27 +1687,63 @@ function WorkflowTab({ projectId }: { projectId: string }) {
     useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
   );
 
-  function handleDragEnd(e: DragEndEvent) {
-    if (!e.over || e.active.id === e.over.id) return;
-    const from = statuses.findIndex((s) => s.id === Number(e.active.id));
-    const to = statuses.findIndex((s) => s.id === Number(e.over!.id));
-    if (from < 0 || to < 0) return;
-    const next = [...statuses];
-    const [moved] = next.splice(from, 1);
-    next.splice(to, 0, moved);
-    reorder.mutate(next.map((s) => s.id));
+  // Mirror the full statuses list during a drag so the row visibly slots
+  // before the network commits. Filter (`visibleStatuses`) is derived from
+  // the mirror so the user sees the new order immediately.
+  const [statusMirror, setStatusMirror] = useState<StatusDefinition[] | null>(null);
+  const displayStatuses = statusMirror ?? statuses;
+  useDragCursor(statusMirror !== null);
+
+  function handleStatusDragStart(_e: DragStartEvent) {
+    setStatusMirror(statuses);
+  }
+
+  function handleStatusDragOver(e: DragOverEvent) {
+    if (!e.over) return;
+    setStatusMirror((prev) => {
+      const list = prev ?? statuses;
+      const from = list.findIndex((s) => s.id === Number(e.active.id));
+      const to = list.findIndex((s) => s.id === Number(e.over!.id));
+      if (from < 0 || to < 0 || from === to) return prev;
+      return arrayMove(list, from, to);
+    });
+  }
+
+  function handleStatusDragEnd(_e: DragEndEvent) {
+    const next = statusMirror;
+    if (!next) {
+      setStatusMirror(null);
+      return;
+    }
+    const same =
+      next.length === statuses.length &&
+      next.every((s, i) => s.id === statuses[i].id);
+    if (same) {
+      setStatusMirror(null);
+      return;
+    }
+    // Fire the mutation first so its onMutate patches the React Query cache
+    // synchronously to the new order; only then clear the mirror. Otherwise the
+    // UI flashes the *old* cache between mirror-clear and cache-commit.
+    reorder.mutate(next.map((s) => s.id), {
+      onSettled: () => setStatusMirror(null),
+    });
+  }
+
+  function handleStatusDragCancel() {
+    setStatusMirror(null);
   }
 
   const counts = {
-    all: statuses.length,
-    todo: statuses.filter((s) => s.category === "todo").length,
-    in_progress: statuses.filter((s) => s.category === "in_progress").length,
-    done: statuses.filter((s) => s.category === "done").length,
+    all: displayStatuses.length,
+    todo: displayStatuses.filter((s) => s.category === "todo").length,
+    in_progress: displayStatuses.filter((s) => s.category === "in_progress").length,
+    done: displayStatuses.filter((s) => s.category === "done").length,
   };
 
   const visibleStatuses = filter === "all"
-    ? statuses
-    : statuses.filter((s) => s.category === filter);
+    ? displayStatuses
+    : displayStatuses.filter((s) => s.category === filter);
 
   const filterChips: { key: StatusFilter; label: string; count: number }[] = [
     { key: "all", label: "All", count: counts.all },
@@ -1730,7 +1770,10 @@ function WorkflowTab({ projectId }: { projectId: string }) {
             <DndContext
               sensors={sensors}
               collisionDetection={closestCenter}
-              onDragEnd={handleDragEnd}
+              onDragStart={handleStatusDragStart}
+              onDragOver={handleStatusDragOver}
+              onDragEnd={handleStatusDragEnd}
+              onDragCancel={handleStatusDragCancel}
             >
               <SortableContext
                 items={visibleStatuses.map((s) => s.id)}
@@ -3412,15 +3455,46 @@ function ComponentsTab({ projectId }: { projectId: string }) {
     useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
   );
 
-  function handleDragEnd(e: DragEndEvent) {
-    if (!e.over || e.active.id === e.over.id) return;
-    const from = components.findIndex((c) => c.id === Number(e.active.id));
-    const to = components.findIndex((c) => c.id === Number(e.over!.id));
-    if (from < 0 || to < 0) return;
-    const next = [...components];
-    const [moved] = next.splice(from, 1);
-    next.splice(to, 0, moved);
-    reorder.mutate(next.map((c) => c.id));
+  // Mirror full components list during drag for instant rearrange.
+  const [componentMirror, setComponentMirror] = useState<typeof components | null>(null);
+  const displayComponents = componentMirror ?? components;
+  useDragCursor(componentMirror !== null);
+
+  function handleDragStart(_e: DragStartEvent) {
+    setComponentMirror(components);
+  }
+
+  function handleDragOver(e: DragOverEvent) {
+    if (!e.over) return;
+    setComponentMirror((prev) => {
+      const list = prev ?? components;
+      const from = list.findIndex((c) => c.id === Number(e.active.id));
+      const to = list.findIndex((c) => c.id === Number(e.over!.id));
+      if (from < 0 || to < 0 || from === to) return prev;
+      return arrayMove(list, from, to);
+    });
+  }
+
+  function handleDragEnd(_e: DragEndEvent) {
+    const next = componentMirror;
+    if (!next) {
+      setComponentMirror(null);
+      return;
+    }
+    const same =
+      next.length === components.length &&
+      next.every((c, i) => c.id === components[i].id);
+    if (same) {
+      setComponentMirror(null);
+      return;
+    }
+    reorder.mutate(next.map((c) => c.id), {
+      onSettled: () => setComponentMirror(null),
+    });
+  }
+
+  function handleDragCancel() {
+    setComponentMirror(null);
   }
 
   async function handleAdd(e: React.FormEvent) {
@@ -3433,10 +3507,10 @@ function ComponentsTab({ projectId }: { projectId: string }) {
     setDraft({ name: "", lead_id: "" });
   }
 
-  const withLeadCount = components.filter((c) => c.lead_id != null).length;
-  const withoutLeadCount = components.length - withLeadCount;
+  const withLeadCount = displayComponents.filter((c) => c.lead_id != null).length;
+  const withoutLeadCount = displayComponents.length - withLeadCount;
   const q = search.trim().toLowerCase();
-  const visible = components
+  const visible = displayComponents
     .filter((c) =>
       filter === "with-lead"
         ? c.lead_id != null
@@ -3447,7 +3521,7 @@ function ComponentsTab({ projectId }: { projectId: string }) {
     .filter((c) => (q ? c.name.toLowerCase().includes(q) : true));
 
   const filterChips: { key: typeof filter; label: string; count: number }[] = [
-    { key: "all", label: "All", count: components.length },
+    { key: "all", label: "All", count: displayComponents.length },
     { key: "with-lead", label: "With lead", count: withLeadCount },
     { key: "without-lead", label: "Without lead", count: withoutLeadCount },
   ];
@@ -3470,7 +3544,10 @@ function ComponentsTab({ projectId }: { projectId: string }) {
             <DndContext
               sensors={sensors}
               collisionDetection={closestCenter}
+              onDragStart={handleDragStart}
+              onDragOver={handleDragOver}
               onDragEnd={handleDragEnd}
+              onDragCancel={handleDragCancel}
             >
               <SortableContext
                 items={visible.map((c) => c.id)}

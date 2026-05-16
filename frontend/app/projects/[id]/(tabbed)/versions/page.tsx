@@ -7,11 +7,15 @@ import { usePermissionsStore } from "@/store/permissions";
 import {
   DndContext,
   DragEndEvent,
+  DragOverEvent,
+  DragStartEvent,
   PointerSensor,
   closestCenter,
   useSensor,
   useSensors,
 } from "@dnd-kit/core";
+import { arrayMove } from "@/lib/dnd";
+import { useDragCursor } from "@/hooks/useDragCursor";
 import {
   SortableContext,
   useSortable,
@@ -63,15 +67,48 @@ export default function VersionsPage({
     useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
   );
 
-  function handleDragEnd(e: DragEndEvent) {
-    if (!e.over || e.active.id === e.over.id) return;
-    const from = versions.findIndex((v) => v.id === Number(e.active.id));
-    const to = versions.findIndex((v) => v.id === Number(e.over!.id));
-    if (from < 0 || to < 0) return;
-    const next = [...versions];
-    const [moved] = next.splice(from, 1);
-    next.splice(to, 0, moved);
-    reorder.mutate(next.map((v) => v.id));
+  // Local mirror of the versions list while a drag is in progress, so the row
+  // visibly slots into place instead of waiting for the server roundtrip.
+  const [mirror, setMirror] = useState<Version[] | null>(null);
+  const displayVersions = mirror ?? versions;
+  useDragCursor(mirror !== null);
+
+  function handleDragStart(_e: DragStartEvent) {
+    setMirror(versions);
+  }
+
+  function handleDragOver(e: DragOverEvent) {
+    if (!e.over) return;
+    setMirror((prev) => {
+      const list = prev ?? versions;
+      const from = list.findIndex((v) => v.id === Number(e.active.id));
+      const to = list.findIndex((v) => v.id === Number(e.over!.id));
+      if (from < 0 || to < 0 || from === to) return prev;
+      return arrayMove(list, from, to);
+    });
+  }
+
+  function handleDragEnd(_e: DragEndEvent) {
+    const next = mirror;
+    if (!next) {
+      setMirror(null);
+      return;
+    }
+    const same =
+      next.length === versions.length &&
+      next.every((v, i) => v.id === versions[i].id);
+    if (same) {
+      setMirror(null);
+      return;
+    }
+    // Fire mutation first so its onMutate patches cache before mirror clears.
+    reorder.mutate(next.map((v) => v.id), {
+      onSettled: () => setMirror(null),
+    });
+  }
+
+  function handleDragCancel() {
+    setMirror(null);
   }
 
   const [showAdd, setShowAdd] = useState(false);
@@ -180,14 +217,17 @@ export default function VersionsPage({
           <DndContext
             sensors={sensors}
             collisionDetection={closestCenter}
+            onDragStart={can("version.edit") ? handleDragStart : undefined}
+            onDragOver={can("version.edit") ? handleDragOver : undefined}
             onDragEnd={can("version.edit") ? handleDragEnd : undefined}
+            onDragCancel={can("version.edit") ? handleDragCancel : undefined}
           >
             <SortableContext
-              items={versions.map((v) => v.id)}
+              items={displayVersions.map((v) => v.id)}
               strategy={verticalListSortingStrategy}
             >
               <ul className="space-y-3">
-                {versions.map((v) => (
+                {displayVersions.map((v) => (
                   <VersionRow
                     key={v.id}
                     version={v}

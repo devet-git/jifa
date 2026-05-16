@@ -1,6 +1,6 @@
 "use client";
 
-import { use, useMemo, useState } from "react";
+import { use, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import {
   DndContext,
@@ -17,6 +17,7 @@ import { SortableContext, useSortable, verticalListSortingStrategy } from "@dnd-
 import { CSS } from "@dnd-kit/utilities";
 import { useIssues, useRankIssue } from "@/hooks/useIssues";
 import { useSprints } from "@/hooks/useSprints";
+import { useDragCursor } from "@/hooks/useDragCursor";
 import { usePermissionsStore } from "@/store/permissions";
 import { Badge } from "@/components/ui/Badge";
 import { Skeleton } from "@/components/ui/Skeleton";
@@ -39,6 +40,7 @@ export default function PlanningPage({
 
   const [activeIssue, setActiveIssue] = useState<Issue | null>(null);
   const [overCol, setOverCol] = useState<string | null>(null);
+  useDragCursor(!!activeIssue);
 
   const canDrag = can("issue.edit");
 
@@ -52,52 +54,124 @@ export default function PlanningPage({
     [sprints],
   );
 
-  // Map sprint_id → issues (from sprint.issues)
+  // Live layout: cache view of each column, mirrored locally during a drag.
+  type ColumnsMap = Record<string, Issue[]>;
+  const cacheCols = useMemo<ColumnsMap>(() => {
+    const out: ColumnsMap = { [BACKLOG_COL]: backlog };
+    for (const s of sprints) out[`sprint:${s.id}`] = s.issues ?? [];
+    return out;
+  }, [backlog, sprints]);
+
+  const [mirror, setMirror] = useState<ColumnsMap | null>(null);
+  const liveCols = mirror ?? cacheCols;
+
   const sprintIssues = useMemo(() => {
     const map = new Map<number, Issue[]>();
     for (const s of sprints) {
-      map.set(s.id, s.issues ?? []);
+      map.set(s.id, liveCols[`sprint:${s.id}`] ?? s.issues ?? []);
     }
     return map;
-  }, [sprints]);
+  }, [sprints, liveCols]);
+  const liveBacklog = liveCols[BACKLOG_COL] ?? backlog;
 
-  function onDragStart({ active }: DragStartEvent) {
-    const issue = findIssue(active.id as number);
-    setActiveIssue(issue ?? null);
+  function findFromCol(map: ColumnsMap, issueId: number): string | null {
+    for (const [colId, list] of Object.entries(map)) {
+      if (list.some((i) => i.id === issueId)) return colId;
+    }
+    return null;
   }
 
-  function onDragOver({ over }: DragOverEvent) {
+  // Oscillation guard.
+  const recentLayoutsRef = useRef<string[]>([]);
+  const fingerprint = (m: ColumnsMap) =>
+    Object.keys(m)
+      .sort()
+      .map((k) => `${k}:${m[k].map((i) => i.id).join(",")}`)
+      .join("|");
+
+  function onDragStart({ active }: DragStartEvent) {
+    const issueId = active.id as number;
+    for (const list of Object.values(cacheCols)) {
+      const found = list.find((i) => i.id === issueId);
+      if (found) {
+        setActiveIssue(found);
+        break;
+      }
+    }
+    recentLayoutsRef.current = [fingerprint(cacheCols)];
+    setMirror(cacheCols);
+  }
+
+  function onDragOver({ active, over }: DragOverEvent) {
     setOverCol(over ? String(over.id) : null);
+    if (!over) return;
+    const issueId = active.id as number;
+    const overId = String(over.id);
+    setMirror((prev) => {
+      const map = prev ?? cacheCols;
+      // Determine target column: overId may be a column id, or an issue id
+      // (when hovering over a card inside a column).
+      let toCol: string | null = null;
+      if (map[overId]) toCol = overId;
+      else {
+        const num = Number(overId);
+        if (Number.isFinite(num)) toCol = findFromCol(map, num);
+      }
+      if (!toCol) return prev;
+      const fromCol = findFromCol(map, issueId);
+      if (!fromCol || fromCol === toCol) return prev;
+      const dragged = map[fromCol].find((i) => i.id === issueId)!;
+      const fromItems = map[fromCol].filter((i) => i.id !== issueId);
+      const toItems = [...map[toCol], dragged];
+      const candidate = { ...map, [fromCol]: fromItems, [toCol]: toItems };
+      const fp = fingerprint(candidate);
+      const recent = recentLayoutsRef.current;
+      if (fp === recent[recent.length - 1]) return prev;
+      if (recent.length >= 2 && fp === recent[recent.length - 2]) return prev;
+      recentLayoutsRef.current = [...recent.slice(-3), fp];
+      return candidate;
+    });
   }
 
   function onDragEnd({ active, over }: DragEndEvent) {
-    setActiveIssue(null);
-    setOverCol(null);
-    if (!over) return;
+    const clear = () => {
+      setActiveIssue(null);
+      setOverCol(null);
+      setMirror(null);
+      recentLayoutsRef.current = [];
+    };
+    if (!over) return clear();
 
     const issueId = active.id as number;
-    const targetCol = String(over.id);
+    const map = mirror ?? cacheCols;
+    const finalCol = findFromCol(map, issueId);
+    if (!finalCol) return clear();
+    const originalCol = findFromCol(cacheCols, issueId);
+    if (finalCol === originalCol) return clear(); // no-op
 
-    if (targetCol === BACKLOG_COL) {
-      rank.mutate({ id: issueId, clear_sprint: true });
-    } else if (targetCol.startsWith("sprint:")) {
-      const sprintId = Number(targetCol.replace("sprint:", ""));
-      if (!isNaN(sprintId)) {
-        rank.mutate({ id: issueId, sprint_id: sprintId });
+    if (finalCol === BACKLOG_COL) {
+      rank.mutate({ id: issueId, clear_sprint: true }, { onSettled: clear });
+    } else if (finalCol.startsWith("sprint:")) {
+      const sprintId = Number(finalCol.replace("sprint:", ""));
+      if (!Number.isNaN(sprintId)) {
+        rank.mutate({ id: issueId, sprint_id: sprintId }, { onSettled: clear });
+      } else {
+        clear();
       }
+    } else {
+      clear();
     }
   }
 
-  function findIssue(id: number): Issue | undefined {
-    for (const issues of sprintIssues.values()) {
-      const found = issues.find((i) => i.id === id);
-      if (found) return found;
-    }
-    return backlog.find((i) => i.id === id);
+  function onDragCancel() {
+    setActiveIssue(null);
+    setOverCol(null);
+    setMirror(null);
+    recentLayoutsRef.current = [];
   }
 
   const allIssueIds = [
-    ...backlog.map((i) => i.id),
+    ...liveBacklog.map((i) => i.id),
     ...Array.from(sprintIssues.values()).flatMap((list) => list.map((i) => i.id)),
   ];
 
@@ -137,10 +211,11 @@ export default function PlanningPage({
                 onDragStart={onDragStart}
                 onDragOver={onDragOver}
                 onDragEnd={onDragEnd}
+                onDragCancel={onDragCancel}
               >
                 <SortableContext items={allIssueIds} strategy={verticalListSortingStrategy}>
                   <ColumnsContent
-                    backlog={backlog}
+                    backlog={liveBacklog}
                     planningSpints={planningSpints}
                     sprintIssues={sprintIssues}
                     id={id}
@@ -158,7 +233,7 @@ export default function PlanningPage({
               </DndContext>
             ) : (
               <ColumnsContent
-                backlog={backlog}
+                backlog={liveBacklog}
                 planningSpints={planningSpints}
                 sprintIssues={sprintIssues}
                 id={id}
