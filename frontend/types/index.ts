@@ -41,6 +41,7 @@ export interface Project {
   date_format: string;
   time_format: string;
   category?: string;
+  archived_at?: string | null;
   created_at: string;
 }
 
@@ -158,22 +159,87 @@ export interface StatusDefinition {
 }
 
 export type WebhookEvent =
+  // Issue
   | "issue.created"
   | "issue.updated"
   | "issue.deleted"
+  | "issue.status_changed"
+  | "issue.assigned"
+  | "issue.unassigned"
+  | "issue.priority_changed"
+  | "issue.linked"
+  | "issue.unlinked"
+  // Comment
   | "comment.created"
+  | "comment.updated"
+  | "comment.deleted"
+  | "comment.mentioned"
+  // Sprint
+  | "sprint.created"
+  | "sprint.updated"
   | "sprint.started"
-  | "sprint.completed";
+  | "sprint.completed"
+  // Version
+  | "version.created"
+  | "version.released"
+  // Member
+  | "member.added"
+  | "member.removed"
+  | "member.role_changed"
+  // Worklog
+  | "worklog.added"
+  | "worklog.deleted"
+  // Attachment
+  | "attachment.uploaded"
+  // Wiki
+  | "wiki_page.created"
+  | "wiki_page.updated"
+  | "wiki_page.deleted"
+  // Project
+  | "project.updated";
+
+export type WebhookMethod =
+  | "GET"
+  | "POST"
+  | "PUT"
+  | "PATCH"
+  | "DELETE"
+  | "HEAD";
+
+export type WebhookAuthType = "none" | "basic" | "bearer" | "header";
+export type WebhookBodyType = "template" | "form";
 
 export interface Webhook {
   id: number;
   project_id: number;
+  name: string;
   url: string;
   active: boolean;
   events: string;
   events_list: WebhookEvent[];
   secret?: string; // returned only on create
   created_at: string;
+  method: WebhookMethod;
+  content_type: string;
+  headers: string; // raw JSON string from backend
+  headers_map: Record<string, string>;
+  query_params: string; // raw JSON string from backend
+  query_params_map: Record<string, string>;
+  auth_type: WebhookAuthType;
+  body_type: WebhookBodyType;
+  body_template: string;
+  form_fields: string;
+  form_fields_map: Record<string, string>;
+}
+
+export interface WebhookTestResult {
+  method: string;
+  url: string;
+  status_code: number;
+  response_headers: Record<string, string>;
+  response_body: string;
+  error?: string;
+  sent_body: string;
 }
 
 export interface Worklog {

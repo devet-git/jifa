@@ -115,11 +115,38 @@ export default function CalendarPage({
 
       <div className="flex-1 p-6 overflow-auto">
         {isLoading ? (
-          <div className="grid grid-cols-7 gap-1">
-            {Array.from({ length: 35 }).map((_, i) => (
-              <Skeleton key={i} className="h-[90px]" />
-            ))}
-          </div>
+          <>
+            <div className="grid grid-cols-7 gap-1 mb-1">
+              {DAYS.map((d) => (
+                <div
+                  key={d}
+                  className="text-center text-xs font-semibold text-muted py-1"
+                >
+                  {d}
+                </div>
+              ))}
+            </div>
+            <div className="grid grid-cols-7 gap-1">
+              {Array.from({ length: 35 }).map((_, i) => {
+                const eventCount = [0, 1, 2, 0, 1, 0, 3][i % 7];
+                return (
+                  <div
+                    key={i}
+                    className="min-h-[90px] rounded-lg border border-border/60 bg-surface-2/40 p-1.5 space-y-1"
+                  >
+                    <Skeleton className="h-3 w-5 rounded" />
+                    {Array.from({ length: eventCount }).map((_, j) => (
+                      <Skeleton
+                        key={j}
+                        className="h-3 rounded"
+                        style={{ width: `${72 - j * 12}%` }}
+                      />
+                    ))}
+                  </div>
+                );
+              })}
+            </div>
+          </>
         ) : (
         <>
         {/* Day-of-week header */}

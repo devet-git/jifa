@@ -4,6 +4,7 @@ import { use, useMemo, useState } from "react";
 import Link from "next/link";
 import { showConfirm } from "@/store/confirm";
 import { usePermissionsStore } from "@/store/permissions";
+import { useAuthStore } from "@/store/auth";
 import { useProject } from "@/hooks/useProject";
 import {
   useWikiPages,
@@ -17,6 +18,7 @@ import { UserHoverCard } from "@/components/ui/UserHoverCard";
 import { Spinner } from "@/components/ui/Spinner";
 import { Tooltip } from "@/components/ui/Tooltip";
 import { MarkdownEditor, MarkdownBody } from "@/components/ui/MarkdownEditor";
+import { SkeletonArticle } from "@/components/ui/Skeleton";
 import { BookOpen, FileText, Pencil, Plus, Save, Search, Trash2 } from "lucide-react";
 import type { WikiPage } from "@/types";
 
@@ -31,10 +33,11 @@ export default function WikiListPage({
 }) {
   const { id } = use(params);
   const { data: project } = useProject(id);
-  const { data: pages = [] } = useWikiPages(id);
+  const { data: pages = [], isLoading: pagesLoading } = useWikiPages(id);
   const createPage = useCreateWikiPage(id);
   const deletePage = useDeleteWikiPage(id);
   const can = usePermissionsStore((s) => s.can);
+  const currentUserId = useAuthStore((s) => s.user?.id);
 
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [editing, setEditing] = useState(false);
@@ -126,7 +129,22 @@ export default function WikiListPage({
         </div>
 
         <div className="flex-1 overflow-y-auto py-1">
-          {filtered.length === 0 ? (
+          {pagesLoading ? (
+            <div className="px-3 py-2 space-y-2">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <div key={i} className="flex items-center gap-2 px-1 py-1.5">
+                  <div className="skeleton h-3 w-3 rounded shrink-0" />
+                  <div className="flex-1 space-y-1">
+                    <div
+                      className="skeleton h-3 rounded"
+                      style={{ width: `${72 - (i % 4) * 10}%` }}
+                    />
+                    <div className="skeleton h-2 w-12 rounded" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : filtered.length === 0 ? (
             <p className="px-4 py-6 text-xs text-muted italic text-center">
               {search ? "No pages match your filter." : "No pages yet."}
             </p>
@@ -145,11 +163,13 @@ export default function WikiListPage({
                   <FileText className="w-3.5 h-3.5 shrink-0 text-muted" />
                   <div className="flex-1 min-w-0">
                     <span className="block truncate">{p.title}</span>
-                    <span className="block text-[10px] text-muted mt-0.5">
-                      {timeAgo(p.updated_at)}
+                    <span className="block text-[10px] text-muted mt-0.5 truncate">
+                      {p.author && p.author_id !== currentUserId
+                        ? `${p.author.name} · ${timeAgo(p.updated_at)}`
+                        : timeAgo(p.updated_at)}
                     </span>
                   </div>
-                  {can("wiki.delete") && (
+                  {(can("wiki.delete") || p.author_id === currentUserId) && (
                     <Tooltip content="Delete page">
                       <span
                         onClick={(e) => {
@@ -262,24 +282,14 @@ function WikiPageView({
   const updatePage = useUpdateWikiPage(projectId);
   const deletePage = useDeleteWikiPage(projectId);
   const can = usePermissionsStore((s) => s.can);
+  const currentUserId = useAuthStore((s) => s.user?.id);
+  const isAuthor = !!page && page.author_id === currentUserId;
+  const canEdit = can("wiki.edit") || isAuthor;
+  const canDelete = can("wiki.delete") || isAuthor;
   const [draft, setDraft] = useState<{ title: string; content: string } | null>(null);
 
   if (isLoading) {
-    return (
-      <div className="p-8 max-w-3xl animate-pulse space-y-4">
-        <div className="h-5 w-32 skeleton rounded" />
-        <div className="h-8 w-64 skeleton rounded" />
-        <div className="flex items-center gap-2">
-          <div className="w-6 h-6 rounded-full skeleton" />
-          <div className="h-3 w-40 skeleton rounded" />
-        </div>
-        <div className="space-y-2 mt-6">
-          {Array.from({ length: 6 }).map((_, i) => (
-            <div key={i} className="h-3 skeleton rounded" style={{ width: `${50 + Math.random() * 40}%` }} />
-          ))}
-        </div>
-      </div>
-    );
+    return <SkeletonArticle className="p-8 max-w-3xl" />;
   }
 
   if (!page) {
@@ -384,7 +394,7 @@ function WikiPageView({
         <div className="flex items-start justify-between gap-4 mb-5">
           <h1 className="text-2xl font-bold tracking-tight">{page.title}</h1>
           <div className="flex items-center gap-1.5 shrink-0">
-            {can("wiki.edit") && (
+            {canEdit && (
             <button
               onClick={startEdit}
               className="text-xs px-3 py-1.5 rounded-lg gradient-brand text-white font-medium inline-flex items-center gap-1.5 transition"
@@ -393,7 +403,7 @@ function WikiPageView({
               Edit
             </button>
             )}
-            {can("wiki.delete") && (
+            {canDelete && (
               <Tooltip content="Delete page">
                 <button
                   onClick={handleDelete}
@@ -411,7 +421,7 @@ function WikiPageView({
       {page.author && (
         <div className="flex items-center gap-2.5 mb-7 text-xs text-muted">
           <UserHoverCard user={page.author} side="bottom" align="start">
-            <Avatar name={page.author.name} size="sm" />
+            <Avatar name={page.author.name} src={page.author.avatar} size="sm" />
           </UserHoverCard>
           <span className="font-medium text-foreground">{page.author.name}</span>
           <span>·</span>
@@ -427,7 +437,7 @@ function WikiPageView({
       ) : (
         <div className="rounded-xl border-2 border-dashed border-border p-10 text-center">
           <p className="text-sm text-muted mb-3">This page is empty.</p>
-          {can("wiki.edit") && (
+          {canEdit && (
           <button
             onClick={startEdit}
             className="text-sm gradient-brand text-white font-medium px-4 py-2 rounded-lg inline-flex items-center gap-1.5 transition"

@@ -41,13 +41,14 @@ const priorityColor: Record<IssuePriority, string> = {
 };
 
 interface Props {
+  draggable?: boolean;
   issue: Issue;
   onClick?: () => void;
   className?: string;
   dragging?: boolean;
 }
 
-export function IssueCard({ issue, onClick, className, dragging }: Props) {
+export function IssueCard({ issue, onClick, className, dragging, draggable }: Props) {
   const type = typeIcons[issue.type] ?? typeIcons.task;
   const isOverdue = issue.due_date && new Date(issue.due_date) < new Date() && issue.status !== "done";
   const qc = useQueryClient();
@@ -99,7 +100,10 @@ export function IssueCard({ issue, onClick, className, dragging }: Props) {
     <div
       onClick={onClick}
       className={cn(
-        "group bg-surface border border-border rounded-lg p-3 flex items-start gap-3 cursor-pointer hover:border-[var(--border-strong)] hover:shadow-md transition-all select-none",
+        "group bg-surface border border-border rounded-lg p-3 flex items-start gap-3 hover:border-[var(--border-strong)] hover:shadow-md transition-all select-none",
+        draggable
+          ? "cursor-grab active:cursor-grabbing"
+          : "cursor-pointer",
         dragging && "shadow-lg ring-2 ring-brand/30 rotate-1",
         className,
       )}

@@ -14,6 +14,8 @@ import { Avatar } from "@/components/ui/Avatar";
 import { UserHoverCard } from "@/components/ui/UserHoverCard";
 import { IssueHoverCard } from "@/components/ui/IssueHoverCard";
 import { Tooltip } from "@/components/ui/Tooltip";
+import { ThemeToggle } from "@/components/layout/ThemeToggle";
+import { useAuthStore } from "@/store/auth";
 import {
   Popover,
   PopoverContent,
@@ -32,11 +34,34 @@ import type { Notification } from "@/types";
 
 export function TopBar() {
   return (
-    <div className="h-14 sticky top-0 z-30 flex items-center px-5 gap-4 glass border-b border-border">
+    <div className="h-14 sticky top-0 z-30 flex items-center px-5 gap-2 glass border-b border-border">
       <SearchBox />
       <div className="flex-1" />
+      <ThemeToggle />
       <BellMenu />
+      <UserMenu />
     </div>
+  );
+}
+
+function UserMenu() {
+  const router = useRouter();
+  const user = useAuthStore((s) => s.user);
+  return (
+    <Tooltip content="Preferences" position="bottom">
+      <button
+        onClick={() => router.push("/preferences")}
+        aria-label="Preferences"
+        className="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-surface-2 transition shrink-0"
+      >
+        <Avatar
+          name={user?.name}
+          src={user?.avatar}
+          size="sm"
+          className="ring-2 ring-[color:color-mix(in_srgb,var(--brand)_40%,transparent)]"
+        />
+      </button>
+    </Tooltip>
   );
 }
 

@@ -78,6 +78,12 @@ export function useSetRolePermissions(projectId: number | string) {
         queryKey: ["role-permissions", String(projectId)],
         refetchType: "all",
       });
+      // Permission changes can affect the current user's effective perms if
+      // they belong to the role being edited. Invalidate so usePermissionsStore
+      // is refreshed on next load.
+      qc.invalidateQueries({
+        queryKey: ["my-permissions", String(projectId)],
+      });
     },
   });
 }

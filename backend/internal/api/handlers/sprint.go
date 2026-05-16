@@ -36,9 +36,10 @@ func (h *SprintHandler) Create(c *gin.Context) {
 	projectID, _ := strconv.ParseUint(c.Param("projectId"), 10, 64)
 	sprint.ProjectID = uint(projectID)
 	if err := h.db.Create(&sprint).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		respondInternal(c, err)
 		return
 	}
+	webhook.Dispatch(h.db, sprint.ProjectID, models.EventSprintCreated, sprint)
 	c.JSON(http.StatusCreated, sprint)
 }
 
@@ -50,6 +51,7 @@ func (h *SprintHandler) Update(c *gin.Context) {
 	}
 	c.ShouldBindJSON(&sprint)
 	h.db.Save(&sprint)
+	webhook.Dispatch(h.db, sprint.ProjectID, models.EventSprintUpdated, sprint)
 	c.JSON(http.StatusOK, sprint)
 }
 

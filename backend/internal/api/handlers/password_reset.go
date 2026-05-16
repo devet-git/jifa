@@ -84,7 +84,7 @@ func (h *PasswordResetHandler) ResetPassword(c *gin.Context) {
 
 	if err := h.db.Model(&models.User{}).Where("id = ?", reset.UserID).
 		Update("password", string(hashed)).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		respondInternal(c, err)
 		return
 	}
 

@@ -60,11 +60,22 @@ func NewRouter(db *gorm.DB, cfg *config.Config) *gin.Engine {
 	// Permission-based project routes.
 	// ------------------------------------------------------------------
 	project := protected.Group("/projects/:projectId").
-		Use(middleware.LoadProjectPermissions(db))
+		Use(middleware.LoadProjectPermissions(db), middleware.BlockIfArchived(db))
 
-	project.GET("", middleware.RequirePermission("project.view"), projectHandler.Get)
+	// Basic project info (name, key, description) is available to any member
+	// of the project. LoadProjectPermissions already enforces membership
+	// (returns 404 otherwise), so no extra permission gate is needed here.
+	project.GET("", projectHandler.Get)
 	project.PUT("", middleware.RequirePermission("project.edit"), projectHandler.Update)
-	project.DELETE("", middleware.RequirePermission("project.delete"), projectHandler.Delete)
+	// Archive/Unarchive bypass BlockIfArchived: archive transitions are the
+	// only state change permitted on archived projects. They re-use the
+	// project.edit permission.
+	project.POST("/archive", middleware.RequirePermission("project.edit"), projectHandler.Archive)
+	project.POST("/unarchive", middleware.RequirePermission("project.edit"), projectHandler.Unarchive)
+	// Hard delete: owner-only with typed-name confirmation enforced in the
+	// handler. Not gated by a permission — only the project owner can ever
+	// destroy data.
+	project.DELETE("", projectHandler.Delete)
 
 	project.POST("/star", middleware.RequirePermission("project.view"), projectHandler.Star)
 	project.DELETE("/star", middleware.RequirePermission("project.view"), projectHandler.Unstar)
@@ -101,6 +112,8 @@ func NewRouter(db *gorm.DB, cfg *config.Config) *gin.Engine {
 	project.POST("/webhooks", middleware.RequirePermission("webhook.manage"), webhookHandler.Create)
 	project.PUT("/webhooks/:webhookId", middleware.RequirePermission("webhook.manage"), webhookHandler.Update)
 	project.DELETE("/webhooks/:webhookId", middleware.RequirePermission("webhook.manage"), webhookHandler.Delete)
+	project.POST("/webhooks/:webhookId/test", middleware.RequirePermission("webhook.manage"), webhookHandler.Test)
+	project.POST("/webhooks/test", middleware.RequirePermission("webhook.manage"), webhookHandler.TestDraft)
 
 	statusHandler := handlers.NewStatusHandler(db)
 	project.GET("/statuses", middleware.RequirePermission("project.view"), statusHandler.List)
@@ -151,11 +164,16 @@ func NewRouter(db *gorm.DB, cfg *config.Config) *gin.Engine {
 	project.DELETE("/labels/:labelId", middleware.RequirePermission("issue.edit"), labelHandler.Delete)
 
 	wikiHandler := handlers.NewWikiHandler(db)
-	project.GET("/wiki", middleware.RequirePermission("project.view"), wikiHandler.List)
+	// Wiki visibility is per-page. List filters by author when the caller
+	// lacks wiki.view; Get returns 404 instead of leaking page existence.
+	// LoadProjectPermissions already enforces project membership.
+	project.GET("/wiki", wikiHandler.List)
 	project.POST("/wiki", middleware.RequirePermission("wiki.create"), wikiHandler.Create)
-	project.GET("/wiki/:pageId", middleware.RequirePermission("project.view"), wikiHandler.Get)
-	project.PUT("/wiki/:pageId", middleware.RequirePermission("wiki.edit"), wikiHandler.Update)
-	project.DELETE("/wiki/:pageId", middleware.RequirePermission("wiki.delete"), wikiHandler.Delete)
+	project.GET("/wiki/:pageId", wikiHandler.Get)
+	// Update/Delete: authors can always modify their own pages. The handlers
+	// enforce wiki.edit / wiki.delete for non-authors.
+	project.PUT("/wiki/:pageId", wikiHandler.Update)
+	project.DELETE("/wiki/:pageId", wikiHandler.Delete)
 
 	permissionHandler := handlers.NewPermissionHandler(db)
 	project.GET("/permissions", middleware.RequirePermission("project.view"), permissionHandler.List)

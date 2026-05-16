@@ -296,7 +296,9 @@ function PlanningIssueRow({ issue, canDrag }: { issue: Issue; canDrag?: boolean 
       ref={setNodeRef}
       style={style}
       {...(canDrag ? { ...attributes, ...listeners } : {})}
-      className="surface-card p-2.5 rounded-lg flex items-start gap-2 text-xs hover:shadow-sm transition-shadow"
+      className={`surface-card p-2.5 rounded-lg flex items-start gap-2 text-xs hover:shadow-sm transition-shadow ${
+        canDrag ? "cursor-grab active:cursor-grabbing" : ""
+      }`}
     >
       <span className="font-mono text-[10px] text-muted shrink-0 mt-0.5 w-14 truncate">
         {issue.key ?? `#${issue.id}`}

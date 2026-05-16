@@ -13,6 +13,7 @@ import (
 
 	"jifa/backend/config"
 	"jifa/backend/internal/models"
+	"jifa/backend/internal/webhook"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -68,7 +69,7 @@ func (h *AttachmentHandler) Upload(c *gin.Context) {
 
 	storedName, err := storedName(header.Filename)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		respondInternal(c, err)
 		return
 	}
 	relDir := filepath.Join(
@@ -77,7 +78,7 @@ func (h *AttachmentHandler) Upload(c *gin.Context) {
 	)
 	absDir := filepath.Join(h.cfg.UploadDir, relDir)
 	if err := os.MkdirAll(absDir, 0o755); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		respondInternal(c, err)
 		return
 	}
 	storedPath := filepath.Join(relDir, storedName)
@@ -85,14 +86,14 @@ func (h *AttachmentHandler) Upload(c *gin.Context) {
 
 	dst, err := os.OpenFile(absPath, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o644)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		respondInternal(c, err)
 		return
 	}
 	written, err := io.Copy(dst, file)
 	dst.Close()
 	if err != nil {
 		_ = os.Remove(absPath)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		respondInternal(c, err)
 		return
 	}
 
@@ -106,10 +107,11 @@ func (h *AttachmentHandler) Upload(c *gin.Context) {
 	}
 	if err := h.db.Create(&att).Error; err != nil {
 		_ = os.Remove(absPath)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		respondInternal(c, err)
 		return
 	}
 	h.db.Preload("Uploader").First(&att, att.ID)
+	webhook.Dispatch(h.db, issue.ProjectID, models.EventAttachmentUploaded, att)
 	c.JSON(http.StatusCreated, att)
 }
 
@@ -123,7 +125,7 @@ func (h *AttachmentHandler) Download(c *gin.Context) {
 			c.JSON(http.StatusNotFound, gin.H{"error": "attachment not found"})
 			return
 		}
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		respondInternal(c, err)
 		return
 	}
 	abs := filepath.Join(h.cfg.UploadDir, filepath.FromSlash(att.StoredPath))

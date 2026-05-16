@@ -151,7 +151,7 @@ export function TimeTrackingPanel({ issue }: Props) {
         )}
       </div>
 
-      <PermissionGate perm="issue.worklog" message="Bạn không có quyền ghi nhật ký công việc">
+      <PermissionGate perm="issue.worklog" message="You don't have permission to log work">
         <form onSubmit={handleLog} className="flex gap-2 mb-2" style={canWorklog ? {} : { pointerEvents: "none" }}>
           <input
             placeholder="1h 30m"
@@ -193,7 +193,7 @@ export function TimeTrackingPanel({ issue }: Props) {
               <span className="text-xs text-gray-400">
                 {formatDate(l.started_at, dateFormat, null)}
               </span>
-              <PermissionGate perm="issue.worklog" message="Bạn không có quyền ghi nhật ký công việc">
+              <PermissionGate perm="issue.worklog" message="You don't have permission to log work">
                 <button
                   onClick={() => canWorklog && remove.mutate(l.id)}
                   className="text-xs text-gray-400 hover:text-red-500"

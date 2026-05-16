@@ -2,6 +2,7 @@ package middleware
 
 import (
 	"net/http"
+	"strings"
 
 	"jifa/backend/internal/models"
 
@@ -142,6 +143,56 @@ func RequireIssuePermission(db *gorm.DB, permKey string) gin.HandlerFunc {
 
 		c.Set("projectID", issue.ProjectID)
 		c.Set("permissions", permMap)
+		c.Next()
+	}
+}
+
+// BlockIfArchived rejects mutating requests against an archived project with
+// 423 Locked. Mount it after LoadProjectPermissions so we already have the
+// projectID. Safe (GET/HEAD/OPTIONS) methods always pass through; archive
+// transition endpoints (/archive, /unarchive) are skipped so a user can
+// always restore an archived project.
+func BlockIfArchived(db *gorm.DB) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		switch c.Request.Method {
+		case http.MethodGet, http.MethodHead, http.MethodOptions:
+			c.Next()
+			return
+		}
+		// Let the archive-transition endpoints through regardless of state,
+		// and let the project-delete endpoint through so an archived project
+		// can still be destroyed by its owner. FullPath returns the route
+		// template (e.g. /api/v1/projects/:projectId/unarchive).
+		path := c.FullPath()
+		if strings.HasSuffix(path, "/archive") || strings.HasSuffix(path, "/unarchive") {
+			c.Next()
+			return
+		}
+		if c.Request.Method == http.MethodDelete && strings.HasSuffix(path, "/projects/:projectId") {
+			c.Next()
+			return
+		}
+		raw, ok := c.Get("projectID")
+		if !ok {
+			c.Next()
+			return
+		}
+		projectID, _ := raw.(uint)
+		if projectID == 0 {
+			c.Next()
+			return
+		}
+		var project models.Project
+		if err := db.Select("id, archived_at").First(&project, projectID).Error; err != nil {
+			c.Next() // let the downstream handler return its own 404
+			return
+		}
+		if project.ArchivedAt != nil {
+			c.AbortWithStatusJSON(http.StatusLocked, gin.H{
+				"error": "project is archived — unarchive it before making changes",
+			})
+			return
+		}
 		c.Next()
 	}
 }

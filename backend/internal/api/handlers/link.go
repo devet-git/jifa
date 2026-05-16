@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"jifa/backend/internal/models"
+	"jifa/backend/internal/webhook"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -64,7 +65,7 @@ func (h *LinkHandler) Create(c *gin.Context) {
 			c.JSON(http.StatusNotFound, gin.H{"error": "target issue not found"})
 			return
 		}
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		respondInternal(c, err)
 		return
 	}
 
@@ -103,10 +104,23 @@ func (h *LinkHandler) Create(c *gin.Context) {
 		}
 	})
 
+	if link.Source != nil {
+		webhook.Dispatch(h.db, link.Source.ProjectID, models.EventIssueLinked, link)
+	}
+
 	c.JSON(http.StatusCreated, link)
 }
 
 func (h *LinkHandler) Delete(c *gin.Context) {
-	h.db.Where("id = ?", c.Param("linkId")).Delete(&models.IssueLink{})
+	var link models.IssueLink
+	if err := h.db.Preload("Source").Preload("Target").
+		First(&link, c.Param("linkId")).Error; err != nil {
+		c.Status(http.StatusNoContent)
+		return
+	}
+	h.db.Delete(&link)
+	if link.Source != nil {
+		webhook.Dispatch(h.db, link.Source.ProjectID, models.EventIssueUnlinked, link)
+	}
 	c.Status(http.StatusNoContent)
 }

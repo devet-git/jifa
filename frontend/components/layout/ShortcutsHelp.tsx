@@ -77,7 +77,7 @@ export function ShortcutsHelp() {
         </ul>
         <div className="px-5 py-3 border-t border-border bg-surface-2/40">
           <p className="text-xs text-muted">
-            Nhấn <span className="kbd">?</span> bất kỳ lúc nào để mở lại.
+            Press <span className="kbd">?</span> anytime to reopen this dialog.
           </p>
         </div>
       </DialogContent>

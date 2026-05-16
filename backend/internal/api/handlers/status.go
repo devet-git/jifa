@@ -142,7 +142,7 @@ func (h *StatusHandler) Reorder(c *gin.Context) {
 		return nil
 	})
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		respondInternal(c, err)
 		return
 	}
 	c.Status(http.StatusNoContent)

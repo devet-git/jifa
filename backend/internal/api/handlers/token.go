@@ -85,7 +85,7 @@ func (h *TokenHandler) Create(c *gin.Context) {
 		ExpiresAt: req.ExpiresAt,
 	}
 	if err := h.db.Create(&token).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		respondInternal(c, err)
 		return
 	}
 

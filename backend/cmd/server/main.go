@@ -34,6 +34,12 @@ func main() {
 	if err := database.SeedPermissionsAndRoles(db); err != nil {
 		log.Printf("permission seed warning: %v", err)
 	}
+	if err := database.SyncPermissionCatalog(db); err != nil {
+		log.Printf("permission sync warning: %v", err)
+	}
+	if err := database.BackfillWebhookDefaults(db); err != nil {
+		log.Printf("webhook backfill warning: %v", err)
+	}
 
 	go handlers.RunDigestScheduler(db)
 

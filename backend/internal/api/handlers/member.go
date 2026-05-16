@@ -1,4 +1,4 @@
-﻿package handlers
+package handlers
 
 import (
 	"errors"
@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"jifa/backend/internal/models"
+	"jifa/backend/internal/webhook"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -69,7 +70,7 @@ func (h *MemberHandler) Add(c *gin.Context) {
 			c.JSON(http.StatusNotFound, gin.H{"error": "user with that email does not exist"})
 			return
 		}
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		respondInternal(c, err)
 		return
 	}
 
@@ -98,6 +99,7 @@ func (h *MemberHandler) Add(c *gin.Context) {
 		actorID, _ := c.Get("userID")
 		LogAudit(h.db, pid, actorID.(uint), "member.added", "user", user.ID,
 			user.Email+" as role "+strconv.Itoa(int(roleID)))
+		webhook.Dispatch(h.db, pid, models.EventMemberAdded, deleted)
 
 		c.JSON(http.StatusCreated, deleted)
 		return
@@ -109,7 +111,7 @@ func (h *MemberHandler) Add(c *gin.Context) {
 			c.JSON(http.StatusConflict, gin.H{"error": "user is already a member"})
 			return
 		}
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		respondInternal(c, err)
 		return
 	}
 	h.db.Preload("User").Preload("RoleModel").First(&member, member.ID)
@@ -117,6 +119,7 @@ func (h *MemberHandler) Add(c *gin.Context) {
 	actorID, _ := c.Get("userID")
 	LogAudit(h.db, pid, actorID.(uint), "member.added", "user", user.ID,
 		user.Email+" as role "+strconv.Itoa(int(roleID)))
+	webhook.Dispatch(h.db, pid, models.EventMemberAdded, member)
 
 	c.JSON(http.StatusCreated, member)
 }
@@ -160,6 +163,11 @@ func (h *MemberHandler) UpdateRole(c *gin.Context) {
 	actorID, _ := c.Get("userID")
 	LogAudit(h.db, pid, actorID.(uint), "member.role_changed", "user", member.UserID,
 		strconv.Itoa(int(oldID))+" → "+strconv.Itoa(int(req.RoleID)))
+	webhook.Dispatch(h.db, pid, models.EventMemberRoleChanged, gin.H{
+		"member":      member,
+		"old_role_id": oldID,
+		"new_role_id": req.RoleID,
+	})
 
 	c.JSON(http.StatusOK, member)
 }
@@ -188,5 +196,9 @@ func (h *MemberHandler) Remove(c *gin.Context) {
 	h.db.Delete(&member)
 	actorID, _ := c.Get("userID")
 	LogAudit(h.db, pid, actorID.(uint), "member.removed", "user", member.UserID, "")
+	webhook.Dispatch(h.db, pid, models.EventMemberRemoved, gin.H{
+		"member_id": member.ID,
+		"user_id":   member.UserID,
+	})
 	c.Status(http.StatusNoContent)
 }

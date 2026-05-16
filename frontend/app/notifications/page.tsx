@@ -97,7 +97,7 @@ export default function NotificationsPage() {
                 }`}
               >
                 <UserHoverCard user={n.actor} side="right" align="start">
-                  <Avatar name={n.actor?.name ?? "?"} size="md" />
+                  <Avatar name={n.actor?.name ?? "?"} src={n.actor?.avatar} size="md" />
                 </UserHoverCard>
                 <div className="flex-1 min-w-0">
                   <p className="leading-snug">

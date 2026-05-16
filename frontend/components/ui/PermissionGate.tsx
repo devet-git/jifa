@@ -24,7 +24,7 @@ export function PermissionGate({
   if (!showDisabled) return <>{fallback}</>;
 
   return (
-    <Tooltip content={message ?? `Bạn không có quyền "${perm}"`}>
+    <Tooltip content={message ?? `You don't have the "${perm}" permission`}>
       <span className="inline-flex opacity-40 cursor-not-allowed select-none [&>*]:pointer-events-none">
         {children}
       </span>

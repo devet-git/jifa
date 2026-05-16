@@ -19,7 +19,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/Tabs";
 import { Switch } from "@/components/ui/Switch";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/Alert";
 import { EmptyState, defaultIcons } from "@/components/ui/EmptyState";
-import { Bell, Camera, ChevronsRight, Clock, ExternalLink, KeyRound, Layers, Link, Lock, Maximize2, PieChart, Play, Puzzle, Shield, Timer, Trash2, User } from "lucide-react";
+import { Bell, Camera, ChevronsRight, Clock, ExternalLink, KeyRound, Layers, Link, Lock, LogOut, Maximize2, PieChart, Play, Puzzle, Shield, Timer, Trash2, User } from "lucide-react";
+import { useAuthStore } from "@/store/auth";
 import type { ApiToken, NotificationPrefs } from "@/types";
 
 type Row = {
@@ -116,7 +117,10 @@ export default function PreferencesPage() {
         {/* Tab content — scrolls under sticky header */}
         <div className="px-8 pb-8">
           <TabsContent value="account">
-            <AccountTab />
+            <div className="space-y-4">
+              <AccountTab />
+              <SignOutCard />
+            </div>
           </TabsContent>
           <TabsContent value="security">
             <SecurityTab />
@@ -132,6 +136,59 @@ export default function PreferencesPage() {
           </TabsContent>
         </div>
       </Tabs>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Sign out
+// ---------------------------------------------------------------------------
+
+function SignOutCard() {
+  const router = useRouter();
+  const logout = useAuthStore((s) => s.logout);
+  const { data: me } = useMe();
+
+  async function handleSignOut() {
+    if (
+      !(await showConfirm({
+        title: "Sign out?",
+        message: "You'll need to enter your credentials again to sign back in.",
+        confirmLabel: "Sign out",
+        variant: "primary",
+      }))
+    )
+      return;
+    logout();
+    router.push("/login");
+  }
+
+  return (
+    <div className="surface-card p-6">
+      <div className="flex items-center gap-3 mb-4">
+        <div className="w-8 h-8 rounded-lg bg-red-500/10 flex items-center justify-center">
+          <LogOut className="w-4 h-4 text-red-500" />
+        </div>
+        <div>
+          <h2 className="text-sm font-semibold">Sign out</h2>
+          <p className="text-xs text-muted">
+            End your session on this device.
+          </p>
+        </div>
+      </div>
+      <div className="flex items-center justify-between gap-3 px-3 py-2.5 rounded-lg bg-surface-2/60">
+        <div className="min-w-0">
+          <p className="text-sm text-foreground truncate">
+            Signed in as{" "}
+            <span className="font-medium">{me?.name ?? "—"}</span>
+          </p>
+          <p className="text-xs text-muted truncate">{me?.email}</p>
+        </div>
+        <Button size="sm" variant="secondary" onClick={handleSignOut}>
+          <LogOut className="w-3.5 h-3.5" />
+          Sign out
+        </Button>
+      </div>
     </div>
   );
 }

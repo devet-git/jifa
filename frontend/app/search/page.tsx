@@ -136,7 +136,7 @@ export default function AdvancedSearchPage() {
                   <Badge type="status" value={i.status} showDot />
                   {i.assignee && (
                     <UserHoverCard user={i.assignee} side="left">
-                      <Avatar name={i.assignee.name} size="sm" />
+                      <Avatar name={i.assignee.name} src={i.assignee.avatar} size="sm" />
                     </UserHoverCard>
                   )}
                 </Link>

@@ -2,15 +2,31 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { useProjects, useToggleProjectStar } from "@/hooks/useProject";
+import {
+  useProjects,
+  useToggleProjectStar,
+  useUnarchiveProject,
+} from "@/hooks/useProject";
 import { CreateProjectModal } from "@/components/projects/CreateProjectModal";
 import { Button } from "@/components/ui/Button";
+import { toast } from "@/store/toast";
 
 export default function ProjectsPage() {
-  const { data: projects = [], isLoading } = useProjects();
+  const [showArchived, setShowArchived] = useState(false);
+  const { data: projects = [], isLoading } = useProjects({
+    includeArchived: showArchived,
+  });
   const toggleStar = useToggleProjectStar();
+  const unarchive = useUnarchiveProject();
   const [q, setQ] = useState("");
   const [showCreate, setShowCreate] = useState(false);
+
+  async function handleUnarchive(id: number) {
+    try {
+      await unarchive.mutateAsync(id);
+      toast("Project restored", "success");
+    } catch {}
+  }
 
   const filtered = useMemo(() => {
     const needle = q.trim().toLowerCase();
@@ -55,6 +71,15 @@ export default function ProjectsPage() {
               onChange={(e) => setQ(e.target.value)}
             />
           </div>
+          <label className="inline-flex items-center gap-1.5 text-xs text-muted px-2 py-1 rounded-md hover:bg-surface-2 cursor-pointer transition select-none">
+            <input
+              type="checkbox"
+              checked={showArchived}
+              onChange={(e) => setShowArchived(e.target.checked)}
+              className="accent-brand"
+            />
+            Show archived
+          </label>
           <Button variant="gradient" onClick={() => setShowCreate(true)}>
             <svg
               className="w-4 h-4"
@@ -144,7 +169,12 @@ export default function ProjectsPage() {
                   <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
                 </svg>
               </button>
-              <div className="surface-card p-5 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 h-full flex flex-col">
+              <div
+                className={
+                  "surface-card p-5 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 h-full flex flex-col " +
+                  (p.archived_at ? "opacity-70" : "")
+                }
+              >
                 <div className="flex items-start gap-3 mb-3 pr-8">
                   <span className="gradient-brand text-white font-bold px-2.5 py-1 rounded-md text-xs tracking-wide shrink-0 shadow-sm">
                     {p.key}
@@ -152,6 +182,11 @@ export default function ProjectsPage() {
                   <h3 className="font-semibold truncate flex-1 group-hover:text-brand transition">
                     {p.name}
                   </h3>
+                  {p.archived_at && (
+                    <span className="text-[10px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-700 dark:text-amber-300 shrink-0">
+                      Archived
+                    </span>
+                  )}
                 </div>
                 {p.description ? (
                   <p className="text-sm text-muted line-clamp-3 leading-relaxed flex-1">
@@ -175,8 +210,22 @@ export default function ProjectsPage() {
                     >
                       <path d="M5 12h14M12 5l7 7-7 7" />
                     </svg>
-                    Open project
+                    {p.archived_at ? "View (read-only)" : "Open project"}
                   </span>
+                  {p.archived_at && (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        handleUnarchive(p.id);
+                      }}
+                      disabled={unarchive.isPending}
+                      className="text-[11px] font-medium px-2 py-0.5 rounded-md bg-amber-500/15 hover:bg-amber-500/25 text-amber-700 dark:text-amber-300 transition disabled:opacity-60"
+                    >
+                      {unarchive.isPending ? "Restoring…" : "Restore"}
+                    </button>
+                  )}
                 </div>
               </div>
             </Link>

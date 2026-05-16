@@ -61,7 +61,7 @@ export function AttachmentPanel({ issueId }: Props) {
         <p className="text-xs text-gray-400 uppercase tracking-wide">
           Attachments {atts.length > 0 && `(${atts.length})`}
         </p>
-        <PermissionGate perm="issue.manage-attachment" message="Bạn không có quyền quản lý tệp đính kèm">
+        <PermissionGate perm="issue.manage-attachment" message="You don't have permission to manage attachments">
           <button
             onClick={() => canManage && inputRef.current?.click()}
             className="text-xs text-blue-500 hover:underline"
@@ -205,7 +205,7 @@ function AttachmentTile({
           </div>
         </div>
       </button>
-      <PermissionGate perm="issue.manage-attachment" message="Bạn không có quyền quản lý tệp đính kèm">
+      <PermissionGate perm="issue.manage-attachment" message="You don't have permission to manage attachments">
         <button
           onClick={onDelete}
           className="absolute top-1.5 right-1.5 w-7 h-7 flex items-center justify-center bg-white/80 dark:bg-surface/80 backdrop-blur rounded-md opacity-0 group-hover:opacity-100 transition text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-500/10"

@@ -32,7 +32,7 @@ func (h *WatcherHandler) Watch(c *gin.Context) {
 		return
 	}
 	if err := EnsureWatcher(h.db, issueID, userID.(uint)); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		respondInternal(c, err)
 		return
 	}
 	c.Status(http.StatusNoContent)

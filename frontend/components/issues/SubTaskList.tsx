@@ -54,7 +54,7 @@ export function SubTaskList({ issue }: Props) {
         <p className="text-xs text-gray-400 uppercase tracking-wide">
           Sub-tasks{subTasks.length > 0 && ` (${done}/${subTasks.length})`}
         </p>
-        <PermissionGate perm="issue.create" message="Bạn không có quyền tạo sub-task">
+        <PermissionGate perm="issue.create" message="You don't have permission to create sub-tasks">
           <button
             onClick={() => can("issue.create") && setAdding(true)}
             className="text-xs text-blue-500 hover:underline"

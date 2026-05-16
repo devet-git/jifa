@@ -100,7 +100,7 @@ export default function VersionsPage({
   return (
     <div className="h-full p-8 overflow-auto max-w-4xl mx-auto w-full">
       <div className="flex justify-end mb-4">
-        <PermissionGate perm="version.create" message="Bạn không có quyền tạo phiên bản">
+        <PermissionGate perm="version.create" message="You don't have permission to create versions">
           <Button size="sm" variant={showAdd ? "secondary" : "gradient"} onClick={() => setShowAdd((v) => !v)} disabled={!can("version.create")}>
             {showAdd ? "Cancel" : (
               <>
@@ -291,7 +291,7 @@ function VersionRow({
           type={version.status === "released" ? "status" : "sprint"}
           value={version.status === "released" ? "done" : version.status}
         />
-        <PermissionGate perm="version.release" message="Bạn không có quyền phát hành phiên bản">
+        <PermissionGate perm="version.release" message="You don't have permission to release versions">
           <Button
             size="sm"
             variant={version.status === "released" ? "secondary" : "gradient"}
@@ -301,7 +301,7 @@ function VersionRow({
             {version.status === "released" ? "Unrelease" : "Release"}
           </Button>
         </PermissionGate>
-        <PermissionGate perm="version.delete" message="Bạn không có quyền xóa phiên bản">
+        <PermissionGate perm="version.delete" message="You don't have permission to delete versions">
           <Tooltip content="Delete version">
             <button
               onClick={onDelete}

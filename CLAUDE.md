@@ -1,7 +1,7 @@
 <!-- gitnexus:start -->
 # GitNexus — Code Intelligence
 
-This project is indexed by GitNexus as **jifa** (3897 symbols, 10797 relationships, 278 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
+This project is indexed by GitNexus as **jifa** (4271 symbols, 11831 relationships, 284 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
 
 > If any GitNexus tool warns the index is stale, run `npx gitnexus analyze` in terminal first.
 
@@ -41,6 +41,12 @@ This project is indexed by GitNexus as **jifa** (3897 symbols, 10797 relationshi
 | Index, status, clean, wiki CLI commands | `.claude/skills/gitnexus/gitnexus-cli/SKILL.md` |
 
 <!-- gitnexus:end -->
+
+# Project conventions
+
+## UI
+
+- **Always load user profile images when possible.** When rendering `<Avatar>`, always pass `src={user.avatar}` alongside `name`. The `Avatar` component falls back to a gradient-initials block automatically when `src` is empty or fails to load — so this is safe and progressive. The `User` type in `frontend/types/index.ts` exposes `avatar?: string`. Apply this rule to every place that displays a person (members, assignees, audit actors, notification actors, comment authors, hover cards, etc.).
 
 # CLAUDE.md
 

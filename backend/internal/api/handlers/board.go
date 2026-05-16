@@ -52,7 +52,7 @@ func (h *BoardHandler) Create(c *gin.Context) {
 		Filter:    dto.Filter,
 	}
 	if err := h.db.Create(&b).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		respondInternal(c, err)
 		return
 	}
 	c.JSON(http.StatusCreated, b)

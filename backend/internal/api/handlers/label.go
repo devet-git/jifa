@@ -33,7 +33,7 @@ func (h *LabelHandler) Create(c *gin.Context) {
 	}
 	label.ProjectID = uint(pid)
 	if err := h.db.Create(&label).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		respondInternal(c, err)
 		return
 	}
 	c.JSON(http.StatusCreated, label)
@@ -60,7 +60,7 @@ func (h *LabelHandler) Update(c *gin.Context) {
 		return
 	}
 	if err := h.db.Model(&models.Label{}).Where("id = ?", c.Param("labelId")).Updates(updates).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		respondInternal(c, err)
 		return
 	}
 	c.Status(http.StatusNoContent)
@@ -89,7 +89,7 @@ func (h *LabelHandler) SetIssueLabels(c *gin.Context) {
 		h.db.Find(&labels, body.LabelIDs)
 	}
 	if err := h.db.Model(&issue).Association("Labels").Replace(labels); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		respondInternal(c, err)
 		return
 	}
 	c.JSON(http.StatusOK, labels)

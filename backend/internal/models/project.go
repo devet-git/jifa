@@ -1,5 +1,7 @@
 package models
 
+import "time"
+
 type Project struct {
 	Base
 	Name        string `gorm:"not null" json:"name"`
@@ -7,6 +9,12 @@ type Project struct {
 	Description string `json:"description"`
 	OwnerID     uint   `json:"owner_id"`
 	Owner       User   `gorm:"foreignKey:OwnerID" json:"owner,omitempty"`
+
+	// ArchivedAt marks the project as read-only. Archived projects are
+	// hidden from default listings, reject mutations at the API boundary,
+	// and can be restored by any user with project.edit. Hard deletion is
+	// separate and reserved for the project owner.
+	ArchivedAt *time.Time `gorm:"index" json:"archived_at,omitempty"`
 
 	Sprints []Sprint `json:"sprints,omitempty"`
 	Issues  []Issue  `json:"issues,omitempty"`

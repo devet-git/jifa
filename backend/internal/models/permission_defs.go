@@ -15,8 +15,7 @@ type RoleDef struct {
 
 var AllPermissions = []PermissionDef{
 	{Key: "project.view", Name: "View Project", Group: "project", Description: "Browse the project and view its details"},
-	{Key: "project.edit", Name: "Edit Project", Group: "project", Description: "Update project name, description, and settings"},
-	{Key: "project.delete", Name: "Delete Project", Group: "project", Description: "Permanently delete the project"},
+	{Key: "project.edit", Name: "Edit Project", Group: "project", Description: "Update project name, description, settings, and archive state"},
 
 	{Key: "issue.view", Name: "View Issues", Group: "issue", Description: "View issue details and lists"},
 	{Key: "issue.create", Name: "Create Issues", Group: "issue", Description: "Create new issues in the project"},
@@ -43,9 +42,10 @@ var AllPermissions = []PermissionDef{
 	{Key: "board.edit", Name: "Edit Boards", Group: "board", Description: "Edit board configuration"},
 	{Key: "board.delete", Name: "Delete Boards", Group: "board", Description: "Delete boards"},
 
+	{Key: "wiki.view", Name: "View All Wiki Pages", Group: "wiki", Description: "View wiki pages authored by other members. Without this, a user only sees pages they created themselves."},
 	{Key: "wiki.create", Name: "Create Wiki Pages", Group: "wiki", Description: "Create new wiki pages"},
-	{Key: "wiki.edit", Name: "Edit Wiki Pages", Group: "wiki", Description: "Edit wiki pages"},
-	{Key: "wiki.delete", Name: "Delete Wiki Pages", Group: "wiki", Description: "Delete wiki pages"},
+	{Key: "wiki.edit", Name: "Edit Wiki Pages", Group: "wiki", Description: "Edit wiki pages authored by other members (authors can always edit their own pages)"},
+	{Key: "wiki.delete", Name: "Delete Wiki Pages", Group: "wiki", Description: "Delete wiki pages authored by other members (authors can always delete their own pages)"},
 
 	{Key: "component.create", Name: "Create Components", Group: "component", Description: "Create new components"},
 	{Key: "component.edit", Name: "Edit Components", Group: "component", Description: "Edit component details"},
@@ -89,7 +89,7 @@ func SystemRoles() []RoleDef {
 				"sprint.create", "sprint.edit", "sprint.manage",
 				"version.create", "version.edit", "version.release",
 				"board.create", "board.edit",
-				"wiki.create", "wiki.edit", "wiki.delete",
+				"wiki.view", "wiki.create", "wiki.edit", "wiki.delete",
 				"component.create", "component.edit",
 				"member.view",
 			},
@@ -101,6 +101,7 @@ func SystemRoles() []RoleDef {
 				"project.view",
 				"issue.view",
 				"member.view",
+				"wiki.view",
 			},
 		},
 	}

@@ -3,12 +3,13 @@
 import { use, useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useProject } from "@/hooks/useProject";
+import { useProject, useUnarchiveProject } from "@/hooks/useProject";
 import { useMyPermissions } from "@/hooks/usePermissions";
 import { usePermissionsStore } from "@/store/permissions";
 import { MyPermissionsModal } from "@/components/permissions/MyPermissionsModal";
 import { ProjectFormatProvider } from "@/lib/projectFormat";
 import { Skeleton } from "@/components/ui/Skeleton";
+import { toast } from "@/store/toast";
 
 export default function ProjectTabbedLayout({
   children,
@@ -22,6 +23,15 @@ export default function ProjectTabbedLayout({
   const { data: project, isLoading } = useProject(id);
   const { data: myPermKeys } = useMyPermissions(id);
   const [showPerms, setShowPerms] = useState(false);
+  const unarchive = useUnarchiveProject();
+  const canRestore = myPermKeys?.includes("project.edit") ?? false;
+
+  async function handleUnarchive() {
+    try {
+      await unarchive.mutateAsync(id);
+      toast("Project restored", "success");
+    } catch {}
+  }
 
   useEffect(() => {
     usePermissionsStore.getState().clear();
@@ -44,10 +54,44 @@ export default function ProjectTabbedLayout({
   ];
 
   const segments = pathname.split("/").filter(Boolean);
-  const activeTab = segments[2] || "backlog";
+  const rawTab = segments[2] || "backlog";
+  const activeTab = rawTab === "boards" ? "board" : rawTab;
 
   return (
     <div className="flex flex-col h-full">
+      {project?.archived_at && (
+        <div className="px-8 py-2 bg-amber-500/10 border-b border-amber-500/30 text-xs text-amber-700 dark:text-amber-300 flex items-center gap-3 shrink-0">
+          <svg
+            className="w-3.5 h-3.5 shrink-0"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden
+          >
+            <rect x="3" y="3" width="18" height="6" rx="1" />
+            <path d="M21 9v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V9" />
+            <line x1="10" y1="13" x2="14" y2="13" />
+          </svg>
+          <span className="flex-1">
+            This project is archived — read-only.
+            {!canRestore && (
+              <> Ask a project admin to restore it.</>
+            )}
+          </span>
+          {canRestore && (
+            <button
+              onClick={handleUnarchive}
+              disabled={unarchive.isPending}
+              className="text-[11px] font-medium px-2.5 py-1 rounded-md bg-amber-500/20 hover:bg-amber-500/30 text-amber-800 dark:text-amber-200 transition disabled:opacity-60 shrink-0"
+            >
+              {unarchive.isPending ? "Restoring…" : "Unarchive"}
+            </button>
+          )}
+        </div>
+      )}
       <div className="px-8 pt-4 pb-0 border-b border-border bg-surface shrink-0">
         <div className="flex items-center gap-3 mb-2">
           {isLoading ? (

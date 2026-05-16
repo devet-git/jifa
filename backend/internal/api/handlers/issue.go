@@ -241,7 +241,7 @@ func (h *IssueHandler) Create(c *gin.Context) {
 		return tx.Create(&issue).Error
 	})
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		respondInternal(c, err)
 		return
 	}
 
@@ -377,7 +377,7 @@ func (h *IssueHandler) Update(c *gin.Context) {
 
 	if len(updates) > 0 {
 		if err := h.db.Model(&issue).Updates(updates).Error; err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			respondInternal(c, err)
 			return
 		}
 	}
@@ -411,8 +411,48 @@ func (h *IssueHandler) Update(c *gin.Context) {
 	setIssueKey(&issue)
 	if len(updates) > 0 {
 		webhook.Dispatch(h.db, issue.ProjectID, models.EventIssueUpdated, issue)
+
+		// Granular events — emit on top of issue.updated so receivers can pick
+		// the level of detail they care about.
+		if string(old.Status) != string(issue.Status) {
+			webhook.Dispatch(h.db, issue.ProjectID, models.EventIssueStatusChanged, gin.H{
+				"issue":      issue,
+				"old_status": old.Status,
+				"new_status": issue.Status,
+			})
+		}
+		oldA := uintPtrOrZero(old.AssigneeID)
+		newA := uintPtrOrZero(issue.AssigneeID)
+		if oldA != newA {
+			if newA != 0 {
+				webhook.Dispatch(h.db, issue.ProjectID, models.EventIssueAssigned, gin.H{
+					"issue":           issue,
+					"old_assignee_id": old.AssigneeID,
+					"new_assignee_id": issue.AssigneeID,
+				})
+			} else {
+				webhook.Dispatch(h.db, issue.ProjectID, models.EventIssueUnassigned, gin.H{
+					"issue":           issue,
+					"old_assignee_id": old.AssigneeID,
+				})
+			}
+		}
+		if string(old.Priority) != string(issue.Priority) {
+			webhook.Dispatch(h.db, issue.ProjectID, models.EventIssuePriorityChanged, gin.H{
+				"issue":        issue,
+				"old_priority": old.Priority,
+				"new_priority": issue.Priority,
+			})
+		}
 	}
 	c.JSON(http.StatusOK, issue)
+}
+
+func uintPtrOrZero(p *uint) uint {
+	if p == nil {
+		return 0
+	}
+	return *p
 }
 
 // logIssueDiff emits one IssueActivity row per field that changed.
@@ -500,7 +540,7 @@ func (h *IssueHandler) Clone(c *gin.Context) {
 		return nil
 	})
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		respondInternal(c, err)
 		return
 	}
 
@@ -623,7 +663,7 @@ func (h *IssueHandler) Bulk(c *gin.Context) {
 	if err := h.db.Model(&models.Issue{}).
 		Where("id IN ?", allowed).
 		Updates(updates).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		respondInternal(c, err)
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"affected": len(allowed)})
@@ -645,7 +685,7 @@ func (h *IssueHandler) UpdateStatus(c *gin.Context) {
 	}
 	if err := h.db.Model(&models.Issue{}).Where("id = ?", current.ID).
 		Update("status", body.Status).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		respondInternal(c, err)
 		return
 	}
 	logActivity(h.db, current.ID, userID.(uint), "status",
@@ -813,7 +853,7 @@ func (h *IssueHandler) AddComment(c *gin.Context) {
 			c.JSON(http.StatusNotFound, gin.H{"error": "issue not found"})
 			return
 		}
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		respondInternal(c, err)
 		return
 	}
 
@@ -842,6 +882,11 @@ func (h *IssueHandler) AddComment(c *gin.Context) {
 		}, userID.(uint))
 		// Mentions auto-subscribe the user to future activity on the issue.
 		_ = EnsureWatcher(h.db, issue.ID, uid)
+		webhook.Dispatch(h.db, issue.ProjectID, models.EventCommentMentioned, gin.H{
+			"issue_id":           issue.ID,
+			"comment":            comment,
+			"mentioned_user_id":  uid,
+		})
 	}
 
 	// Notify the rest of the watchers (excluding the author and anyone
@@ -886,7 +931,23 @@ func (h *IssueHandler) UpdateComment(c *gin.Context) {
 	}
 	h.db.Model(&comment).Update("body", body.Body)
 	h.db.Preload("Author").First(&comment, comment.ID)
+	if pid := projectIDForIssue(h.db, comment.IssueID); pid != 0 {
+		webhook.Dispatch(h.db, pid, models.EventCommentUpdated, gin.H{
+			"issue_id": comment.IssueID,
+			"comment":  comment,
+		})
+	}
 	c.JSON(http.StatusOK, comment)
+}
+
+// projectIDForIssue returns the project id of the given issue, or 0 if not
+// found. Used by handlers that only have an issue id at hand.
+func projectIDForIssue(db *gorm.DB, issueID uint) uint {
+	var issue models.Issue
+	if err := db.Select("project_id").First(&issue, issueID).Error; err != nil {
+		return 0
+	}
+	return issue.ProjectID
 }
 
 // DeleteComment lets the comment author (or project admin) delete a comment.
@@ -914,7 +975,7 @@ func (h *IssueHandler) Convert(c *gin.Context) {
 	}
 	oldType := string(issue.Type)
 	if err := h.db.Model(&issue).Update("type", req.Type).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		respondInternal(c, err)
 		return
 	}
 	logActivity(h.db, issue.ID, userID.(uint), "type", oldType, string(req.Type))
@@ -937,6 +998,13 @@ func (h *IssueHandler) DeleteComment(c *gin.Context) {
 		c.JSON(http.StatusForbidden, gin.H{"error": "only the author or an admin can delete this comment"})
 		return
 	}
+	pid := projectIDForIssue(h.db, comment.IssueID)
 	h.db.Delete(&comment)
+	if pid != 0 {
+		webhook.Dispatch(h.db, pid, models.EventCommentDeleted, gin.H{
+			"issue_id":   comment.IssueID,
+			"comment_id": comment.ID,
+		})
+	}
 	c.Status(http.StatusNoContent)
 }

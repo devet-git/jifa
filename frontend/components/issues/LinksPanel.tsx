@@ -83,7 +83,7 @@ export function LinksPanel({ issue }: Props) {
     <div>
       <div className="flex items-center justify-between mb-2">
         <p className="text-xs text-gray-400 uppercase tracking-wide">Links</p>
-        <PermissionGate perm="issue.manage-link" message="Bạn không có quyền quản lý liên kết">
+        <PermissionGate perm="issue.manage-link" message="You don't have permission to manage issue links">
           <button
             onClick={() => canManage && setShowAdd((v) => !v)}
             className="text-xs text-blue-500 hover:underline"
@@ -163,7 +163,7 @@ export function LinksPanel({ issue }: Props) {
                 </span>
               </IssueHoverCard>
               <span className="flex-1 truncate">{r.other.title}</span>
-              <PermissionGate perm="issue.manage-link" message="Bạn không có quyền quản lý liên kết">
+              <PermissionGate perm="issue.manage-link" message="You don't have permission to manage issue links">
                 <button
                   onClick={() => canManage && remove.mutate(r.linkId)}
                   className="text-xs text-gray-400 hover:text-red-500"

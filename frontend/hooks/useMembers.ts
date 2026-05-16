@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMemo } from "react";
 import api from "@/lib/api";
-import type { Member } from "@/types";
+import type { Member, User } from "@/types";
 
 export function useMembers(projectId: number | string) {
   return useQuery<Member[]>({
@@ -9,6 +10,23 @@ export function useMembers(projectId: number | string) {
       api.get(`/projects/${projectId}/members`).then((r) => r.data),
     enabled: !!projectId,
   });
+}
+
+/**
+ * Users who belong to a project. Use this for assignee / lead pickers that must
+ * be scoped to a project — instead of `useUsers()` which returns every user
+ * in the system.
+ */
+export function useProjectUsers(projectId: number | string) {
+  const { data: members = [], ...rest } = useMembers(projectId);
+  const users = useMemo<User[]>(
+    () =>
+      members
+        .map((m) => m.user)
+        .filter((u): u is User => Boolean(u)),
+    [members],
+  );
+  return { ...rest, data: users };
 }
 
 export function useAddMember(projectId: number | string) {

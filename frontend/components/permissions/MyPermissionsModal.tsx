@@ -1,8 +1,9 @@
 "use client";
 
+import { useState } from "react";
 import { usePermissionsStore } from "@/store/permissions";
 import { Modal } from "@/components/ui/Modal";
-import { Home, Pencil, Zap, Star, Layout, BookOpen, Grid3x3, User, FileText, Webhook, Clock } from "lucide-react";
+import { Home, Pencil, Zap, Star, Layout, BookOpen, Grid3x3, User, FileText, Webhook, Clock, Lock } from "lucide-react";
 
 interface Props {
   open: boolean;
@@ -22,12 +23,7 @@ const PERMISSION_LABELS: Record<
   "project.edit": {
     name: "Edit Project",
     group: "Project",
-    description: "Update project name, description, and settings",
-  },
-  "project.delete": {
-    name: "Delete Project",
-    group: "Project",
-    description: "Permanently delete the project",
+    description: "Update project name, description, settings, and archive state",
   },
 
   "issue.view": {
@@ -139,6 +135,12 @@ const PERMISSION_LABELS: Record<
     description: "Delete boards",
   },
 
+  "wiki.view": {
+    name: "View All Wiki Pages",
+    group: "Wiki",
+    description:
+      "View wiki pages authored by other members. Without this, a user only sees pages they created themselves.",
+  },
   "wiki.create": {
     name: "Create Wiki Pages",
     group: "Wiki",
@@ -147,12 +149,14 @@ const PERMISSION_LABELS: Record<
   "wiki.edit": {
     name: "Edit Wiki Pages",
     group: "Wiki",
-    description: "Edit wiki pages",
+    description:
+      "Edit wiki pages authored by other members (authors can always edit their own pages)",
   },
   "wiki.delete": {
     name: "Delete Wiki Pages",
     group: "Wiki",
-    description: "Delete wiki pages",
+    description:
+      "Delete wiki pages authored by other members (authors can always delete their own pages)",
   },
 
   "component.create": {
@@ -246,17 +250,21 @@ const GROUP_ICONS: Record<string, React.ReactNode> = {
 
 export function MyPermissionsModal({ open, onClose, projectName }: Props) {
   const perms = usePermissionsStore((s) => s.perms);
+  // Default: show only the permissions this user actually has. Toggle to
+  // reveal the full catalog (with un-granted items dimmed) for context.
+  const [showAll, setShowAll] = useState(false);
 
   const grouped = GROUP_ORDER.map((group) => {
     const items = Object.entries(PERMISSION_LABELS)
-      .filter(([key, info]) => info.group === group)
+      .filter(([, info]) => info.group === group)
       .map(([key, info]) => ({
         key,
         ...info,
         granted: perms.has(key),
       }));
-    return { group, items };
-  }).filter((g) => g.items.length > 0);
+    const visibleItems = showAll ? items : items.filter((i) => i.granted);
+    return { group, items, visibleItems };
+  }).filter((g) => g.visibleItems.length > 0);
 
   const grantedCount = Object.keys(PERMISSION_LABELS).filter((k) =>
     perms.has(k),
@@ -271,7 +279,7 @@ export function MyPermissionsModal({ open, onClose, projectName }: Props) {
       title={`Permissions in ${projectName}`}
       size="lg"
     >
-      <div className="mb-5 p-3 rounded-xl bg-primary-soft/20 border border-primary-soft/30">
+      <div className="mb-4 p-3 rounded-xl bg-primary-soft/20 border border-primary-soft/30">
         <div className="flex items-center justify-between mb-2">
           <span className="text-xs font-medium text-foreground">
             {grantedCount} of {totalCount} permissions
@@ -285,59 +293,114 @@ export function MyPermissionsModal({ open, onClose, projectName }: Props) {
           />
         </div>
       </div>
+
+      <div className="mb-3 flex items-center justify-between gap-3">
+        <p className="text-xs text-muted">
+          {showAll
+            ? "Showing every permission. Granted ones are highlighted."
+            : "Showing only the permissions you have. Toggle to see the full catalog."}
+        </p>
+        <div
+          role="tablist"
+          aria-label="Permission view"
+          className="inline-flex items-center rounded-lg border border-border bg-surface-2 p-0.5 shrink-0"
+        >
+          <button
+            role="tab"
+            aria-selected={!showAll}
+            onClick={() => setShowAll(false)}
+            className={`text-[11px] font-medium px-2.5 py-1 rounded-md transition ${
+              !showAll
+                ? "bg-surface text-foreground shadow-sm"
+                : "text-muted hover:text-foreground"
+            }`}
+          >
+            My permissions
+          </button>
+          <button
+            role="tab"
+            aria-selected={showAll}
+            onClick={() => setShowAll(true)}
+            className={`text-[11px] font-medium px-2.5 py-1 rounded-md transition ${
+              showAll
+                ? "bg-surface text-foreground shadow-sm"
+                : "text-muted hover:text-foreground"
+            }`}
+          >
+            All ({totalCount})
+          </button>
+        </div>
+      </div>
+
       <div className="space-y-5 max-h-96 overflow-y-auto -mx-6 px-6">
-        {grouped.map(({ group, items }) => (
-          <div key={group}>
-            <div className="flex items-center gap-2 mb-2.5">
-              <span className="w-5 h-5 rounded-md bg-surface-2 flex items-center justify-center text-muted shrink-0">
-                {GROUP_ICONS[group]}
-              </span>
-              <h3 className="text-[11px] font-semibold text-muted uppercase tracking-wider">
-                {group}
-              </h3>
-              <span className="text-[11px] text-muted/50 ml-auto">
-                {items.filter((i) => i.granted).length}/{items.length}
-              </span>
+        {grouped.length === 0 ? (
+          <div className="py-10 text-center">
+            <div className="mx-auto w-12 h-12 rounded-full bg-surface-2 border border-border flex items-center justify-center mb-3">
+              <Lock className="w-5 h-5 text-muted" />
             </div>
-            <div className="space-y-1">
-              {items.map(({ key, name, description, granted }) => (
-                <div
-                  key={key}
-                  className={`flex items-start gap-3 px-3 py-2 rounded-lg text-sm transition ${
-                    granted
-                      ? "bg-emerald-50 dark:bg-emerald-500/8 hover:bg-emerald-100 dark:hover:bg-emerald-500/15"
-                      : "bg-surface-2/40 opacity-60 hover:opacity-80 hover:bg-surface-2"
-                  }`}
-                >
-                  <span
-                    className={`mt-0.5 w-2 h-2 rounded-full shrink-0 ${
+            <p className="text-sm font-medium text-foreground mb-1">
+              You don&apos;t have any permissions on this project
+            </p>
+            <p className="text-xs text-muted max-w-xs mx-auto">
+              Ask a project admin to assign you a role, or toggle{" "}
+              <span className="font-medium">All</span> above to browse the full
+              permission catalog.
+            </p>
+          </div>
+        ) : (
+          grouped.map(({ group, items, visibleItems }) => (
+            <div key={group}>
+              <div className="flex items-center gap-2 mb-2.5">
+                <span className="w-5 h-5 rounded-md bg-surface-2 flex items-center justify-center text-muted shrink-0">
+                  {GROUP_ICONS[group]}
+                </span>
+                <h3 className="text-[11px] font-semibold text-muted uppercase tracking-wider">
+                  {group}
+                </h3>
+                <span className="text-[11px] text-muted/50 ml-auto">
+                  {items.filter((i) => i.granted).length}/{items.length}
+                </span>
+              </div>
+              <div className="space-y-1">
+                {visibleItems.map(({ key, name, description, granted }) => (
+                  <div
+                    key={key}
+                    className={`flex items-start gap-3 px-3 py-2 rounded-lg text-sm transition ${
                       granted
-                        ? "bg-emerald-500"
-                        : "bg-slate-300 dark:bg-slate-600"
-                    }`}
-                  />
-                  <div className="flex-1 min-w-0">
-                    <p
-                      className={`text-[13px] font-medium ${granted ? "text-foreground" : "text-muted"}`}
-                    >
-                      {name}
-                    </p>
-                    <p className="text-xs text-muted mt-0.5">{description}</p>
-                  </div>
-                  <span
-                    className={`text-[11px] font-mono shrink-0 mt-0.5 ${
-                      granted
-                        ? "text-emerald-600 dark:text-emerald-400"
-                        : "text-slate-400"
+                        ? "bg-emerald-50 dark:bg-emerald-500/8 hover:bg-emerald-100 dark:hover:bg-emerald-500/15"
+                        : "bg-surface-2/40 opacity-60 hover:opacity-80 hover:bg-surface-2"
                     }`}
                   >
-                    {granted ? "✓" : "—"}
-                  </span>
-                </div>
-              ))}
+                    <span
+                      className={`mt-0.5 w-2 h-2 rounded-full shrink-0 ${
+                        granted
+                          ? "bg-emerald-500"
+                          : "bg-slate-300 dark:bg-slate-600"
+                      }`}
+                    />
+                    <div className="flex-1 min-w-0">
+                      <p
+                        className={`text-[13px] font-medium ${granted ? "text-foreground" : "text-muted"}`}
+                      >
+                        {name}
+                      </p>
+                      <p className="text-xs text-muted mt-0.5">{description}</p>
+                    </div>
+                    <span
+                      className={`text-[11px] font-mono shrink-0 mt-0.5 ${
+                        granted
+                          ? "text-emerald-600 dark:text-emerald-400"
+                          : "text-slate-400"
+                      }`}
+                    >
+                      {granted ? "✓" : "—"}
+                    </span>
+                  </div>
+                ))}
+              </div>
             </div>
-          </div>
-        ))}
+          ))
+        )}
       </div>
     </Modal>
   );

@@ -23,7 +23,9 @@
       "Bash(xargs grep -l \"wiki\\\\|Wiki\\\\|page\\\\|Page\")",
       "mcp__gitnexus__query",
       "Bash(npm install *)",
-      "Bash(git show *)"
+      "Bash(git show *)",
+      "Bash(echo \"EXIT=$?\")",
+      "mcp__gitnexus__detect_changes"
     ]
   },
   "outputStyle": "default"

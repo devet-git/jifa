@@ -45,7 +45,7 @@ func (h *ComponentHandler) Create(c *gin.Context) {
 		LeadID:      dto.LeadID,
 	}
 	if err := h.db.Create(&cmp).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		respondInternal(c, err)
 		return
 	}
 	h.db.Preload("Lead").First(&cmp, cmp.ID)
@@ -115,7 +115,7 @@ func (h *ComponentHandler) SetIssueComponents(c *gin.Context) {
 			Find(&components, body.ComponentIDs)
 	}
 	if err := h.db.Model(&issue).Association("Components").Replace(components); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		respondInternal(c, err)
 		return
 	}
 	c.JSON(http.StatusOK, components)

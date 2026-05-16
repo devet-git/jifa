@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"jifa/backend/internal/models"
+	"jifa/backend/internal/webhook"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -58,10 +59,13 @@ func (h *WorklogHandler) Create(c *gin.Context) {
 			UpdateColumn("time_spent", gorm.Expr("time_spent + ?", dto.Minutes)).Error
 	})
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		respondInternal(c, err)
 		return
 	}
 	h.db.Preload("User").First(&wl, wl.ID)
+	if pid := projectIDForIssue(h.db, wl.IssueID); pid != 0 {
+		webhook.Dispatch(h.db, pid, models.EventWorklogAdded, wl)
+	}
 	c.JSON(http.StatusCreated, wl)
 }
 
@@ -99,7 +103,7 @@ func (h *WorklogHandler) Update(c *gin.Context) {
 		return nil
 	})
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		respondInternal(c, err)
 		return
 	}
 	c.JSON(http.StatusOK, wl)
@@ -125,8 +129,15 @@ func (h *WorklogHandler) Delete(c *gin.Context) {
 			UpdateColumn("time_spent", gorm.Expr("time_spent - ?", wl.Minutes)).Error
 	})
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		respondInternal(c, err)
 		return
+	}
+	if pid := projectIDForIssue(h.db, wl.IssueID); pid != 0 {
+		webhook.Dispatch(h.db, pid, models.EventWorklogDeleted, gin.H{
+			"worklog_id": wl.ID,
+			"issue_id":   wl.IssueID,
+			"minutes":    wl.Minutes,
+		})
 	}
 	c.Status(http.StatusNoContent)
 }

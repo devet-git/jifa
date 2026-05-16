@@ -4,8 +4,11 @@ import (
 	"fmt"
 	"net/http"
 	"sort"
+	"strings"
+	"time"
 
 	"jifa/backend/internal/models"
+	"jifa/backend/internal/webhook"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -29,15 +32,21 @@ type projectListItem struct {
 }
 
 // List returns every project the user owns or is a member of, with starred
-// projects pinned to the top.
+// projects pinned to the top. Archived projects are hidden unless the
+// ?include_archived=true query flag is set.
 func (h *ProjectHandler) List(c *gin.Context) {
 	userID, _ := c.Get("userID")
-	var projects []models.Project
-	h.db.
+	includeArchived := c.Query("include_archived") == "true"
+
+	q := h.db.
 		Distinct("projects.*").
 		Joins("LEFT JOIN members m ON m.project_id = projects.id AND m.deleted_at IS NULL").
-		Where("projects.owner_id = ? OR m.user_id = ?", userID, userID).
-		Find(&projects)
+		Where("projects.owner_id = ? OR m.user_id = ?", userID, userID)
+	if !includeArchived {
+		q = q.Where("projects.archived_at IS NULL")
+	}
+	var projects []models.Project
+	q.Find(&projects)
 
 	// Look up the caller's stars in one query.
 	var stars []models.ProjectStar
@@ -75,7 +84,7 @@ func (h *ProjectHandler) Star(c *gin.Context) {
 	// Idempotent: ignore unique-constraint conflicts.
 	if err := h.db.Where("user_id = ? AND project_id = ?", userID, pid).
 		FirstOrCreate(&star).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		respondInternalError(c, "project.star", err)
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"starred": true})
@@ -136,7 +145,7 @@ func (h *ProjectHandler) Create(c *gin.Context) {
 		return nil
 	})
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		respondInternalError(c, "project.create", err)
 		return
 	}
 	c.JSON(http.StatusCreated, project)
@@ -190,12 +199,168 @@ func (h *ProjectHandler) Update(c *gin.Context) {
 		project.Category = *dto.Category
 	}
 	h.db.Save(&project)
+	webhook.Dispatch(h.db, project.ID, models.EventProjectUpdated, project)
 	c.JSON(http.StatusOK, project)
 }
 
+// Archive marks the project as read-only. Reversible via Unarchive.
+func (h *ProjectHandler) Archive(c *gin.Context) {
+	var project models.Project
+	if err := h.db.First(&project, c.Param("projectId")).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "project not found"})
+		return
+	}
+	if project.ArchivedAt != nil {
+		c.JSON(http.StatusOK, project) // already archived, no-op
+		return
+	}
+	now := time.Now()
+	project.ArchivedAt = &now
+	h.db.Save(&project)
+	webhook.Dispatch(h.db, project.ID, models.EventProjectUpdated, project)
+	c.JSON(http.StatusOK, project)
+}
+
+// Unarchive restores a previously archived project.
+func (h *ProjectHandler) Unarchive(c *gin.Context) {
+	var project models.Project
+	if err := h.db.First(&project, c.Param("projectId")).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "project not found"})
+		return
+	}
+	if project.ArchivedAt == nil {
+		c.JSON(http.StatusOK, project) // not archived
+		return
+	}
+	if err := h.db.Model(&project).Update("archived_at", nil).Error; err != nil {
+		respondInternalError(c, "project.unarchive", err)
+		return
+	}
+	project.ArchivedAt = nil
+	webhook.Dispatch(h.db, project.ID, models.EventProjectUpdated, project)
+	c.JSON(http.StatusOK, project)
+}
+
+// Delete hard-deletes a project. Only the project owner can call this and
+// the request body must echo the project name as a typed confirmation —
+// this is intentionally onerous because the action is irreversible.
+//
+// Cascade order matters: GORM does not declare ON DELETE CASCADE on these
+// foreign keys, so we explicitly purge every child table in a single
+// transaction. The order is leaf-first (deepest dependents first) so that
+// no FK references survive when we drop the project row at the end.
 func (h *ProjectHandler) Delete(c *gin.Context) {
-	if err := h.db.Delete(&models.Project{}, c.Param("projectId")).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+	userID, _ := c.Get("userID")
+	var project models.Project
+	if err := h.db.First(&project, c.Param("projectId")).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "project not found"})
+		return
+	}
+	if project.OwnerID != userID.(uint) {
+		c.JSON(http.StatusForbidden, gin.H{"error": "only the project owner can delete this project"})
+		return
+	}
+	var body struct {
+		Confirm string `json:"confirm"`
+	}
+	_ = c.ShouldBindJSON(&body)
+	if strings.TrimSpace(body.Confirm) != project.Name {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "confirmation does not match project name",
+		})
+		return
+	}
+
+	pid := project.ID
+	err := h.db.Transaction(func(tx *gorm.DB) error {
+		// Collect issue IDs once — every issue-scoped child filters on them.
+		// We use Unscoped to also capture soft-deleted issues so their
+		// children don't outlive the project.
+		var issueIDs []uint
+		if err := tx.Unscoped().Model(&models.Issue{}).
+			Where("project_id = ?", pid).
+			Pluck("id", &issueIDs).Error; err != nil {
+			return fmt.Errorf("collect issue ids: %w", err)
+		}
+
+		// 1. Issue-scoped dependents. Use GORM models so table names always
+		//    match the migrated schema (e.g. IssueActivity → issue_activities).
+		if len(issueIDs) > 0 {
+			type childPurge struct {
+				out   any
+				where string
+			}
+			children := []childPurge{
+				{&models.IssueActivity{}, "issue_id IN ?"},
+				{&models.Attachment{}, "issue_id IN ?"},
+				{&models.Comment{}, "issue_id IN ?"},
+				{&models.Notification{}, "issue_id IN ?"},
+				{&models.RecentView{}, "issue_id IN ?"},
+				{&models.IssueWatcher{}, "issue_id IN ?"},
+				{&models.Worklog{}, "issue_id IN ?"},
+				{&models.IssueLink{}, "source_id IN ? OR target_id IN ?"},
+			}
+			for _, ch := range children {
+				q := tx.Unscoped().Where(ch.where, issueIDs)
+				if strings.Contains(ch.where, "OR") {
+					q = tx.Unscoped().Where(ch.where, issueIDs, issueIDs)
+				}
+				if err := q.Delete(ch.out).Error; err != nil {
+					return fmt.Errorf("purge issue-child %T: %w", ch.out, err)
+				}
+			}
+		}
+
+		// 2. Project-scoped tables.
+		projectChildren := []any{
+			&models.AuditLog{},
+			&models.Board{},
+			&models.Component{},
+			&models.SavedFilter{},
+			&models.IssueTemplate{},
+			&models.Issue{}, // after issue_* children
+			&models.Label{},
+			&models.Member{},
+			&models.ProjectStar{},
+			&models.Sprint{},
+			&models.StatusDefinition{},
+			&models.Version{},
+			&models.Webhook{},
+			&models.WikiPage{},
+		}
+		for _, m := range projectChildren {
+			if err := tx.Unscoped().Where("project_id = ?", pid).
+				Delete(m).Error; err != nil {
+				return fmt.Errorf("purge project-child %T: %w", m, err)
+			}
+		}
+
+		// 3. Custom roles attached to this project + their permission grants.
+		var roleIDs []uint
+		if err := tx.Model(&models.Role{}).
+			Where("project_id = ?", pid).
+			Pluck("id", &roleIDs).Error; err != nil {
+			return fmt.Errorf("collect role ids: %w", err)
+		}
+		if len(roleIDs) > 0 {
+			if err := tx.Where("role_id IN ?", roleIDs).
+				Delete(&models.RolePermission{}).Error; err != nil {
+				return fmt.Errorf("purge role_permissions: %w", err)
+			}
+			if err := tx.Unscoped().Where("project_id = ?", pid).
+				Delete(&models.Role{}).Error; err != nil {
+				return fmt.Errorf("purge roles: %w", err)
+			}
+		}
+
+		// 4. Finally the project itself (Unscoped → bypass soft-delete).
+		if err := tx.Unscoped().Delete(&models.Project{}, pid).Error; err != nil {
+			return fmt.Errorf("delete project: %w", err)
+		}
+		return nil
+	})
+	if err != nil {
+		respondInternalError(c, "project.delete", err)
 		return
 	}
 	c.Status(http.StatusNoContent)

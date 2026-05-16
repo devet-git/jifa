@@ -370,6 +370,23 @@ select:focus {
   border: 1px solid color-mix(in srgb, var(--border) 80%, transparent);
 }
 
+/* ---------- View Transitions (theme toggle) ----------
+   Disable the default cross-fade between old/new snapshots so the JS-driven
+   circular reveal is the only visible animation. */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+/* Stack the incoming theme above the outgoing one so the circular clip
+   reveals the new colours instead of erasing them. */
+::view-transition-old(root) {
+  z-index: 1;
+}
+::view-transition-new(root) {
+  z-index: 2;
+}
+
 .gradient-brand {
   background: linear-gradient(135deg, var(--brand) 0%, var(--accent) 100%);
 }

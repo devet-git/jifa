@@ -2,10 +2,16 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import api from "@/lib/api";
 import type { Project } from "@/types";
 
-export function useProjects() {
+export function useProjects(options?: { includeArchived?: boolean }) {
+  const includeArchived = options?.includeArchived ?? false;
   return useQuery<Project[]>({
-    queryKey: ["projects"],
-    queryFn: () => api.get("/projects").then((r) => r.data),
+    queryKey: ["projects", { includeArchived }],
+    queryFn: () =>
+      api
+        .get("/projects", {
+          params: includeArchived ? { include_archived: "true" } : undefined,
+        })
+        .then((r) => r.data),
   });
 }
 
@@ -32,6 +38,41 @@ export function useUpdateProject() {
       api.put(`/projects/${id}`, data).then((r) => r.data),
     onSuccess: (_data, vars) =>
       qc.invalidateQueries({ queryKey: ["projects", vars.id] }),
+  });
+}
+
+export function useArchiveProject() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: number | string) =>
+      api.post(`/projects/${id}/archive`).then((r) => r.data),
+    onSuccess: (_data, id) => {
+      qc.invalidateQueries({ queryKey: ["projects"] });
+      qc.invalidateQueries({ queryKey: ["projects", id] });
+    },
+  });
+}
+
+export function useUnarchiveProject() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: number | string) =>
+      api.post(`/projects/${id}/unarchive`).then((r) => r.data),
+    onSuccess: (_data, id) => {
+      qc.invalidateQueries({ queryKey: ["projects"] });
+      qc.invalidateQueries({ queryKey: ["projects", id] });
+    },
+  });
+}
+
+export function useDeleteProject() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, confirm }: { id: number | string; confirm: string }) =>
+      api
+        .delete(`/projects/${id}`, { data: { confirm } })
+        .then((r) => r.data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["projects"] }),
   });
 }
 

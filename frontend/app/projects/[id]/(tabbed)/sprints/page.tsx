@@ -27,7 +27,7 @@ export default function SprintsPage({ params }: { params: Promise<{ id: string }
     <div className="h-full p-8 overflow-auto">
       <div className="flex items-center justify-between mb-4">
         <h2 className="font-semibold">Sprints</h2>
-        <PermissionGate perm="sprint.create" message="Bạn không có quyền tạo sprint">
+        <PermissionGate perm="sprint.create" message="You don't have permission to create sprints">
           <Button size="sm" variant="gradient" onClick={() => setShowCreateSprint(true)} disabled={!can("sprint.create")}>
             <Plus className="w-3.5 h-3.5" />
             New sprint
@@ -66,7 +66,7 @@ export default function SprintsPage({ params }: { params: Promise<{ id: string }
               </div>
               <div className="flex gap-2 shrink-0">
                 {sprint.status === "planned" && (
-                  <PermissionGate perm="sprint.manage" message="Bạn không có quyền quản lý sprint">
+                  <PermissionGate perm="sprint.manage" message="You don't have permission to manage sprints">
                     <Button
                       size="sm"
                       onClick={() => sprintAction.mutate({ projectId: id, sprintId: sprint.id, action: "start" })}
@@ -81,7 +81,7 @@ export default function SprintsPage({ params }: { params: Promise<{ id: string }
                     <Link href={`/board/${sprint.id}`}>
                       <Button size="sm" variant="secondary">Open Board</Button>
                     </Link>
-                    <PermissionGate perm="sprint.manage" message="Bạn không có quyền quản lý sprint">
+                    <PermissionGate perm="sprint.manage" message="You don't have permission to manage sprints">
                       <Button
                         size="sm"
                         variant="danger"

@@ -53,7 +53,7 @@ func (h *TemplateHandler) Create(c *gin.Context) {
 		t.Priority = models.PriorityMedium
 	}
 	if err := h.db.Create(&t).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		respondInternal(c, err)
 		return
 	}
 	c.JSON(http.StatusCreated, t)

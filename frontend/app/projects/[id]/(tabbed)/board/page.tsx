@@ -12,7 +12,7 @@ import { IssueDetail } from "@/components/issues/IssueDetail";
 import { EmptyState, defaultIcons } from "@/components/ui/EmptyState";
 import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/Button";
-import { Skeleton } from "@/components/ui/Skeleton";
+import { Skeleton, SkeletonKanban } from "@/components/ui/Skeleton";
 import { Badge } from "@/components/ui/Badge";
 import type { Issue } from "@/types";
 
@@ -22,22 +22,7 @@ export default function BoardPage({ params }: { params: Promise<{ id: string }> 
   const activeSprint = sprints.find((s) => s.status === "active");
 
   if (sprintsLoading) {
-    return (
-      <div className="h-full p-8 overflow-auto space-y-4">
-        <div className="flex gap-4">
-          {Array.from({ length: 4 }).map((_, i) => (
-            <div key={i} className="flex-1 space-y-2 min-w-[220px]">
-              <Skeleton className="h-6 w-24" />
-              <div className="space-y-2">
-                {Array.from({ length: 3 }).map((_, j) => (
-                  <Skeleton key={j} className="h-24 w-full rounded-xl" />
-                ))}
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-    );
+    return <BoardSkeleton />;
   }
 
   if (!activeSprint) {
@@ -154,18 +139,7 @@ function BoardView({ projectId, sprintId, sprint }: { projectId: string; sprintI
       </div>
 
       {isLoading ? (
-        <div className="flex gap-4">
-          {Array.from({ length: 4 }).map((_, i) => (
-            <div key={i} className="flex-1 min-w-[220px] space-y-2">
-              <Skeleton className="h-6 w-20" />
-              <div className="space-y-2">
-                {Array.from({ length: 3 }).map((_, j) => (
-                  <Skeleton key={j} className="h-24 w-full rounded-xl" />
-                ))}
-              </div>
-            </div>
-          ))}
-        </div>
+        <SkeletonKanban />
       ) : (
         <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd} collisionDetection={closestCorners}>
           <div className="flex gap-4 h-full items-start">
@@ -190,6 +164,28 @@ function BoardView({ projectId, sprintId, sprint }: { projectId: string; sprintI
       {selectedIssue && (
         <IssueDetail issue={selectedIssue} onClose={() => setSelectedIssue(null)} />
       )}
+    </div>
+  );
+}
+
+/**
+ * Shared loading shell for both the sprint-resolution stage and the
+ * issue-fetching stage. Keeping the outer structure identical across both
+ * stages prevents the layout from jumping when one resolves before the
+ * other.
+ */
+function BoardSkeleton() {
+  return (
+    <div className="h-full p-8 overflow-auto">
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-3">
+          <Skeleton className="h-5 w-40 rounded" />
+          <Skeleton className="h-5 w-16 rounded-full" />
+          <Skeleton className="h-3 w-20 rounded" />
+        </div>
+        <Skeleton className="h-8 w-20 rounded-lg" />
+      </div>
+      <SkeletonKanban />
     </div>
   );
 }

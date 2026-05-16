@@ -15,9 +15,21 @@ export function Providers({ children }: { children: React.ReactNode }) {
     mutationCache: new MutationCache({
       onError: (error, _vars, _ctx, mutation) => {
         if (mutation.meta?.suppressErrorToast) return;
-        const msg = (error as any)?.response?.data?.error
-          ?? (error as any)?.message
-          ?? "Có lỗi xảy ra";
+        const status = (error as any)?.response?.status as number | undefined;
+        const backendMsg = (error as any)?.response?.data?.error as
+          | string
+          | undefined;
+        // 5xx responses can leak DB constraint names, stack hints, etc.
+        // Log them for devs but show the user a generic message.
+        if (status && status >= 500) {
+          console.error("[mutation] server error", status, backendMsg, error);
+          toast(
+            "An internal server error occurred. Please try again later.",
+            "error",
+          );
+          return;
+        }
+        const msg = backendMsg ?? (error as any)?.message ?? "Something went wrong";
         toast(msg, "error");
       },
     }),

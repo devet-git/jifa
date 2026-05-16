@@ -178,7 +178,7 @@ export default function DashboardPage() {
               {recentNotifs.slice(0, 6).map((n) => (
                 <li key={n.id} className="px-4 py-3 flex gap-3 text-xs">
                   <UserHoverCard user={n.actor} side="right" align="start">
-                    <Avatar name={n.actor?.name ?? "?"} size="sm" />
+                    <Avatar name={n.actor?.name ?? "?"} src={n.actor?.avatar} size="sm" />
                   </UserHoverCard>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm leading-snug">

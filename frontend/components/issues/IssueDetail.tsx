@@ -757,7 +757,7 @@ export function IssueDetail({ issue: initialIssue, onClose }: Props) {
                 <div className="space-y-4 mb-4">
                   {issue.comments?.length === 0 && (
                     <p className="text-xs text-muted italic text-center py-3">
-                      Chưa có comment nào.
+                      No comments yet.
                     </p>
                   )}
                   {issue.comments?.map((c) => (

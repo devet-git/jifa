@@ -1,6 +1,9 @@
 package database
 
 import (
+	"errors"
+	"log"
+
 	"jifa/backend/internal/models"
 
 	"gorm.io/driver/postgres"
@@ -92,6 +95,154 @@ func SeedPermissionsAndRoles(db *gorm.DB) error {
 		}
 	}
 
+	return nil
+}
+
+// SyncPermissionCatalog upserts every permission defined in models.AllPermissions
+// and grants any newly-introduced permission to the matching system roles so
+// roles stay in sync with the code-defined catalog. Idempotent — safe on every
+// boot. Existing role↔permission grants are never revoked here; an admin must
+// remove permissions explicitly via the UI.
+func SyncPermissionCatalog(db *gorm.DB) error {
+	// 1. Upsert permissions from the source-of-truth catalog.
+	created := 0
+	for _, p := range models.AllPermissions {
+		var existing models.Permission
+		err := db.Where("key = ?", p.Key).First(&existing).Error
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			if err := db.Create(&models.Permission{
+				Key:         p.Key,
+				Name:        p.Name,
+				Group:       p.Group,
+				Description: p.Description,
+			}).Error; err != nil {
+				return err
+			}
+			created++
+			log.Printf("[permission-sync] created permission %q", p.Key)
+			continue
+		}
+		if err != nil {
+			return err
+		}
+		// Refresh display metadata in case wording changed.
+		db.Model(&existing).Updates(map[string]any{
+			"name":        p.Name,
+			"group":       p.Group,
+			"description": p.Description,
+		})
+	}
+	if created == 0 {
+		log.Printf("[permission-sync] catalog is up to date (%d permissions)", len(models.AllPermissions))
+	} else {
+		log.Printf("[permission-sync] added %d new permission(s) to catalog", created)
+	}
+
+	// 2. Build key→id lookup for everything currently in the DB.
+	var perms []models.Permission
+	if err := db.Find(&perms).Error; err != nil {
+		return err
+	}
+	keyToID := make(map[string]uint, len(perms))
+	for _, p := range perms {
+		keyToID[p.Key] = p.ID
+	}
+
+	// 3. For each system role, additively grant any permission listed in the
+	//    role definition that the role does not yet have. Custom roles and
+	//    admin-revoked permissions are left untouched.
+	for _, rd := range models.SystemRoles() {
+		var role models.Role
+		if err := db.Where("is_system = true AND LOWER(name) = LOWER(?)", rd.Name).
+			First(&role).Error; err != nil {
+			// Role missing: SeedPermissionsAndRoles handles fresh installs.
+			continue
+		}
+		var have []uint
+		db.Model(&models.RolePermission{}).
+			Where("role_id = ?", role.ID).
+			Pluck("permission_id", &have)
+		haveSet := make(map[uint]bool, len(have))
+		for _, id := range have {
+			haveSet[id] = true
+		}
+		grantedNew := 0
+		for _, key := range rd.Permissions {
+			id, ok := keyToID[key]
+			if !ok || haveSet[id] {
+				continue
+			}
+			if err := db.Create(&models.RolePermission{
+				RoleID:       role.ID,
+				PermissionID: id,
+			}).Error; err != nil {
+				log.Printf("[permission-sync] grant %q to role %q failed: %v", key, rd.Name, err)
+				continue
+			}
+			grantedNew++
+		}
+		if grantedNew > 0 {
+			log.Printf("[permission-sync] granted %d new permission(s) to system role %q", grantedNew, rd.Name)
+		}
+	}
+
+	// 4. Remove permission rows that no longer exist in the source-of-truth
+	//    catalog, plus any role grants referencing them. This is the only
+	//    destructive step in the sync — required so revoking a permission
+	//    from code cleans up DB without manual intervention.
+	wanted := make(map[string]bool, len(models.AllPermissions))
+	for _, p := range models.AllPermissions {
+		wanted[p.Key] = true
+	}
+	for _, p := range perms {
+		if wanted[p.Key] {
+			continue
+		}
+		if err := db.Where("permission_id = ?", p.ID).
+			Delete(&models.RolePermission{}).Error; err != nil {
+			log.Printf("[permission-sync] cleanup role_permissions for %q failed: %v", p.Key, err)
+			continue
+		}
+		if err := db.Delete(&models.Permission{}, p.ID).Error; err != nil {
+			log.Printf("[permission-sync] cleanup permission %q failed: %v", p.Key, err)
+			continue
+		}
+		log.Printf("[permission-sync] removed obsolete permission %q", p.Key)
+	}
+	return nil
+}
+
+// BackfillWebhookDefaults sets sensible defaults on webhook rows that pre-date
+// the n8n-style fields (method, headers, body template, etc). Safe to call on
+// every boot.
+func BackfillWebhookDefaults(db *gorm.DB) error {
+	// Body template is required going forward — backfill the legacy payload
+	// shape so existing webhooks keep working unchanged.
+	if err := db.Model(&models.Webhook{}).
+		Where("body_template = '' OR body_template IS NULL").
+		Update("body_template", models.DefaultBodyTemplate).Error; err != nil {
+		return err
+	}
+	if err := db.Model(&models.Webhook{}).
+		Where("method = '' OR method IS NULL").
+		Update("method", "POST").Error; err != nil {
+		return err
+	}
+	if err := db.Model(&models.Webhook{}).
+		Where("content_type = '' OR content_type IS NULL").
+		Update("content_type", "application/json").Error; err != nil {
+		return err
+	}
+	if err := db.Model(&models.Webhook{}).
+		Where("auth_type = '' OR auth_type IS NULL").
+		Update("auth_type", models.AuthNone).Error; err != nil {
+		return err
+	}
+	if err := db.Model(&models.Webhook{}).
+		Where("body_type = '' OR body_type IS NULL").
+		Update("body_type", "template").Error; err != nil {
+		return err
+	}
 	return nil
 }
 

@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"jifa/backend/internal/models"
+	"jifa/backend/internal/webhook"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -77,9 +78,10 @@ func (h *VersionHandler) Create(c *gin.Context) {
 		Status:      models.VersionUnreleased,
 	}
 	if err := h.db.Create(&v).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		respondInternal(c, err)
 		return
 	}
+	webhook.Dispatch(h.db, v.ProjectID, models.EventVersionCreated, v)
 	c.JSON(http.StatusCreated, v)
 }
 
@@ -122,6 +124,11 @@ func (h *VersionHandler) Release(c *gin.Context) {
 	vid, _ := strconv.ParseUint(c.Param("versionId"), 10, 64)
 	actorID, _ := c.Get("userID")
 	LogAudit(h.db, uint(pid), actorID.(uint), "version.released", "version", uint(vid), "")
+
+	var v models.Version
+	if err := h.db.First(&v, vid).Error; err == nil {
+		webhook.Dispatch(h.db, v.ProjectID, models.EventVersionReleased, v)
+	}
 	c.JSON(http.StatusOK, gin.H{"status": "released"})
 }
 

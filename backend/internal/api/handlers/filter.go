@@ -44,7 +44,7 @@ func (h *FilterHandler) Create(c *gin.Context) {
 		Query:     dto.Query,
 	}
 	if err := h.db.Create(&f).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		respondInternal(c, err)
 		return
 	}
 	c.JSON(http.StatusCreated, f)

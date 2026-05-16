@@ -52,7 +52,15 @@ function Tooltip({
       <TooltipTrigger asChild>
         <span className="inline-flex">{children}</span>
       </TooltipTrigger>
-      <TooltipContent side={position}>{content}</TooltipContent>
+      <TooltipPortal>
+        <TooltipContent
+          side={position}
+          collisionPadding={8}
+          className="max-w-[300px] whitespace-normal break-words leading-snug"
+        >
+          {content}
+        </TooltipContent>
+      </TooltipPortal>
     </TooltipRoot>
   );
 }

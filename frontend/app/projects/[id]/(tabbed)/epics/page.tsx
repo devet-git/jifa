@@ -5,7 +5,7 @@ import { useIssues } from "@/hooks/useIssues";
 import { usePermissionsStore } from "@/store/permissions";
 import { IssueDetail } from "@/components/issues/IssueDetail";
 import { Progress } from "@/components/ui/Progress";
-import { SkeletonCard } from "@/components/ui/Skeleton";
+import { Skeleton } from "@/components/ui/Skeleton";
 import { EmptyState, defaultIcons } from "@/components/ui/EmptyState";
 import type { Issue, IssueStatus } from "@/types";
 
@@ -46,8 +46,28 @@ export default function EpicsPage({
 
   if (isLoading) {
     return (
-      <div className="h-full p-8 overflow-auto max-w-4xl mx-auto space-y-3">
-        {Array.from({ length: 3 }).map((_, i) => <SkeletonCard key={i} />)}
+      <div className="h-full p-8 overflow-auto">
+        <div className="space-y-3 max-w-4xl mx-auto">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="surface-card p-4 space-y-3">
+              <div className="flex items-center gap-3">
+                <Skeleton className="w-3 h-3 rounded-full shrink-0" />
+                <Skeleton className="h-4 w-14 rounded" />
+                <Skeleton
+                  className="h-4 rounded"
+                  style={{ width: `${42 + (i % 3) * 10}%` }}
+                />
+                <Skeleton className="h-3 w-14 rounded ml-auto" />
+              </div>
+              <Skeleton className="h-2 w-full rounded-full" />
+              <div className="flex gap-3 pt-0.5">
+                <Skeleton className="h-3 w-20 rounded" />
+                <Skeleton className="h-3 w-24 rounded" />
+                <Skeleton className="h-3 w-16 rounded" />
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
     );
   }
@@ -58,7 +78,13 @@ export default function EpicsPage({
         <EmptyState
           icon={defaultIcons.epic}
           title="No epics yet"
-          description='Create an issue of type <span class="font-mono text-foreground">epic</span> to track large initiatives.'
+          description={
+            <>
+              Create an issue of type{" "}
+              <span className="font-mono text-foreground">epic</span> to track
+              large initiatives.
+            </>
+          }
         />
       ) : (
         <div className="space-y-3 max-w-4xl mx-auto">
