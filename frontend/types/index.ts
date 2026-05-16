@@ -45,6 +45,14 @@ export interface Project {
   created_at: string;
 }
 
+export interface SprintCommitment {
+  issue_ids: number[];
+  points_by_issue: Record<string, number>;
+  total_issues: number;
+  total_points: number;
+  snapshot_taken_at: string;
+}
+
 export interface Sprint {
   id: number;
   name: string;
@@ -52,6 +60,8 @@ export interface Sprint {
   status: SprintStatus;
   start_date?: string;
   end_date?: string;
+  completed_at?: string;
+  commitment_snapshot?: SprintCommitment | null;
   project_id: number;
   issues?: Issue[];
 }

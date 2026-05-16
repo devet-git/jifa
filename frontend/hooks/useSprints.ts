@@ -30,6 +30,7 @@ export function useSprintAction() {
 
 export interface SprintRetro {
   sprint: Sprint;
+  has_snapshot: boolean;
   committed_points: number;
   delivered_points: number;
   committed_issues: number;
@@ -37,6 +38,8 @@ export interface SprintRetro {
   completed: import("@/types").Issue[];
   not_completed: import("@/types").Issue[];
   scope_added: import("@/types").Issue[];
+  scope_added_completed: import("@/types").Issue[];
+  removed: import("@/types").Issue[];
 }
 
 export function useSprintRetro(
