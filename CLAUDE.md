@@ -1,7 +1,7 @@
 <!-- gitnexus:start -->
 # GitNexus — Code Intelligence
 
-This project is indexed by GitNexus as **jifa** (4671 symbols, 12720 relationships, 279 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
+This project is indexed by GitNexus as **jifa** (5119 symbols, 14031 relationships, 300 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
 
 > If any GitNexus tool warns the index is stale, run `npx gitnexus analyze` in terminal first.
 
@@ -114,6 +114,16 @@ For multi-step tasks, state a brief plan:
 ```
 
 Strong success criteria let you loop independently. Weak criteria ("make it work") require constant clarification.
+
+## 5. No Redundant Comments
+
+**Code is the source of truth. Comments rot. Default to no comments.**
+
+- Do not add explanatory comments when fixing a bug. The fix itself is the answer; the bug context belongs in the PR description, not the source.
+- Only comment when the logic is genuinely complex and the WHY is non-obvious to a future reader (subtle invariants, library quirks/workarounds, security decisions, hidden constraints).
+- Never comment WHAT the code does — well-named identifiers already do that.
+- Never reference the current task, ticket, fix, or session ("added for X flow", "fix from issue #123", "session-initiated") — these rot as the codebase evolves.
+- When refactoring or fixing, prune existing comments that no longer add value.
 
 ---
 

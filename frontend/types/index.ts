@@ -415,7 +415,7 @@ export interface Issue {
 export interface ActivityLog {
   id: number;
   issue_id: number;
-  user: User;
+  user: User | null;
   field: string;
   old_value: string;
   new_value: string;
@@ -447,5 +447,68 @@ export interface WikiPage {
   author_id: number;
   created_at: string;
   updated_at: string;
+}
+
+// ---- GitLab integration ----
+
+export interface GitLabIntegration {
+  id: number;
+  project_id: number;
+  enabled: boolean;
+  base_url: string;
+  repo_path: string;
+  repo_id: number;
+  on_mr_opened_status_key: string;
+  on_mr_merged_status_key: string;
+  on_mr_closed_status_key: string;
+  last_ping_at?: string;
+  webhook_url: string;
+  has_token: boolean;
+  // Returned only on first save.
+  webhook_secret?: string;
+  configured?: true;
+}
+
+export interface GitLabIntegrationInput {
+  enabled?: boolean;
+  base_url: string;
+  repo_path: string;
+  access_token: string; // empty on update = keep existing
+  on_mr_opened_status_key?: string;
+  on_mr_merged_status_key?: string;
+  on_mr_closed_status_key?: string;
+}
+
+export interface GitLabTestResult {
+  ok: boolean;
+  user?: string;
+  error?: string;
+}
+
+export type ExternalRefSource = "gitlab";
+export type ExternalRefType = "branch" | "mr" | "commit";
+
+export interface IssueExternalRef {
+  id: number;
+  issue_id: number;
+  source: ExternalRefSource;
+  ref_type: ExternalRefType;
+  external_id: string;
+  title: string;
+  url: string;
+  state: string;
+  author_name: string;
+  created_at_src?: string;
+  created_at: string;
+}
+
+export interface ExternalRefInput {
+  url: string;
+  ref_type: ExternalRefType;
+}
+
+export interface CreateBranchInput {
+  branch_name: string;
+  source_branch: string;
 }
 

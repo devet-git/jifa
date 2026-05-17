@@ -132,8 +132,11 @@ func dispatch(db *gorm.DB, n *models.Notification, actorID uint) {
 	if n.UserID == 0 || n.UserID == actorID {
 		return
 	}
-	a := actorID
-	n.ActorID = &a
+	// actorID == 0 → system action; leave ActorID nil (FK to users(id)).
+	if actorID != 0 {
+		a := actorID
+		n.ActorID = &a
+	}
 
 	prefs := loadPrefs(db, n.UserID)
 	if prefs.AllowsInApp(n.Type) {

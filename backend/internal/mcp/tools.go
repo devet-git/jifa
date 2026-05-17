@@ -208,10 +208,11 @@ func issueCreateHandler(db *gorm.DB) server.ToolHandlerFunc {
 			return errorResult("failed to create issue: " + err.Error()), nil
 		}
 
+		uid := userID
 		db.Create(&models.IssueActivity{
-			IssueID: issue.ID,
-			UserID:  userID,
-			Field:   "status",
+			IssueID:  issue.ID,
+			UserID:   &uid,
+			Field:    "status",
 			OldValue: "",
 			NewValue: string(issue.Status),
 		})

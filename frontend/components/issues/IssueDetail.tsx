@@ -49,6 +49,8 @@ import { MarkdownEditor, MarkdownBody } from "@/components/ui/MarkdownEditor";
 import { cn } from "@/lib/utils";
 import { SubTaskList } from "@/components/issues/SubTaskList";
 import { LinksPanel } from "@/components/issues/LinksPanel";
+import { GitLabPanel } from "@/components/issues/GitLabPanel";
+import { useGitLabIntegration } from "@/hooks/useGitLab";
 import { ActivityFeed } from "@/components/issues/ActivityFeed";
 import { CommentBox } from "@/components/issues/CommentBox";
 import { AttachmentPanel } from "@/components/issues/AttachmentPanel";
@@ -76,7 +78,7 @@ const EPIC_COLORS = [
   "#94a3b8",
 ];
 
-type Tab = "comments" | "activity" | "links";
+type Tab = "comments" | "activity" | "links" | "development";
 
 export function IssueDetail({ issue: initialIssue, onClose }: Props) {
   const qc = useQueryClient();
@@ -91,6 +93,15 @@ export function IssueDetail({ issue: initialIssue, onClose }: Props) {
   const { data: versions = [] } = useVersions(issue.project_id);
   const { data: projectComponents = [] } = useComponents(issue.project_id);
   const { data: statuses = [] } = useStatuses(issue.project_id);
+  const { data: gitlabIntegration } = useGitLabIntegration(issue.project_id);
+  // API returns {configured:false} when no row exists, or the full object.
+  const hasGitLab = (() => {
+    if (!gitlabIntegration) return false;
+    if ("configured" in gitlabIntegration && gitlabIntegration.configured === false) {
+      return false;
+    }
+    return (gitlabIntegration as { enabled?: boolean }).enabled !== false;
+  })();
   const setIssueComponents = useSetIssueComponents();
   const { user } = useAuthStore();
   const { dateFormat, timeFormat } = useProjectFormat();
@@ -202,6 +213,9 @@ export function IssueDetail({ issue: initialIssue, onClose }: Props) {
     { key: "comments", label: "Comments", count: issue.comments?.length ?? 0 },
     { key: "activity", label: "Activity" },
     { key: "links", label: "Links" },
+    ...(hasGitLab
+      ? [{ key: "development" as Tab, label: "Development" }]
+      : []),
   ];
 
   return (
@@ -831,6 +845,11 @@ export function IssueDetail({ issue: initialIssue, onClose }: Props) {
             <TabsContent value="links">
               <LinksPanel issue={issue} />
             </TabsContent>
+            {hasGitLab && (
+              <TabsContent value="development">
+                <GitLabPanel issue={issue} />
+              </TabsContent>
+            )}
           </Tabs>
         </div>
       </SheetContent>

@@ -52,6 +52,8 @@ func Migrate(db *gorm.DB) error {
 		&models.WikiWatcher{},
 		&models.PersonalAccessToken{},
 		&models.UserAppearance{},
+		&models.GitLabIntegration{},
+		&models.IssueExternalRef{},
 	)
 }
 

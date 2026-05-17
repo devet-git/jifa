@@ -12,11 +12,27 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
+// 401 from these paths means an upstream credential failed (e.g. revoked
+// GitLab PAT) — must not log the Jifa user out.
+const UPSTREAM_PATH_FRAGMENTS = ["/integrations/", "/external-refs"];
+
+function isUpstreamRequest(url: string | undefined): boolean {
+  if (!url) return false;
+  return UPSTREAM_PATH_FRAGMENTS.some((frag) => url.includes(frag));
+}
+
 api.interceptors.response.use(
   (res) => res,
   (err) => {
+    const status = err.response?.status;
+    const url: string | undefined = err.config?.url;
+    const hasUpstreamFlag = !!err.response?.data?.upstream_op;
+
+    const isJifaAuthFailure =
+      status === 401 && !hasUpstreamFlag && !isUpstreamRequest(url);
+
     if (
-      err.response?.status === 401 &&
+      isJifaAuthFailure &&
       typeof window !== "undefined" &&
       !window.location.pathname.startsWith("/login")
     ) {

@@ -37,6 +37,10 @@ func NewRouter(db *gorm.DB, cfg *config.Config) *gin.Engine {
 	api.POST("/auth/forgot-password", pwResetHandler.ForgotPassword)
 	api.POST("/auth/reset-password", pwResetHandler.ResetPassword)
 
+	// Not JWT-protected; auth is the X-Gitlab-Token shared secret.
+	gitlabWebhookHandler := handlers.NewGitLabWebhookHandler(db)
+	api.POST("/gitlab/webhook/:projectId", gitlabWebhookHandler.Receive)
+
 	// Protected routes
 	protected := api.Group("")
 	protected.Use(middleware.Auth(cfg.JWTSecret), middleware.RateLimit())
@@ -116,6 +120,16 @@ func NewRouter(db *gorm.DB, cfg *config.Config) *gin.Engine {
 	project.DELETE("/webhooks/:webhookId", middleware.RequirePermission("webhook.manage"), webhookHandler.Delete)
 	project.POST("/webhooks/:webhookId/test", middleware.RequirePermission("webhook.manage"), webhookHandler.Test)
 	project.POST("/webhooks/test", middleware.RequirePermission("webhook.manage"), webhookHandler.TestDraft)
+
+	// GET is open to any member so the "Development" tab can render for them.
+	gitlabHandler := handlers.NewGitLabHandler(db)
+	project.GET("/integrations/gitlab", gitlabHandler.Get)
+	project.PUT("/integrations/gitlab", middleware.RequirePermission("project.edit"), gitlabHandler.Upsert)
+	project.DELETE("/integrations/gitlab", middleware.RequirePermission("project.edit"), gitlabHandler.Disconnect)
+	project.POST("/integrations/gitlab/test", middleware.RequirePermission("project.edit"), gitlabHandler.Test)
+	project.POST("/integrations/gitlab/enabled", middleware.RequirePermission("project.edit"), gitlabHandler.SetEnabled)
+	project.GET("/integrations/gitlab/secret", middleware.RequirePermission("project.edit"), gitlabHandler.RevealSecret)
+	project.POST("/integrations/gitlab/rotate-secret", middleware.RequirePermission("project.edit"), gitlabHandler.RotateSecret)
 
 	statusHandler := handlers.NewStatusHandler(db)
 	project.GET("/statuses", middleware.RequirePermission("project.view"), statusHandler.List)
@@ -245,6 +259,13 @@ func NewRouter(db *gorm.DB, cfg *config.Config) *gin.Engine {
 	issues.GET("/:id/attachments", middleware.RequireIssuePermission(db, "issue.view"), attachHandler.List)
 	issues.POST("/:id/attachments", middleware.RequireIssuePermission(db, "issue.manage-attachment"), attachHandler.Upload)
 	issues.GET("/:id/attachments/:attachmentId", middleware.RequireIssuePermission(db, "issue.view"), attachHandler.Download)
+
+	extRefHandler := handlers.NewExternalRefHandler(db)
+	issues.GET("/:id/external-refs", middleware.RequireIssuePermission(db, "issue.view"), extRefHandler.List)
+	issues.POST("/:id/external-refs", middleware.RequireIssuePermission(db, "issue.manage-link"), extRefHandler.Create)
+	issues.DELETE("/:id/external-refs/:refId", middleware.RequireIssuePermission(db, "issue.manage-link"), extRefHandler.Delete)
+	issues.POST("/:id/external-refs/create-branch", middleware.RequireIssuePermission(db, "issue.manage-link"), extRefHandler.CreateBranch)
+	issues.GET("/:id/external-refs/branches", middleware.RequireIssuePermission(db, "issue.view"), extRefHandler.ListBranches)
 	issues.DELETE("/:id/attachments/:attachmentId", middleware.RequireIssuePermission(db, "issue.manage-attachment"), attachHandler.Delete)
 
 	// Notifications

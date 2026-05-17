@@ -24,17 +24,22 @@ func (h *ActivityHandler) List(c *gin.Context) {
 	c.JSON(http.StatusOK, entries)
 }
 
-// logActivity inserts an activity row. It silently ignores empty diffs and
-// failures (the caller is in the middle of a user-facing mutation).
+// logActivity inserts an activity row. Silently ignores empty diffs and
+// insert failures (callers are in the middle of a user-facing mutation).
+// userID == 0 is persisted as NULL ("system action").
 func logActivity(db *gorm.DB, issueID, userID uint, field string, oldValue, newValue any) {
 	o := stringify(oldValue)
 	n := stringify(newValue)
 	if o == n {
 		return
 	}
+	var uid *uint
+	if userID != 0 {
+		uid = &userID
+	}
 	_ = db.Create(&models.IssueActivity{
 		IssueID:  issueID,
-		UserID:   userID,
+		UserID:   uid,
 		Field:    field,
 		OldValue: o,
 		NewValue: n,

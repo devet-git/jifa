@@ -1,26 +1,26 @@
-"use client";
+'use client';
 
-import { useEffect, useState } from "react";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useSearch } from "@/hooks/useSearch";
+import { useEffect, useState } from 'react';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { useSearch } from '@/hooks/useSearch';
 import {
   useNotifications,
   useUnreadCount,
   useMarkRead,
   useMarkAllRead,
-} from "@/hooks/useNotifications";
-import { Avatar } from "@/components/ui/Avatar";
-import { UserHoverCard } from "@/components/ui/UserHoverCard";
-import { IssueHoverCard } from "@/components/ui/IssueHoverCard";
-import { Tooltip } from "@/components/ui/Tooltip";
-import { ThemeToggle } from "@/components/layout/ThemeToggle";
-import { useAuthStore } from "@/store/auth";
+} from '@/hooks/useNotifications';
+import { Avatar } from '@/components/ui/Avatar';
+import { UserHoverCard } from '@/components/ui/UserHoverCard';
+import { IssueHoverCard } from '@/components/ui/IssueHoverCard';
+import { Tooltip } from '@/components/ui/Tooltip';
+import { ThemeToggle } from '@/components/layout/ThemeToggle';
+import { useAuthStore } from '@/store/auth';
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-} from "@/components/ui/Popover";
+} from '@/components/ui/Popover';
 import {
   CommandDialog,
   CommandEmpty,
@@ -29,12 +29,12 @@ import {
   CommandItem,
   CommandList,
   CommandSeparator,
-} from "@/components/ui/Command";
-import type { Notification } from "@/types";
+} from '@/components/ui/Command';
+import type { Notification } from '@/types';
 
 export function TopBar() {
   return (
-    <div className="h-14 sticky top-0 z-30 flex items-center px-5 gap-2 glass border-b border-border">
+    <div className="h-14 sticky top-0 z-30 flex items-center px-5 gap-2 glass border-b border-l-0! border-border">
       <SearchBox />
       <div className="flex-1" />
       <ThemeToggle />
@@ -50,7 +50,7 @@ function UserMenu() {
   return (
     <Tooltip content="Preferences" position="bottom">
       <button
-        onClick={() => router.push("/preferences")}
+        onClick={() => router.push('/preferences')}
         aria-label="Preferences"
         className="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-surface-2 transition shrink-0"
       >
@@ -66,7 +66,7 @@ function UserMenu() {
 }
 
 function SearchBox() {
-  const [q, setQ] = useState("");
+  const [q, setQ] = useState('');
   const [open, setOpen] = useState(false);
   const router = useRouter();
   const { data } = useSearch(q);
@@ -74,14 +74,14 @@ function SearchBox() {
   /* Global ⌘K / Ctrl+K opens the command palette. */
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
-      const isMac = navigator.platform.toUpperCase().includes("MAC");
-      if ((isMac ? e.metaKey : e.ctrlKey) && e.key.toLowerCase() === "k") {
+      const isMac = navigator.platform.toUpperCase().includes('MAC');
+      if ((isMac ? e.metaKey : e.ctrlKey) && e.key.toLowerCase() === 'k') {
         e.preventDefault();
         setOpen((v) => !v);
       }
     }
-    document.addEventListener("keydown", onKey);
-    return () => document.removeEventListener("keydown", onKey);
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
   }, []);
 
   const issues = data?.issues ?? [];
@@ -90,7 +90,7 @@ function SearchBox() {
   function go(href: string) {
     router.push(href);
     setOpen(false);
-    setQ("");
+    setQ('');
   }
 
   return (
@@ -125,7 +125,7 @@ function SearchBox() {
         open={open}
         onOpenChange={(o) => {
           setOpen(o);
-          if (!o) setQ("");
+          if (!o) setQ('');
         }}
       >
         <CommandInput
@@ -136,7 +136,7 @@ function SearchBox() {
         />
         <CommandList>
           <CommandEmpty>
-            {q.trim() ? "No results found." : "Type to search…"}
+            {q.trim() ? 'No results found.' : 'Type to search…'}
           </CommandEmpty>
           {issues.length > 0 && (
             <CommandGroup heading="Issues">
@@ -189,30 +189,30 @@ function BellMenu() {
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <Tooltip content="Notifications">
-      <PopoverTrigger asChild>
-        <button
-          aria-label="Notifications"
-          className="relative w-9 h-9 rounded-lg flex items-center justify-center text-muted hover:text-foreground hover:bg-surface-2 transition outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
-        >
-          <svg
-            className="w-[18px] h-[18px]"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.8"
-            strokeLinecap="round"
-            strokeLinejoin="round"
+        <PopoverTrigger asChild>
+          <button
+            aria-label="Notifications"
+            className="relative w-9 h-9 rounded-lg flex items-center justify-center text-muted hover:text-foreground hover:bg-surface-2 transition outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
           >
-            <path d="M6 8a6 6 0 1 1 12 0c0 5 2 6 2 6H4s2-1 2-6" />
-            <path d="M10 19a2 2 0 0 0 4 0" />
-          </svg>
-          {unread > 0 && (
-            <span className="absolute top-1 right-1 min-w-[16px] h-[16px] px-1 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center ring-2 ring-background">
-              {unread > 99 ? "99+" : unread}
-            </span>
-          )}
-        </button>
-      </PopoverTrigger>
+            <svg
+              className="w-[18px] h-[18px]"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.8"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M6 8a6 6 0 1 1 12 0c0 5 2 6 2 6H4s2-1 2-6" />
+              <path d="M10 19a2 2 0 0 0 4 0" />
+            </svg>
+            {unread > 0 && (
+              <span className="absolute top-1 right-1 min-w-[16px] h-[16px] px-1 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center ring-2 ring-background">
+                {unread > 99 ? '99+' : unread}
+              </span>
+            )}
+          </button>
+        </PopoverTrigger>
       </Tooltip>
       <PopoverContent
         align="end"
@@ -299,16 +299,16 @@ function NotificationRow({
     <button
       onClick={click}
       className={`w-full text-left px-4 py-3 flex gap-3 border-b border-border text-sm hover:bg-surface-2 transition ${
-        isUnread ? "bg-brand-soft/40" : ""
+        isUnread ? 'bg-brand-soft/40' : ''
       }`}
     >
       <UserHoverCard user={n.actor} side="left" align="start">
-        <Avatar name={n.actor?.name ?? "?"} src={n.actor?.avatar} size="sm" />
+        <Avatar name={n.actor?.name ?? '?'} src={n.actor?.avatar} size="sm" />
       </UserHoverCard>
       <div className="flex-1 min-w-0">
         <p className="text-sm leading-snug">
-          <span className="font-medium">{n.actor?.name ?? "Someone"}</span>{" "}
-          <span className="text-muted">{verbFor(n.type)}</span>{" "}
+          <span className="font-medium">{n.actor?.name ?? 'Someone'}</span>{' '}
+          <span className="text-muted">{verbFor(n.type)}</span>{' '}
           {n.issue && (
             <IssueHoverCard issue={n.issue} side="left" align="start">
               <span className="font-mono text-xs text-muted cursor-default">
@@ -336,17 +336,17 @@ function NotificationRow({
   );
 }
 
-function verbFor(t: Notification["type"]) {
+function verbFor(t: Notification['type']) {
   switch (t) {
-    case "comment":
-      return "commented on";
-    case "mention":
-      return "mentioned you in";
-    case "assigned":
-      return "assigned you to";
-    case "status_change":
-      return "moved";
-    case "link_added":
-      return "linked";
+    case 'comment':
+      return 'commented on';
+    case 'mention':
+      return 'mentioned you in';
+    case 'assigned':
+      return 'assigned you to';
+    case 'status_change':
+      return 'moved';
+    case 'link_added':
+      return 'linked';
   }
 }

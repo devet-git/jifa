@@ -25,7 +25,9 @@
       "Bash(npm install *)",
       "Bash(git show *)",
       "Bash(echo \"EXIT=$?\")",
-      "mcp__gitnexus__detect_changes"
+      "mcp__gitnexus__detect_changes",
+      "Bash(npm run *)",
+      "Bash(go test *)"
     ]
   },
   "outputStyle": "default"

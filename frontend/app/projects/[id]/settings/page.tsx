@@ -108,6 +108,7 @@ import {
   SelectValue,
 } from "@/components/ui/Select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/Tabs";
+import { GitLabSettingsTab } from "@/components/integrations/GitLabSettingsTab";
 import { Trash2, X, Users, Settings, GitBranch, LayoutDashboard, Puzzle, Tag, Webhook as WebhookIcon, ClipboardList, Shield, Lock, Plus, Search, Check, Pencil, ArrowLeft, Download, AlertTriangle, List, Upload, GripVertical, ChevronRight } from "lucide-react";
 import type {
   BacklogFilterState,
@@ -137,6 +138,7 @@ type Tab =
   | "components"
   | "labels"
   | "webhooks"
+  | "gitlab"
   | "audit"
   | "details";
 
@@ -379,6 +381,7 @@ const tabConfig: { key: Tab; label: string; icon: React.ReactNode }[] = [
   { key: "boards", label: "Boards", icon: <LayoutDashboard className="w-3.5 h-3.5" /> },
   // 4) Integrations & history
   { key: "webhooks", label: "Webhooks", icon: <WebhookIcon className="w-3.5 h-3.5" /> },
+  { key: "gitlab", label: "GitLab", icon: <GitBranch className="w-3.5 h-3.5" /> },
   { key: "audit", label: "Audit", icon: <ClipboardList className="w-3.5 h-3.5" /> },
 ];
 
@@ -458,6 +461,8 @@ export default function ProjectSettingsPage({
         return myPermKeys?.includes("issue.edit");
       case "webhooks":
         return myPermKeys?.includes("webhook.manage");
+      case "gitlab":
+        return myPermKeys?.includes("project.edit");
       case "audit":
         return myPermKeys?.includes("audit.view");
       case "details":
@@ -556,7 +561,7 @@ export default function ProjectSettingsPage({
     <Tabs
       value={activeTab}
       onValueChange={(v) => setTab(v as Tab)}
-      className="flex flex-col h-full"
+      className="flex flex-col h-full min-h-0"
     >
       {/* Header */}
       <div className="px-6 pt-2 pb-0 border-b border-border bg-surface">
@@ -588,7 +593,7 @@ export default function ProjectSettingsPage({
       </div>
 
       {/* Content */}
-      <div className="flex-1 px-6 py-5 overflow-auto">
+      <div className="flex-1 px-6 py-5 overflow-auto min-h-0">
         <TabsContent value="members" className="!mt-0">
           <div className="animate-fade-in">
             <div className="grid gap-4 items-start grid-cols-1 lg:grid-cols-[1fr_280px]">
@@ -815,6 +820,9 @@ export default function ProjectSettingsPage({
         </TabsContent>
         <TabsContent value="webhooks" className="!mt-0">
           <WebhooksTab projectId={id} />
+        </TabsContent>
+        <TabsContent value="gitlab" className="!mt-0">
+          <GitLabSettingsTab projectId={id} />
         </TabsContent>
         <TabsContent value="audit" className="!mt-0">
           <AuditTab
