@@ -49,7 +49,10 @@ export default function RegisterPage() {
             Full name
           </label>
           <input
+            id="register-name"
+            name="name"
             type="text"
+            autoComplete="name"
             required
             placeholder="Jane Smith"
             className="input"
@@ -62,7 +65,10 @@ export default function RegisterPage() {
             Email
           </label>
           <input
+            id="register-email"
+            name="email"
             type="email"
+            autoComplete="email"
             required
             placeholder="you@example.com"
             className="input"
@@ -82,7 +88,10 @@ export default function RegisterPage() {
             </button>
           </div>
           <input
+            id="register-password"
+            name="password"
             type={showPwd ? "text" : "password"}
+            autoComplete="new-password"
             required
             minLength={8}
             placeholder="At least 8 characters"

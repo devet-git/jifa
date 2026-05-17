@@ -70,7 +70,10 @@ function ResetPasswordForm() {
         <div>
           <label className="block text-xs font-medium mb-1.5 text-muted">New password</label>
           <input
+            id="reset-new-password"
+            name="new-password"
             type="password"
+            autoComplete="new-password"
             required
             minLength={8}
             placeholder="At least 8 characters"
@@ -82,7 +85,10 @@ function ResetPasswordForm() {
         <div>
           <label className="block text-xs font-medium mb-1.5 text-muted">Confirm password</label>
           <input
+            id="reset-confirm-password"
+            name="confirm-password"
             type="password"
+            autoComplete="new-password"
             required
             minLength={8}
             placeholder="Repeat your new password"

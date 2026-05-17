@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ReactNode } from "react";
 import { Check } from "lucide-react";
+import { LogoMark } from "@/components/ui/LogoMark";
 
 interface AuthShellProps {
   title: string;
@@ -27,9 +28,7 @@ export function AuthShell({ title, subtitle, children }: AuthShellProps) {
 
         <div className="relative px-12 pt-10">
           <Link href="/" className="inline-flex items-center gap-2.5">
-            <span className="w-9 h-9 rounded-xl bg-white/15 backdrop-blur flex items-center justify-center font-bold text-lg">
-              J
-            </span>
+            <LogoMark size={36} gradientId="jf-auth-hero" className="shadow-md shadow-black/20" />
             <span className="text-xl font-bold tracking-tight">JIFA</span>
           </Link>
         </div>
@@ -75,9 +74,7 @@ export function AuthShell({ title, subtitle, children }: AuthShellProps) {
           {/* Mobile-only brand mark */}
           <div className="lg:hidden mb-8 flex justify-center">
             <Link href="/" className="inline-flex items-center gap-2.5">
-              <span className="w-9 h-9 rounded-xl gradient-brand flex items-center justify-center font-bold text-white text-lg shadow-md shadow-indigo-600/30">
-                J
-              </span>
+              <LogoMark size={36} gradientId="jf-auth-mobile" className="shadow-md shadow-indigo-600/30" />
               <span className="text-xl font-bold tracking-tight">JIFA</span>
             </Link>
           </div>

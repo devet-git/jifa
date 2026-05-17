@@ -1,7 +1,11 @@
+"use client";
+
 import { Sidebar } from "./Sidebar";
 import { TopBar } from "./TopBar";
+import { useAppearance } from "@/hooks/useAppearance";
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
+  useAppearance();
   return (
     <div className="flex h-screen overflow-hidden">
       <Sidebar />

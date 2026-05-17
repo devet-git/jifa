@@ -4,7 +4,7 @@ import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useMe, useUpdateProfile } from "@/hooks/useUsers";
 import { showConfirm } from "@/store/confirm";
-import { useAuthStore } from "@/store/auth";
+import { useLogout } from "@/hooks/useLogout";
 import { Avatar } from "@/components/ui/Avatar";
 import { Button } from "@/components/ui/Button";
 import { Camera, LogOut, User } from "lucide-react";
@@ -15,7 +15,7 @@ export default function AccountPage() {
   const fileRef = useRef<HTMLInputElement>(null);
   const [name, setName] = useState("");
   const router = useRouter();
-  const logout = useAuthStore((s) => s.logout);
+  const logout = useLogout();
 
   function handleAvatarChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];

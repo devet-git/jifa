@@ -18,6 +18,7 @@ import {
   Plus,
 } from "lucide-react";
 import { CreateProjectModal } from "@/components/projects/CreateProjectModal";
+import { LogoMark } from "@/components/ui/LogoMark";
 
 type NavItem = {
   href: string;
@@ -143,26 +144,7 @@ export function Sidebar() {
             rail && "justify-center w-full",
           )}
         >
-          <svg
-            width="32"
-            height="32"
-            viewBox="0 0 40 40"
-            fill="none"
-            xmlns="http://www.w3.org/2000/svg"
-            className="shrink-0 rounded-lg shadow-md shadow-indigo-600/20"
-          >
-            <defs>
-              <linearGradient id="jf-sidebar" x1="0" y1="0" x2="1" y2="1">
-                <stop offset="0%" stopColor="#6366f1" />
-                <stop offset="100%" stopColor="#8b5cf6" />
-              </linearGradient>
-            </defs>
-            <rect width="40" height="40" rx="9" fill="url(#jf-sidebar)" />
-            <g stroke="white" strokeWidth="3.4" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M9.5,32 L9.5,8 L29,8 L29,26 C29,34 18,35 16,29" />
-              <line x1="9.5" y1="20" x2="20" y2="20" />
-            </g>
-          </svg>
+          <LogoMark size={32} gradientId="jf-sidebar" className="shadow-md shadow-indigo-600/20" />
           {!rail && (
             <span className="text-lg font-bold tracking-tight text-foreground">
               JIFA

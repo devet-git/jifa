@@ -54,7 +54,10 @@ export default function ForgotPasswordPage() {
             <div>
               <label className="block text-xs font-medium mb-1.5 text-muted">Email</label>
               <input
+                id="forgot-email"
+                name="email"
                 type="email"
+                autoComplete="username"
                 required
                 placeholder="you@example.com"
                 className="input"

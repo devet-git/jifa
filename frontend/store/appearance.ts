@@ -12,6 +12,7 @@ export interface AppearanceState {
   setFontFamily: (v: AppearancePreferences["font_family"]) => void;
   setAccentColor: (v: AppearancePreferences["accent_color"]) => void;
   syncFromBackend: (prefs: AppearancePreferences) => void;
+  reset: () => void;
 }
 
 const DEFAULTS: Pick<AppearanceState, "fontSize" | "fontFamily" | "accentColor"> = {
@@ -33,6 +34,7 @@ export const useAppearanceStore = create<AppearanceState>()(
           fontFamily: prefs.font_family ?? DEFAULTS.fontFamily,
           accentColor: prefs.accent_color ?? DEFAULTS.accentColor,
         }),
+      reset: () => set({ ...DEFAULTS }),
     }),
     { name: "jifa-appearance" },
   ),

@@ -65,8 +65,10 @@ export default function LoginPage() {
               Authenticator code
             </label>
             <input
+              name="totp_code"
               type="text"
               inputMode="numeric"
+              autoComplete="one-time-code"
               pattern="[0-9]{6}"
               maxLength={6}
               required
@@ -114,7 +116,10 @@ export default function LoginPage() {
             Email
           </label>
           <input
+            id="login-email"
+            name="email"
             type="email"
+            autoComplete="username"
             required
             placeholder="you@example.com"
             className="input"
@@ -139,7 +144,10 @@ export default function LoginPage() {
             </div>
           </div>
           <input
+            id="login-password"
+            name="password"
             type={showPwd ? "text" : "password"}
+            autoComplete="current-password"
             required
             placeholder="••••••••"
             className="input"

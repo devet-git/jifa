@@ -21,6 +21,7 @@ api.interceptors.response.use(
       !window.location.pathname.startsWith("/login")
     ) {
       localStorage.removeItem("token");
+      localStorage.removeItem("jifa-appearance");
       window.location.href = `${basePath}/login`;
     }
     return Promise.reject(err);

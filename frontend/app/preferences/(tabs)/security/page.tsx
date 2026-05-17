@@ -170,8 +170,10 @@ export default function SecurityPage() {
                 <label className="text-xs text-muted block mb-1">2. Enter the 6-digit code to verify:</label>
                 <input
                   required
+                  name="totp_code"
                   type="text"
                   inputMode="numeric"
+                  autoComplete="one-time-code"
                   pattern="[0-9]{6}"
                   maxLength={6}
                   placeholder="000000"
@@ -203,7 +205,9 @@ export default function SecurityPage() {
               <label className="text-xs text-muted block mb-1">Confirm your password to disable:</label>
               <input
                 required
+                name="password"
                 type="password"
+                autoComplete="current-password"
                 placeholder="Enter current password"
                 className="input"
                 value={totpPassword}
@@ -244,7 +248,9 @@ export default function SecurityPage() {
             <label className="text-xs text-muted block mb-1">Current password</label>
             <input
               required
+              name="current-password"
               type="password"
+              autoComplete="current-password"
               className="input !py-1.5 !text-sm w-full"
               value={pwCurrent}
               onChange={(e) => setPwCurrent(e.target.value)}
@@ -254,7 +260,9 @@ export default function SecurityPage() {
             <label className="text-xs text-muted block mb-1">New password (min. 8 characters)</label>
             <input
               required
+              name="new-password"
               type="password"
+              autoComplete="new-password"
               minLength={8}
               className="input !py-1.5 !text-sm w-full"
               value={pwNew}
@@ -265,7 +273,9 @@ export default function SecurityPage() {
             <label className="text-xs text-muted block mb-1">Confirm new password</label>
             <input
               required
+              name="confirm-password"
               type="password"
+              autoComplete="new-password"
               minLength={8}
               className="input !py-1.5 !text-sm w-full"
               value={pwConfirm}
